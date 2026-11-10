@@ -2,6 +2,14 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.4] - 2026-11-10
+
+### Fixed
+
+- Cleaner deletion uses the container path captured during the scan instead of re-resolving by bundle id; MCM being unavailable no longer turns selected apps into “bundle unavailable”.
+- Cleaner removes `Library/Caches` and `tmp` contents through `FileManager` and only follows a symlinked Caches when its resolved target stays inside the app container.
+- Added `cleaner: cleaning …`, `remove failed …`, and symlink-refusal diagnostics.
+
 ## [3.1.3] - 2026-11-10
 
 ### Fixed

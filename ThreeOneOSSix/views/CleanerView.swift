@@ -606,13 +606,21 @@ struct CleanerView: View {
             var unavailableApps = 0
 
             for record in selectedRecords {
-                guard let containerPath = ContainerStore.resolveAppContainerPath(
+                // The scan already resolved the exact container. Re-resolving
+                // by bundle id fails whenever MCM is unavailable.
+                let containerPath: String
+                if ContainerStore.isApplicationContainerPath(record.app.containerPath) {
+                    containerPath = record.app.containerPath
+                } else if let resolved = ContainerStore.resolveAppContainerPath(
                     bundleID: record.app.bundleID
-                ) else {
+                ) {
+                    containerPath = resolved
+                } else {
                     unavailableApps += 1
                     log("cleaner: bundle unavailable \(record.app.bundleID)")
                     continue
                 }
+                log("cleaner: cleaning \(record.app.bundleID) at \(containerPath)")
 
                 do {
                     let result = try LimitedCleanerService.clean(

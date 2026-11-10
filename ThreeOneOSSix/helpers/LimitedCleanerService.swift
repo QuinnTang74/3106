@@ -117,27 +117,72 @@ enum LimitedCleanerService {
         rootValidator: ContainerRootValidator
     ) throws -> LimitedCleanerResult {
         let before = try scan(containerURL: containerURL, rootValidator: rootValidator)
-        var removal = RemovalSummary()
+        let root = containerURL.standardizedFileURL
+        guard root.path.hasPrefix("/"),
+              root.path != "/",
+              rootValidator(root) else {
+            throw LimitedCleanerError.unsafeContainerRoot
+        }
 
-        try withValidatedRootDescriptor(containerURL, rootValidator: rootValidator) { rootDescriptor in
-            for components in [["Library", "Caches"], ["tmp"]] {
-                guard let directoryDescriptor = openDirectory(
-                    components: components,
-                    relativeTo: rootDescriptor
-                ) else {
-                    continue
-                }
-                removeDirectoryContents(directoryDescriptor, summary: &removal)
-                close(directoryDescriptor)
+        let containerGrant = ContainerStore.grantContainerAccess(root.path)
+        defer { SandboxAccess.release(containerGrant) }
+        var targetGrants: [Int64] = []
+        defer {
+            for targetGrant in targetGrants { SandboxAccess.release(targetGrant) }
+        }
+
+        let resolvedRoot = root.resolvingSymlinksInPath().standardizedFileURL
+        var removed = 0
+        var failed = 0
+
+        for relative in allowedRelativeDirectories {
+            let target = relative.split(separator: "/").reduce(root) { current, part in
+                current.appendingPathComponent(String(part), isDirectory: true)
             }
+            let grant = ContainerStore.grantContainerAccess(target.path)
+            if grant >= 0 { targetGrants.append(grant) }
+            guard FileManager.default.fileExists(atPath: target.path) else { continue }
+
+            // `Library/Caches` is often a symlink. Only follow it when the
+            // resolved target stays inside the app container.
+            let resolvedTarget = target.resolvingSymlinksInPath().standardizedFileURL
+            let inside = resolvedTarget.path == resolvedRoot.path ||
+                resolvedTarget.path.hasPrefix(resolvedRoot.path + "/")
+            guard inside else {
+                failed += 1
+                log(
+                    "cleaner: refusing symlink outside container " +
+                        "\(target.path) -> \(resolvedTarget.path)"
+                )
+                continue
+            }
+
+            let children = (try? FileManager.default.contentsOfDirectory(
+                at: target,
+                includingPropertiesForKeys: [.isSymbolicLinkKey],
+                options: []
+            )) ?? []
+            for child in children {
+                do {
+                    try FileManager.default.removeItem(at: child)
+                    removed += 1
+                } catch {
+                    failed += 1
+                    log(
+                        "cleaner: remove failed \(child.path) " +
+                            "error=\(error.localizedDescription)"
+                    )
+                }
+            }
+            log("cleaner: removed=\(removed) failed=\(failed) under \(target.path)")
         }
 
         let after = try scan(containerURL: containerURL, rootValidator: rootValidator)
         return LimitedCleanerResult(
             before: before,
             after: after,
-            removedItemCount: removal.removedItemCount,
-            failedItemCount: removal.failedItemCount
+            removedItemCount: removed,
+            failedItemCount: failed
         )
     }
 
