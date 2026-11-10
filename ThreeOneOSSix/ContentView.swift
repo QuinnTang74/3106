@@ -161,7 +161,7 @@ struct ContentView: View {
                 onOpenLogs: openLogs
             )
         case .cleaner:
-            CleanerView()
+            CleanerView(onOpenSettings: openSettings)
         case .wallpapers:
             WallpaperLabView(
                 onOpenSettings: openSettings,

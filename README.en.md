@@ -48,7 +48,7 @@ Policy tests:
 bash Tests/run_policy_tests.sh
 ```
 
-Build output goes to `dist/`, named like `3106-3.1.1-unsigned.ipa`.
+Build output goes to `dist/`, named like `3106-3.1.2-unsigned.ipa`.
 
 ## License and commercial use
 

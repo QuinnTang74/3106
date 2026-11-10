@@ -402,9 +402,10 @@ struct WallpaperLabView: View {
             )
         }
 #endif
-        guard let path = ContainerStore.resolveAppContainerPath(
-            bundleID: "com.apple.PosterBoard"
-        ) else { throw WallpaperLabError.accessDenied }
+        guard let path = WallpaperDeviceAccessService.containerPath() else {
+            log("wallpaper: PosterBoard container unavailable in view")
+            throw WallpaperLabError.accessDenied
+        }
         return try WallpaperAccessProbe.probe(
             containerURL: URL(fileURLWithPath: path, isDirectory: true),
             rootValidator: { ContainerStore.isApplicationContainerPath($0.path) },

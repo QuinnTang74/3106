@@ -107,6 +107,41 @@ enum WallpaperAccessProbe {
 }
 
 enum WallpaperDeviceAccessService {
+    /// Resolve PosterBoard's container without relying on MCM or the bundle-id
+    /// index alone: scan app-data containers for the poster store directory.
+    static func containerPath() -> String? {
+        if let path = ContainerStore.resolveAppContainerPath(
+            bundleID: "com.apple.PosterBoard"
+        ) {
+            log("wallpaper: PosterBoard container=\(path)")
+            return path
+        }
+
+        let identifiers = worse_query_path_identifiers()
+        if let path = identifiers.first(where: { $0.value == "com.apple.PosterBoard" })?.key {
+            log("wallpaper: PosterBoard container=\(path) (reverse index)")
+            return path
+        }
+
+        let storeRelativePath = WallpaperLayoutScanner.storeRelativePath
+        for directory in ContainerStore.enumerateDirectories(path: ContainerStore.appDataRoot) {
+            let grant = ContainerStore.grantContainerAccess(directory)
+            let storePath = (directory as NSString).appendingPathComponent(storeRelativePath)
+            let exists = FileManager.default.fileExists(atPath: storePath)
+            if grant >= 0 { SandboxAccess.release(grant) }
+            if exists {
+                log("wallpaper: PosterBoard container=\(directory) (poster store scan)")
+                return directory
+            }
+        }
+
+        let posterIDs = Set(
+            identifiers.values.filter { $0.localizedCaseInsensitiveContains("PosterBoard") }
+        )
+        log("wallpaper: PosterBoard container unavailable ids=\(posterIDs.sorted())")
+        return nil
+    }
+
     static func report(
         requiredExtensionIdentifiers: Set<String>? = nil
     ) throws -> WallpaperAccessReport {
@@ -132,22 +167,9 @@ enum WallpaperDeviceAccessService {
             )
         }
 #endif
-        var path = ContainerStore.resolveAppContainerPath(
-            bundleID: "com.apple.PosterBoard"
-        )
-        if path == nil {
-            let identifiers = worse_query_path_identifiers()
-            path = identifiers.first(where: { $0.value == "com.apple.PosterBoard" })?.key
-            let posterIDs = Set(
-                identifiers.values.filter { $0.localizedCaseInsensitiveContains("PosterBoard") }
-            )
-            log("wallpaper: PosterBoard container fallback ids=\(posterIDs.sorted())")
-        }
-        guard let path else {
-            log("wallpaper: PosterBoard container unavailable")
+        guard let path = containerPath() else {
             throw WallpaperLabError.accessDenied
         }
-        log("wallpaper: PosterBoard container=\(path)")
         do {
             let report = try WallpaperAccessProbe.probe(
                 containerURL: URL(fileURLWithPath: path, isDirectory: true),
@@ -196,9 +218,7 @@ enum WallpaperDeviceAccessService {
         guard currentReport.canInstall else {
             throw WallpaperLabError.accessDenied
         }
-        guard let path = ContainerStore.resolveAppContainerPath(
-            bundleID: "com.apple.PosterBoard"
-        ) else {
+        guard let path = containerPath() else {
             throw WallpaperLabError.accessDenied
         }
         let containerURL = URL(fileURLWithPath: path, isDirectory: true)

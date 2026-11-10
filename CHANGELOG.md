@@ -2,6 +2,16 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.2] - 2026-11-10
+
+### Fixed
+
+- Cleaner measures `Library/Caches` and `tmp` with `FileManager` enumeration instead of `openat(O_NOFOLLOW)`, which rejected symlinked Caches directories and reported every app as empty.
+- Cleaner prefers the container path already discovered by filesystem enumeration instead of re-resolving it through MCM.
+- Cleaner shows the Settings gear at all times, including the empty/scan state.
+- Wallpaper resolves PosterBoard by scanning app-data containers for `Library/Application Support/PRBPosterExtensionDataStore` when MCM and the bundle-id index both fail.
+- Wallpaper view and service share the same fallback resolver; diagnostics now include the chosen container path.
+
 ## [3.1.1] - 2026-11-10
 
 ### Fixed

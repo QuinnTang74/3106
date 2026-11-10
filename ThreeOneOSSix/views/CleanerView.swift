@@ -13,6 +13,11 @@ struct CleanerView: View {
     @State private var hasLoaded = false
     @State private var scanID = UUID()
     @State private var activeAlert: CleanerAlert?
+    let onOpenSettings: () -> Void
+
+    init(onOpenSettings: @escaping () -> Void = {}) {
+        self.onOpenSettings = onOpenSettings
+    }
 
     private var filteredRecords: [CleanerAppRecord] {
         let matchingRecords: [CleanerAppRecord]
@@ -210,12 +215,23 @@ struct CleanerView: View {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 sortMenu
                 refreshButton
+                settingsButton
             }
         } else {
             ToolbarItem(placement: .navigationBarLeading) {
                 refreshButton
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                settingsButton
+            }
         }
+    }
+
+    private var settingsButton: some View {
+        Button { onOpenSettings() } label: {
+            Image(systemName: "gearshape")
+        }
+        .accessibilityLabel(language.text("settings.title"))
     }
 
     private var selectionMenu: some View {
@@ -483,13 +499,15 @@ struct CleanerView: View {
                         ContainerPresentationPolicy.shouldShow(bundleID: $0)
                     },
                     activateContainer: { application in
+                        // Filesystem enumeration already knows the exact
+                        // container; do not throw it away when MCM/LS fail.
+                        if ContainerStore.isApplicationContainerPath(application.containerPath) {
+                            return application.containerPath
+                        }
                         if let resolved = ContainerStore.resolveAppContainerPath(
                             bundleID: application.bundleID
                         ), ContainerStore.isApplicationContainerPath(resolved) {
                             return resolved
-                        }
-                        if ContainerStore.isApplicationContainerPath(application.containerPath) {
-                            return application.containerPath
                         }
                         return nil
                     },

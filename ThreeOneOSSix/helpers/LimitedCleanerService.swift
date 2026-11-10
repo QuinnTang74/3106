@@ -43,21 +43,73 @@ enum LimitedCleanerService {
         containerURL: URL,
         rootValidator: ContainerRootValidator
     ) throws -> LimitedCleanerUsage {
-        try withValidatedRootDescriptor(containerURL, rootValidator: rootValidator) { rootDescriptor in
-            let cache = scanAllowedDirectory(
-                components: ["Library", "Caches"],
-                rootDescriptor: rootDescriptor
-            )
-            let temporary = scanAllowedDirectory(
-                components: ["tmp"],
-                rootDescriptor: rootDescriptor
-            )
-            return LimitedCleanerUsage(
-                cacheBytes: cache.bytes,
-                temporaryBytes: temporary.bytes,
-                removableItemCount: cache.itemCount + temporary.itemCount
-            )
+        let root = containerURL.standardizedFileURL
+        guard root.path.hasPrefix("/"),
+              root.path != "/",
+              rootValidator(root) else {
+            throw LimitedCleanerError.unsafeContainerRoot
         }
+
+        let containerGrant = ContainerStore.grantContainerAccess(root.path)
+        defer { SandboxAccess.release(containerGrant) }
+        var targetGrants: [Int64] = []
+        defer {
+            for targetGrant in targetGrants { SandboxAccess.release(targetGrant) }
+        }
+
+        let keys: [URLResourceKey] = [
+            .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey, .isDirectoryKey
+        ]
+
+        func measure(_ relative: String) -> (bytes: Int64, files: Int) {
+            let url = relative.split(separator: "/").reduce(root) { current, part in
+                current.appendingPathComponent(String(part), isDirectory: true)
+            }
+            let grant = ContainerStore.grantContainerAccess(url.path)
+            if grant >= 0 { targetGrants.append(grant) }
+
+            var bytes: Int64 = 0
+            var files = 0
+            guard FileManager.default.fileExists(atPath: url.path),
+                  let enumerator = FileManager.default.enumerator(
+                    at: url,
+                    includingPropertiesForKeys: keys,
+                    options: [],
+                    errorHandler: { failedURL, error in
+                        log(
+                            "cleaner: enumerate failed \(failedURL.path) " +
+                                "error=\(error.localizedDescription)"
+                        )
+                        return true
+                    }
+                  ) else {
+                return (0, 0)
+            }
+
+            for case let item as URL in enumerator {
+                let values = try? item.resourceValues(forKeys: Set(keys))
+                if values?.isSymbolicLink == true {
+                    enumerator.skipDescendants()
+                    continue
+                }
+                guard values?.isRegularFile == true else { continue }
+                bytes += max(0, Int64(values?.fileSize ?? 0))
+                files += 1
+            }
+            log("cleaner: measured \(url.path) bytes=\(bytes) files=\(files)")
+            return (bytes, files)
+        }
+
+        // Use FileManager enumeration instead of openat(O_NOFOLLOW): apps
+        // commonly make Library/Caches a symlink, which the old walker
+        // rejected as ELOOP and reported as an empty target.
+        let cache = measure("Library/Caches")
+        let temporary = measure("tmp")
+        return LimitedCleanerUsage(
+            cacheBytes: cache.bytes,
+            temporaryBytes: temporary.bytes,
+            removableItemCount: cache.files + temporary.files
+        )
     }
 
     static func clean(
