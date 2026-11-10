@@ -2,6 +2,13 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.4-r2] - 2026-11-10
+
+### Changed
+
+- Project repository moved to `QuinnTang74/3106`; the in-app GitHub link, update checker API, README, and release links now point to the new address.
+- App marketing version remains **3.1.4**; `CFBundleVersion` is now **7**.
+
 ## [3.1.4] - 2026-11-10
 
 ### Fixed

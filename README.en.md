@@ -19,12 +19,13 @@
 | Item | Value |
 | --- | --- |
 | Version | **3.1.4** (stable) |
+| Current release | **v3.1.4-r2** (build 7, project URL update) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | Access backend | kernel / `bad_query` / `worse_query` |
 | UI languages | Simplified Chinese · English · Vietnamese |
 | Signing | iOS 26.7+ / 27.x requires an App Group entitlement |
 | Bundle ID | `com.qingtang.3106` |
-| Repository | <https://github.com/t479842598/3106.git> |
+| Repository | <https://github.com/QuinnTang74/3106.git> |
 
 ## Features
 
@@ -41,6 +42,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.1.4-r2** | Project URL moved to **QuinnTang74/3106**; in-app GitHub link, update checker, and README updated |
 | **3.1.4** | Cleaner deletion uses the scanned container path; `FileManager` removal refuses symlinks escaping the container |
 | 3.1.3 | Wallpaper scanner supports nested/non-standard iOS 27.3 PosterBoard layouts and creates required descriptors directories |
 | 3.1.2 | Cleaner measurement via `FileManager`; PosterBoard resolved by scanning the poster store; Settings gear always visible on Cleaner |
@@ -79,13 +81,13 @@ With a certificate and provisioning profile, the profile must be an explicit App
 | --- | --- |
 | Unsigned build | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | Policy tests | `bash Tests/run_policy_tests.sh` |
-| Output | `dist/`, named like `3106-3.1.4-unsigned.ipa` |
+| Output | `dist/`, this release is `3106-3.1.4-r2-unsigned.ipa` |
 
 ## Download
 
 Stable releases are published on GitHub Releases:
 
-<https://github.com/t479842598/3106/releases>
+<https://github.com/QuinnTang74/3106/releases>
 
 The release asset is an unsigned IPA; sign it with one of the methods above before installing.
 

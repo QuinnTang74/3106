@@ -113,12 +113,12 @@ struct SettingsView: View {
                 }
 
                 Section(language.text("settings.github")) {
-                    if let destination = URL(string: "https://github.com/t479842598/3106.git") {
+                    if let destination = URL(string: "https://github.com/QuinnTang74/3106.git") {
                         Link(destination: destination) {
                             HStack(spacing: 12) {
                                 Label("GitHub", systemImage: "link")
                                 Spacer()
-                                Text("t479842598/3106")
+                                Text("QuinnTang74/3106")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

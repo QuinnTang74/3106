@@ -33,11 +33,11 @@ jobs:
           APP="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos/3106.app"
           mkdir Payload
           cp -R "$APP" Payload/
-          zip -qry "3106-3.1.4-unsigned.ipa" Payload
-          shasum -a 256 "3106-3.1.4-unsigned.ipa"
+          zip -qry "3106-3.1.4-r2-unsigned.ipa" Payload
+          shasum -a 256 "3106-3.1.4-r2-unsigned.ipa"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 3106-unsigned-ipa
-          path: "3106-3.1.4-unsigned.ipa"
+          path: "3106-3.1.4-r2-unsigned.ipa"

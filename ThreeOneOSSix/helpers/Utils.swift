@@ -151,8 +151,8 @@ enum AppUpdateChecker {
     static let dismissedVersionKey = "update.dismissedVersion"
     // Points at the 3106 fork; a missing repository simply disables update
     // prompts until the final distribution address is provided.
-    static let apiURL = URL(string: "https://api.github.com/repos/t479842598/3106/releases/latest")!
-    static let fallbackURL = URL(string: "https://github.com/t479842598/3106/releases/latest")!
+    static let apiURL = URL(string: "https://api.github.com/repos/QuinnTang74/3106/releases/latest")!
+    static let fallbackURL = URL(string: "https://github.com/QuinnTang74/3106/releases/latest")!
 
     struct Offer: Identifiable {
         let id = UUID()

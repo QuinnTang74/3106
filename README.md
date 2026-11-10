@@ -19,12 +19,13 @@
 | 项目 | 内容 |
 | --- | --- |
 | 当前版本 | **3.1.4**（正式版） |
+| 当前发布 | **v3.1.4-r2**（build 7，项目地址更新） |
 | 支持系统 | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | 访问后端 | kernel / `bad_query` / `worse_query` |
 | 界面语言 | 简体中文 · English · Tiếng Việt |
 | 签名要求 | iOS 26.7+ / 27.x 需要 App Group entitlement |
 | Bundle ID | `com.qingtang.3106` |
-| 仓库 | <https://github.com/t479842598/3106.git> |
+| 仓库 | <https://github.com/QuinnTang74/3106.git> |
 
 ## 功能
 
@@ -41,6 +42,7 @@
 
 | 版本 | 主要内容 |
 | --- | --- |
+| **3.1.4-r2** | 项目地址迁移至 **QuinnTang74/3106**；应用内 GitHub 入口、更新检查与 README 同步 |
 | **3.1.4** | 清理删除改用扫描记录的真实容器路径；`FileManager` 安全删除并拒绝跳出容器的符号链接 |
 | 3.1.3 | 壁纸扫描器支持 27.3 的嵌套/非标准 PosterBoard 布局，按需创建扩展 descriptors 目录 |
 | 3.1.2 | 清理测量改用 `FileManager` 枚举；壁纸按 PosterBoard 存储目录反查容器；清理页常驻设置齿轮 |
@@ -79,13 +81,13 @@
 | --- | --- |
 | 无签名构建 | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | 策略测试 | `bash Tests/run_policy_tests.sh` |
-| 产物目录 | `dist/`，文件名形如 `3106-3.1.4-unsigned.ipa` |
+| 产物目录 | `dist/`，本次文件名 `3106-3.1.4-r2-unsigned.ipa` |
 
 ## 下载
 
 正式版发布在 GitHub Releases：
 
-<https://github.com/t479842598/3106/releases>
+<https://github.com/QuinnTang74/3106/releases>
 
 发布资产为未签名 IPA，需要按上面的签名方式自行签名后安装。
 
