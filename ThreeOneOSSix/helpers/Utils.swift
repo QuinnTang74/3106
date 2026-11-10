@@ -11,7 +11,23 @@ class AppLog: ObservableObject {
         DispatchQueue.main.async { self.entries.append(msg) }
     }
 }
-func log(_ msg: String) { AppLog.shared.append("[3106] \(msg)") }
+/// Original stderr, kept open before `setupLogCapture` redirects fd 2. Writing
+/// here lets `devicectl device process launch --console` see the same lines the
+/// in-app Log view shows; without it the redirect swallows everything.
+private var consoleStderrFD: Int32 = -1
+
+func log(_ msg: String) {
+    let line = "[3106] \(msg)"
+    AppLog.shared.append(line)
+    let fd = consoleStderrFD
+    if fd >= 0 {
+        var bytes = Array(line.utf8)
+        bytes.append(0x0A)
+        bytes.withUnsafeBytes { buffer in
+            _ = write(fd, buffer.baseAddress, buffer.count)
+        }
+    }
+}
 
 // Retain the pipe for the app's lifetime so stdout/stderr stay redirected.
 private var logCapturePipe: Pipe?
@@ -20,6 +36,9 @@ private var logCapturePipe: Pipe?
 // exploit progress and failures are visible without a debugger.
 func setupLogCapture() {
     guard logCapturePipe == nil else { return }  // already set up
+    if consoleStderrFD < 0 {
+        consoleStderrFD = dup(STDERR_FILENO)
+    }
     let pipe = Pipe()
     logCapturePipe = pipe  // retain!
 
