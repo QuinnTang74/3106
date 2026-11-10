@@ -301,7 +301,8 @@ struct WallpaperLabView: View {
                     log("wallpaper: staged \(url.lastPathComponent)")
                 } catch {
                     failures.append("\(url.lastPathComponent): \(message(for: error))")
-                    log("wallpaper: import rejected \(url.lastPathComponent)")
+                    let key = (error as? WallpaperLabError)?.localizationKey ?? "unknown"
+                    log("wallpaper: import rejected \(url.lastPathComponent) key=\(key) error=\(error)")
                 }
             }
             DispatchQueue.main.async {
@@ -397,7 +398,7 @@ struct WallpaperLabView: View {
             try FileManager.default.createDirectory(at: descriptors, withIntermediateDirectories: true)
             return try WallpaperAccessProbe.probe(
                 containerURL: root,
-                rootValidator: { $0.standardizedFileURL == root.standardizedFileURL },
+                rootValidator: { WallpaperLayoutScanner.sameDirectory($0, root) },
                 requiredExtensionIdentifiers: requiredExtensionIdentifiers
             )
         }

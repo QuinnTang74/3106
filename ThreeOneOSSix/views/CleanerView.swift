@@ -506,9 +506,18 @@ struct CleanerView: View {
             var examinedBundleIDs = Set<String>()
             var discoveredRecords: [CleanerAppRecord] = []
             var processedCount = 0
+            var lastPublishAt = Date.distantPast
 
             func publish(force: Bool = false) {
-                guard force || processedCount.isMultiple(of: 8) else { return }
+                // Publishing after every app floods the main queue when a
+                // device has hundreds of apps; switching tabs then freezes.
+                // Throttle to a few updates per second and flush at the end of
+                // each batch.
+                let now = Date()
+                guard force || now.timeIntervalSince(lastPublishAt) >= 0.25 else {
+                    return
+                }
+                lastPublishAt = now
                 let snapshot = discoveredRecords.sorted {
                     $0.app.displayName.localizedCaseInsensitiveCompare($1.app.displayName) == .orderedAscending
                 }
@@ -568,11 +577,9 @@ struct CleanerView: View {
                         }
                     },
                     onApplication: { bundleID in
-                        // Publish after every unique app so the list grows and
-                        // the footer count moves while the scan is running.
                         guard examinedBundleIDs.insert(bundleID).inserted else { return }
                         processedCount = examinedBundleIDs.count
-                        publish(force: true)
+                        publish()
                     },
                     onRecord: { record in
                         let original = metadata[record.bundleID]
@@ -588,6 +595,7 @@ struct CleanerView: View {
                         )
                     }
                 )
+                publish(force: true)
             }
 
             let apiApps = ContainerStore.installedAppsFromAPI()

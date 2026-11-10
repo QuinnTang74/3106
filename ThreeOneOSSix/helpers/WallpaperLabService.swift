@@ -164,7 +164,7 @@ enum WallpaperDeviceAccessService {
             )
             return try WallpaperAccessProbe.probe(
                 containerURL: root,
-                rootValidator: { $0.standardizedFileURL == root.standardizedFileURL },
+                rootValidator: { WallpaperLayoutScanner.sameDirectory($0, root) },
                 requiredExtensionIdentifiers: requiredExtensionIdentifiers
             )
         }

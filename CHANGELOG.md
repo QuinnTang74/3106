@@ -2,6 +2,20 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.8] - 2026-11-10
+
+### Fixed
+
+- The “update available” prompt no longer appears after installing the latest build. `Info.plist` still carried `AppReleaseDisplayVersion = 3.1.4`, which the update checker preferred over `CFBundleShortVersionString`; the stale field was removed and version metadata is now checked by the test script.
+- Switching tabs while the cleaner is scanning no longer freezes the app. The cleaner published a full list update after every single app; publishing is now throttled to at most four updates per second, with a flush at the end of each batch.
+- Wallpaper scanning now resolves `/var` and `/private/var` before enumerating, and recursive layout computes relative paths against either spelling. This fixes the case where the tree log listed `descriptors` directories but the scanner reported “no descriptor dirs”.
+- `.tendies` packages that contain a `container` folder are no longer rejected when their temporary path uses a different `/var` spelling; the root validator now compares resolved directories.
+- Wallpaper import failures now log the exact error key and message instead of only “import rejected”.
+
+### Changed
+
+- Marketing version **3.1.8**; `CFBundleVersion` **12**.
+
 ## [3.1.7] - 2026-11-10
 
 ### Fixed

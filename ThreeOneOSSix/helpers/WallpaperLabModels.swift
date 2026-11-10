@@ -93,7 +93,10 @@ enum WallpaperLayoutScanner {
         allowSyntheticLayout: Bool = false,
         fileManager: FileManager = .default
     ) throws -> WallpaperPosterLayout {
-        let containerURL = rawContainerURL.standardizedFileURL
+        // `/var` and `/private/var` are the same location, but FileManager
+        // enumerators return the `/private` spelling. Resolve symlinks once so
+        // the store path and every enumerated child share one spelling.
+        let containerURL = rawContainerURL.standardizedFileURL.resolvingSymlinksInPath()
         guard containerURL.isFileURL,
               containerURL.path.hasPrefix("/"),
               containerURL.path != "/",
@@ -103,6 +106,7 @@ enum WallpaperLayoutScanner {
         let accessGrant = ContainerStore.grantContainerAccess(containerURL.path)
         defer { SandboxAccess.release(accessGrant) }
         try validateDirectory(containerURL, fileManager: fileManager)
+        log("wallpaper: scan root=\(containerURL.path)")
 
         let storeURL = containerURL.appendingPathComponent(
             storeRelativePath,
@@ -292,10 +296,7 @@ enum WallpaperLayoutScanner {
         var directories: [String: URL] = [:]
         var generations = Set<String>()
         while let item = enumerator.nextObject() as? URL {
-            let relative = item.path.replacingOccurrences(
-                of: storeURL.path + "/",
-                with: ""
-            )
+            let relative = relativePath(of: item, under: storeURL)
             let components = relative.split(separator: "/").map(String.init)
             if components.count > 6 {
                 enumerator.skipDescendants()
@@ -397,10 +398,7 @@ enum WallpaperLayoutScanner {
         ) else { return }
         var count = 0
         while let item = enumerator.nextObject() as? URL {
-            let relative = item.path.replacingOccurrences(
-                of: storeURL.path + "/",
-                with: ""
-            )
+            let relative = relativePath(of: item, under: storeURL)
             let depth = relative.split(separator: "/").count
             if depth > 4 {
                 enumerator.skipDescendants()
@@ -459,6 +457,39 @@ enum WallpaperLayoutScanner {
             }
             try validateDirectory(cursor, fileManager: fileManager)
         }
+    }
+
+    /// FileManager may return `/private/var` children for a `/var` root (or
+    /// the reverse). Strip either spelling instead of relying on one exact
+    /// prefix; a mismatch used to make the recursive scan skip everything.
+    private static func relativePath(of item: URL, under root: URL) -> String {
+        let rootPath = root.standardizedFileURL.path
+        let itemPath = item.standardizedFileURL.path
+
+        func strip(_ prefix: String, from value: String) -> String? {
+            if value == prefix { return "" }
+            guard value.hasPrefix(prefix + "/") else { return nil }
+            return String(value.dropFirst(prefix.count + 1))
+        }
+
+        if let relative = strip(rootPath, from: itemPath) { return relative }
+
+        let alternateRoot = rootPath.hasPrefix("/private/")
+            ? String(rootPath.dropFirst("/private".count))
+            : "/private" + rootPath
+        if let relative = strip(alternateRoot, from: itemPath) { return relative }
+
+        let alternateItem = itemPath.hasPrefix("/private/")
+            ? String(itemPath.dropFirst("/private".count))
+            : "/private" + itemPath
+        if let relative = strip(rootPath, from: alternateItem) { return relative }
+
+        return item.lastPathComponent
+    }
+
+    static func sameDirectory(_ lhs: URL, _ rhs: URL) -> Bool {
+        lhs.resolvingSymlinksInPath().standardizedFileURL.path
+            == rhs.resolvingSymlinksInPath().standardizedFileURL.path
     }
 
     static func isContained(_ candidate: URL, in root: URL) -> Bool {
@@ -540,7 +571,7 @@ enum TendiesPackageInspector {
             if name == "container" {
                 let layout = try WallpaperLayoutScanner.scan(
                     containerURL: child,
-                    rootValidator: { $0.standardizedFileURL == child.standardizedFileURL },
+                    rootValidator: { WallpaperLayoutScanner.sameDirectory($0, child) },
                     fileManager: fileManager
                 )
                 for (identifier, descriptorDirectory) in layout.extensionDescriptorDirectories
