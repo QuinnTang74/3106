@@ -41,7 +41,7 @@ extension WallpaperLabError: LocalizedError {
 enum WallpaperLabLimits {
     static let maximumArchiveBytes: Int64 = 512 * 1_024 * 1_024
     static let maximumExpandedBytes: Int64 = 768 * 1_024 * 1_024
-    static let maximumEntryBytes: Int64 = 256 * 1_024 * 1_024
+    static let maximumEntryBytes: Int64 = 768 * 1_024 * 1_024
     static let maximumEntryCount = 20_000
     static let maximumDescriptorCount = 64
     static let maximumPathBytes = 4_096
@@ -94,9 +94,13 @@ enum WallpaperLayoutScanner {
         fileManager: FileManager = .default
     ) throws -> WallpaperPosterLayout {
         // `/var` and `/private/var` are the same location, but FileManager
-        // enumerators return the `/private` spelling. Resolve symlinks once so
-        // the store path and every enumerated child share one spelling.
-        let containerURL = rawContainerURL.standardizedFileURL.resolvingSymlinksInPath()
+        // enumerators return the `/private` spelling. Resolve symlinks and
+        // then force the `/private` prefix explicitly; on iOS,
+        // resolvingSymlinksInPath() alone can leave `/var` unchanged.
+        let containerPath = LaunchServicesStore.canonicalContainerPath(
+            rawContainerURL.standardizedFileURL.resolvingSymlinksInPath().path
+        )
+        let containerURL = URL(fileURLWithPath: containerPath, isDirectory: true)
         guard containerURL.isFileURL,
               containerURL.path.hasPrefix("/"),
               containerURL.path != "/",
@@ -488,8 +492,12 @@ enum WallpaperLayoutScanner {
     }
 
     static func sameDirectory(_ lhs: URL, _ rhs: URL) -> Bool {
-        lhs.resolvingSymlinksInPath().standardizedFileURL.path
-            == rhs.resolvingSymlinksInPath().standardizedFileURL.path
+        func canonical(_ url: URL) -> String {
+            LaunchServicesStore.canonicalContainerPath(
+                url.standardizedFileURL.resolvingSymlinksInPath().path
+            )
+        }
+        return canonical(lhs) == canonical(rhs)
     }
 
     static func isContained(_ candidate: URL, in root: URL) -> Bool {

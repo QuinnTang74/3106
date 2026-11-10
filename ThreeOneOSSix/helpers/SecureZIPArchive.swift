@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 @_silgen_name("wallpaper_zip_extract_entry")
 private func wallpaperZIPExtractEntry(
@@ -163,6 +164,18 @@ enum SecureZIPArchive {
             let externalAttributes = u32(header, 38)
             let localOffset = u32(header, 42)
             let variableCount = nameLength + extraLength + commentLength
+            if nameLength == 0 {
+                log("wallpaper: zip entry has an empty name")
+            }
+            if flags & 0x0001 != 0 {
+                log("wallpaper: zip entry is encrypted")
+            }
+            if method != 0 && method != 8 {
+                log("wallpaper: zip unsupported compression method=\(method)")
+            }
+            if UInt64(uncompressedSize) > UInt64(WallpaperLabLimits.maximumEntryBytes) {
+                log("wallpaper: zip entry too large bytes=\(uncompressedSize)")
+            }
             guard nameLength > 0,
                   nameLength <= WallpaperLabLimits.maximumPathBytes,
                   cursor + 46 + UInt64(variableCount) <= centralEnd,
@@ -177,7 +190,8 @@ enum SecureZIPArchive {
             }
 
             let nameData = try read(handle: handle, offset: cursor + 46, count: nameLength)
-            guard let rawName = String(data: nameData, encoding: .utf8) else {
+            guard let rawName = decodeEntryName(nameData) else {
+                log("wallpaper: zip entry name decode failed")
                 throw WallpaperLabError.unsafeArchive
             }
             let mode = UInt16((externalAttributes >> 16) & 0xffff)
@@ -195,7 +209,14 @@ enum SecureZIPArchive {
             }
             let components = try safeComponents(rawName, isDirectory: isDirectory)
             let normalized = components.joined(separator: "/").lowercased()
-            guard seenPaths.insert(normalized).inserted else {
+            if !seenPaths.insert(normalized).inserted {
+                // Some Windows/Chinese ZIPs repeat the directory entry. Ignore
+                // a duplicate directory, but still reject duplicate files.
+                if isDirectory {
+                    cursor += 46 + UInt64(variableCount)
+                    continue
+                }
+                log("wallpaper: zip duplicate file entry \(normalized)")
                 throw WallpaperLabError.unsafeArchive
             }
             totalExpanded += UInt64(uncompressedSize)
@@ -238,20 +259,40 @@ enum SecureZIPArchive {
         _ rawName: String,
         isDirectory: Bool
     ) throws -> [String] {
-        guard !rawName.isEmpty,
-              !rawName.hasPrefix("/"),
-              !rawName.contains("\\"),
-              !rawName.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains),
-              rawName.utf8.count <= WallpaperLabLimits.maximumPathBytes else {
+        // Windows-created ZIPs use backslashes. Normalize them to the ZIP
+        // separator instead of rejecting the whole package; `..` components
+        // are still rejected below and the destination stays inside the root.
+        let normalizedName = rawName.replacingOccurrences(of: "\\", with: "/")
+        guard !normalizedName.isEmpty,
+              !normalizedName.hasPrefix("/"),
+              !normalizedName.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains),
+              normalizedName.utf8.count <= WallpaperLabLimits.maximumPathBytes else {
             throw WallpaperLabError.unsafeArchive
         }
-        var components = rawName.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
+        var components = normalizedName.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
         if isDirectory, components.last == "" { components.removeLast() }
         guard !components.isEmpty,
               components.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }) else {
             throw WallpaperLabError.unsafeArchive
         }
         return components
+    }
+
+    private static let gb18030Encoding = String.Encoding(
+        rawValue: CFStringConvertEncodingToNSStringEncoding(
+            CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)
+        )
+    )
+
+    /// Windows/Chinese ZIP tools often omit the UTF-8 flag and store names in
+    /// GB18030. Try UTF-8 first, then GB18030, then a byte-preserving fallback.
+    private static func decodeEntryName(_ data: Data) -> String? {
+        if let name = String(data: data, encoding: .utf8) { return name }
+        if let name = String(data: data, encoding: gb18030Encoding) {
+            log("wallpaper: zip entry name decoded as GB18030")
+            return name
+        }
+        return String(data: data, encoding: .isoLatin1)
     }
 
     private static func destination(

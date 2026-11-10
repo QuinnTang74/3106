@@ -2,6 +2,21 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.9] - 2026-11-10
+
+### Fixed
+
+- Wallpaper scanning now explicitly forces the `/private/var` prefix. `resolvingSymlinksInPath()` alone left `/var` unchanged on iOS, so the scan still missed the existing `descriptors` directories.
+- `.tendies` ZIP import accepts common Windows/Chinese archive quirks: GB18030 entry names when UTF-8 decoding fails, backslash path separators, and duplicate directory entries.
+- The per-entry ZIP limit is now 768 MB instead of 256 MB, so dynamic/video wallpaper packages with a large video are no longer rejected as `unsafeArchive`.
+- ZIP rejection diagnostics now log oversized entries, unsupported compression methods, encrypted entries, and duplicate file entries.
+
+### Changed
+
+- Switching from Cleaner to Files no longer re-parses the 18 MB LaunchServices store or repeats the 6-13 second filesystem scan. The LaunchServices snapshot, its identifier list, and the filesystem app list are reused for 10 seconds; an explicit refresh clears them.
+- The MHA-C2 candidate scan is skipped when the LaunchServices snapshot has already identified at least 75% of the filesystem containers. It remains the fallback when LS parsing fails.
+- Marketing version **3.1.9**; `CFBundleVersion` **13** (test build, not published).
+
 ## [3.1.8] - 2026-11-10
 
 ### Fixed

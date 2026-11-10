@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.1.8** (stable) |
-| Current release | **v3.1.8** (build 12, update prompt, cleaner freeze, wallpaper import) |
+| Version | **3.1.9** (test build, not published) |
+| Current release | **v3.1.9 test build** (build 13, wallpaper import and tab-switch performance) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | Access backend | kernel / `bad_query` / `worse_query` |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -42,6 +42,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.1.9** | Test build: force `/private/var` for wallpaper scans; ZIP GB18030 names, backslash paths, duplicate dirs and 768 MB video entries; reuse LS/filesystem caches and skip redundant MHA scanning |
 | **3.1.8** | Fix update prompt on the latest build, cleaner freeze when switching tabs, wallpaper `/var` path scan, and add import error details |
 | **3.1.7** | Wallpaper: fix iOS 27.3 layout scan, Mercury folder names, video descriptor mapping, loose descriptor packages; cleaner updates per app with a loaded count |
 | **3.1.6** | Folder favorites: long-press to favorite, favorite paths listed inline at the top of the file tab page, compatible with 3105 2.0 data |
@@ -85,7 +86,7 @@ With a certificate and provisioning profile, the profile must be an explicit App
 | --- | --- |
 | Unsigned build | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | Policy tests | `bash Tests/run_policy_tests.sh` |
-| Output | `dist/`, this release is `3106-3.1.8-unsigned.ipa` |
+| Output | `dist/`, this release is `3106-3.1.9-unsigned.ipa` |
 
 ## Download
 
@@ -95,7 +96,7 @@ Stable releases are published on GitHub Releases:
 
 The release asset is an unsigned IPA; sign it with one of the methods above before installing.
 
-Current asset: `3106-3.1.8-unsigned.ipa` (SHA256 `d817c00ae1239826272213ed1e69bfabab02ab1fff2482695ef2e594d253b4e2`).
+Current asset: `3106-3.1.9-unsigned.ipa` (SHA256 `6f5a17c7a9fe6960d4051e360a5c57dd90b5bd0af4c62c2069466e7be07acf55`).
 
 ## License and commercial use
 

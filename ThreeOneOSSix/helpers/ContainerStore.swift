@@ -420,6 +420,10 @@ enum ContainerStore {
         launchServicesSnapshotCache = nil
         launchServicesSnapshotMissAt = nil
         launchServicesSnapshotLock.unlock()
+
+        filesystemContainerCacheLock.lock()
+        filesystemContainerCache = nil
+        filesystemContainerCacheLock.unlock()
     }
 
     static func launchServicesSnapshot() -> LaunchServicesSnapshot? {
@@ -546,7 +550,17 @@ enum ContainerStore {
                 }
                 identifiers.append(bundleID)
             }
-            log("browser: LaunchServices identifiers=\(identifiers.count) layout=\(snapshot.layoutLabel)")
+            // The snapshot already gives us the path->id mapping. Re-reading
+            // the same 18 MB store here cost several seconds on every tab
+            // switch; only fall back to the raw store scan if the snapshot
+            // produced nothing.
+            if !identifiers.isEmpty {
+                log(
+                    "browser: LaunchServices identifiers=\(identifiers.count) " +
+                        "layout=\(snapshot.layoutLabel) (snapshot)"
+                )
+                return identifiers
+            }
         }
 
         var cachePaths: [String] = []
@@ -743,7 +757,32 @@ enum ContainerStore {
         return SandboxAccess.grant(path: containerPath)
     }
 
-    static func containersFromFilesystem() -> [InstalledApp] {
+    private static let filesystemContainerCacheLock = NSLock()
+    private static var filesystemContainerCache: (timestamp: Date, apps: [InstalledApp])?
+    private static let filesystemContainerCacheTTL: TimeInterval = 10
+
+    /// The Files tab and the Cleaner both need the same app list. Without a
+    /// short cache, switching tabs re-runs the 6-13 second inode scan twice.
+    static func containersFromFilesystem(refresh: Bool = false) -> [InstalledApp] {
+        filesystemContainerCacheLock.lock()
+        if !refresh,
+           let cache = filesystemContainerCache,
+           Date().timeIntervalSince(cache.timestamp) < filesystemContainerCacheTTL {
+            let apps = cache.apps
+            filesystemContainerCacheLock.unlock()
+            log("browser: filesystem cache hit \(apps.count) containers")
+            return apps
+        }
+        filesystemContainerCacheLock.unlock()
+
+        let apps = discoverFilesystemContainers()
+        filesystemContainerCacheLock.lock()
+        filesystemContainerCache = (Date(), apps)
+        filesystemContainerCacheLock.unlock()
+        return apps
+    }
+
+    private static func discoverFilesystemContainers() -> [InstalledApp] {
         let grantedDirectories = enumerateDirectoriesWithTraversalGrant(path: appDataRoot)
         var dirs: [String]
         if grantedDirectories.isEmpty {

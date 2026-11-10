@@ -325,7 +325,7 @@ struct CleanerView: View {
     }
 
     private var refreshButton: some View {
-        Button { reload() } label: {
+        Button { reload(refreshLaunchServices: true) } label: {
             if isScanning {
                 ProgressView()
             } else {
@@ -380,7 +380,7 @@ struct CleanerView: View {
                     Text(language.text("cleaner.empty_message"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Button(language.text("cleaner.scan_again")) { reload() }
+                    Button(language.text("cleaner.scan_again")) { reload(refreshLaunchServices: true) }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                 }
@@ -428,9 +428,11 @@ struct CleanerView: View {
         }
     }
 
-    private func reload() {
+    private func reload(refreshLaunchServices: Bool = false) {
         guard !isBusy else { return }
-        ContainerStore.refreshLaunchServicesSnapshot()
+        if refreshLaunchServices {
+            ContainerStore.refreshLaunchServicesSnapshot()
+        }
 #if targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("--simulate-cleaner-empty") {
             records = []

@@ -18,8 +18,8 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 当前版本 | **3.1.8**（正式版） |
-| 当前发布 | **v3.1.8**（build 12，更新提示、清理卡死与壁纸导入修复） |
+| 当前版本 | **3.1.9**（测试版，未发布） |
+| 当前发布 | **v3.1.9 测试构建**（build 13，壁纸导入与切换性能修复） |
 | 支持系统 | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | 访问后端 | kernel / `bad_query` / `worse_query` |
 | 界面语言 | 简体中文 · English · Tiếng Việt |
@@ -43,6 +43,7 @@
 
 | 版本 | 主要内容 |
 | --- | --- |
+| **3.1.9** | 测试构建：壁纸扫描强制 `/private/var`；ZIP 支持 GB18030 文件名、反斜杠路径、重复目录和 768MB 视频条目；文件页复用 LS/文件系统缓存并跳过冗余 MHA 扫描 |
 | **3.1.8** | 修复已安装最新版仍提示更新；修复清理扫描时切底栏卡死；修复壁纸扫描的 `/var` 路径拼写导致看不到 descriptors，并补充导入错误日志 |
 | **3.1.7** | 壁纸：修复 27.3 布局扫描提前失败、Mercury 目录名、视频 descriptor 映射与散装 descriptor 包；清理器改为逐应用刷新并显示已加载数量 |
 | **3.1.6** | 收藏夹：长按文件夹收藏，文件标签页顶部直接列出收藏路径；兼容 3105 2.0 的收藏数据 |
@@ -86,7 +87,7 @@
 | --- | --- |
 | 无签名构建 | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | 策略测试 | `bash Tests/run_policy_tests.sh` |
-| 产物目录 | `dist/`，本次文件名 `3106-3.1.8-unsigned.ipa` |
+| 产物目录 | `dist/`，本次文件名 `3106-3.1.9-unsigned.ipa` |
 
 ## 下载
 
@@ -96,7 +97,7 @@
 
 发布资产为未签名 IPA，需要按上面的签名方式自行签名后安装。
 
-当前版本：`3106-3.1.8-unsigned.ipa`（SHA256 `d817c00ae1239826272213ed1e69bfabab02ab1fff2482695ef2e594d253b4e2`）。
+当前版本：`3106-3.1.9-unsigned.ipa`（SHA256 `6f5a17c7a9fe6960d4051e360a5c57dd90b5bd0af4c62c2069466e7be07acf55`）。
 
 ## 开源协议与商用说明
 

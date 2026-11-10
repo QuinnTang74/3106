@@ -72,7 +72,7 @@ struct AppDataBrowserView: View {
                     FilesTabToolbarButton(session: $tabSession)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { reload() } label: {
+                    Button { reload(refreshLaunchServices: true) } label: {
                         if isResolving {
                             ProgressView()
                         } else {
@@ -326,7 +326,7 @@ struct AppDataBrowserView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding()
-            Button(language.text("browser.retry")) { reload() }
+            Button(language.text("browser.retry")) { reload(refreshLaunchServices: true) }
                 .buttonStyle(.borderedProminent)
         }
         .padding()
@@ -348,8 +348,10 @@ struct AppDataBrowserView: View {
         .padding()
     }
 
-    private func reload() {
-        ContainerStore.refreshLaunchServicesSnapshot()
+    private func reload(refreshLaunchServices: Bool = false) {
+        if refreshLaunchServices {
+            ContainerStore.refreshLaunchServicesSnapshot()
+        }
         isLoading = true
         isResolving = true
         errorMessage = nil
@@ -391,44 +393,61 @@ struct AppDataBrowserView: View {
             }
 
             let launchServicesIdentifiers = ContainerStore.launchServicesStoreIdentifiers()
-            let mhaIdentifiers = MHAIdentifierCatalog.identifiers(
-                dynamic: dynamicIdentifiers,
-                installed: apiApps.map(\.bundleID),
-                research: ContainerStore.researchAppIdentifiers,
-                custom: bundleMetadata.keys.sorted(),
-                launchServices: launchServicesIdentifiers
-            )
-            log(
-                "browser: MHA catalog dynamic=\(dynamicIdentifiers.count), " +
-                "installed=\(apiApps.count), research=\(ContainerStore.researchAppIdentifiers.count), " +
-                "LaunchServices=\(launchServicesIdentifiers.count) -> \(mhaIdentifiers.count) candidates"
-            )
-            let mhaApps = ContainerStore.installedAppsFromMHACandidates(
-                identifiers: mhaIdentifiers,
-                bundleMetadata: bundleMetadata
-            ) { discoveredApps in
-                // Keep the filesystem fallback in the progressive result:
-                // replacing the list with identified-only entries made the
-                // browser visibly shrink while the MHA scan was running.
-                var progressiveResult = AppDataCatalogMerger.merge(
-                    identified: discoveredApps + baseIdentifiedApps,
-                    fallback: filesystemApps,
-                    identifier: { $0.bundleID },
-                    path: { $0.containerPath }
+            let resolvedContainerCount = filesystemApps.reduce(0) { count, app in
+                count + (UUID(uuidString: app.bundleID) == nil ? 1 : 0)
+            }
+            // The LaunchServices snapshot already names almost every
+            // filesystem container. The MHA-C2 pass activates each candidate
+            // through MCM and costs several seconds; only run it when the
+            // filesystem list is mostly unidentified.
+            let shouldScanMHA = filesystemApps.isEmpty
+                || resolvedContainerCount * 4 < filesystemApps.count * 3
+            var mhaApps: [InstalledApp] = []
+            if shouldScanMHA {
+                let mhaIdentifiers = MHAIdentifierCatalog.identifiers(
+                    dynamic: dynamicIdentifiers,
+                    installed: apiApps.map(\.bundleID),
+                    research: ContainerStore.researchAppIdentifiers,
+                    custom: bundleMetadata.keys.sorted(),
+                    launchServices: launchServicesIdentifiers
                 )
-                progressiveResult.sort {
-                    $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+                log(
+                    "browser: MHA catalog dynamic=\(dynamicIdentifiers.count), " +
+                    "installed=\(apiApps.count), research=\(ContainerStore.researchAppIdentifiers.count), " +
+                    "LaunchServices=\(launchServicesIdentifiers.count) -> \(mhaIdentifiers.count) candidates"
+                )
+                mhaApps = ContainerStore.installedAppsFromMHACandidates(
+                    identifiers: mhaIdentifiers,
+                    bundleMetadata: bundleMetadata
+                ) { discoveredApps in
+                    // Keep the filesystem fallback in the progressive result:
+                    // replacing the list with identified-only entries made the
+                    // browser visibly shrink while the MHA scan was running.
+                    var progressiveResult = AppDataCatalogMerger.merge(
+                        identified: discoveredApps + baseIdentifiedApps,
+                        fallback: filesystemApps,
+                        identifier: { $0.bundleID },
+                        path: { $0.containerPath }
+                    )
+                    progressiveResult.sort {
+                        $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+                    }
+                    let identified = progressiveResult.filter {
+                        ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+                    }
+                    let unidentified = progressiveResult.filter {
+                        !ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+                    }
+                    DispatchQueue.main.async {
+                        apps = identified
+                        unidentifiedApps = unidentified
+                    }
                 }
-                let identified = progressiveResult.filter {
-                    ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
-                }
-                let unidentified = progressiveResult.filter {
-                    !ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
-                }
-                DispatchQueue.main.async {
-                    apps = identified
-                    unidentifiedApps = unidentified
-                }
+            } else {
+                log(
+                    "browser: skipping MHA scan — filesystem resolved " +
+                        "\(resolvedContainerCount)/\(filesystemApps.count) containers"
+                )
             }
 
             let allKnownApps = mhaApps + baseIdentifiedApps
