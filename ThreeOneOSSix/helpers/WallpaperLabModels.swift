@@ -89,6 +89,8 @@ enum WallpaperLayoutScanner {
     static func scan(
         containerURL rawContainerURL: URL,
         rootValidator: RootValidator,
+        requiredExtensionIdentifiers: Set<String>? = nil,
+        allowSyntheticLayout: Bool = false,
         fileManager: FileManager = .default
     ) throws -> WallpaperPosterLayout {
         let containerURL = rawContainerURL.standardizedFileURL
@@ -166,7 +168,219 @@ enum WallpaperLayoutScanner {
                 )
             }
         }
-        throw WallpaperLabError.unsupportedPosterLayout
+
+        log(
+            "wallpaper: no descriptor dirs store=\(storeURL.path) " +
+                "generations=\(generationURLs.map(\.lastPathComponent))"
+        )
+
+        // iOS 27.3 beta can nest the store differently. First try to find any
+        // `descriptors` directory recursively (read-only; safe for packages).
+        if let recursive = recursiveDescriptorLayout(
+            storeURL: storeURL,
+            fileManager: fileManager
+        ) {
+            log(
+                "wallpaper: recursive layout generation=\(recursive.generation) " +
+                    "extensions=\(recursive.extensionDescriptorDirectories.keys.sorted())"
+            )
+            return recursive
+        }
+
+        guard allowSyntheticLayout else {
+            throw WallpaperLabError.unsupportedPosterLayout
+        }
+
+        logStoreTree(storeURL: storeURL, fileManager: fileManager)
+        guard let generationURL = syntheticGenerationURL(
+            storeURL: storeURL,
+            numericGeneration: generationURLs.first,
+            fileManager: fileManager
+        ) else {
+            throw WallpaperLabError.unsupportedPosterLayout
+        }
+
+        let requested = (requiredExtensionIdentifiers ?? [])
+            .filter(validExtensionIdentifier)
+        let identifiers = requested.isEmpty
+            ? [WallpaperPosterLayout.collectionsExtension]
+            : requested.sorted()
+
+        let extensionsURL = generationURL.appendingPathComponent("Extensions", isDirectory: true)
+        var grants: [Int64] = []
+        defer {
+            for grant in grants { SandboxAccess.release(grant) }
+        }
+        for path in [generationURL, extensionsURL] {
+            let grant = ContainerStore.grantContainerAccess(path.path)
+            if grant >= 0 { grants.append(grant) }
+        }
+
+        var created: [String: URL] = [:]
+        do {
+            try fileManager.createDirectory(
+                at: extensionsURL,
+                withIntermediateDirectories: true
+            )
+            for identifier in identifiers {
+                let extensionURL = extensionsURL.appendingPathComponent(
+                    identifier,
+                    isDirectory: true
+                )
+                let descriptorsURL = extensionURL.appendingPathComponent(
+                    "descriptors",
+                    isDirectory: true
+                )
+                let grant = ContainerStore.grantContainerAccess(extensionURL.path)
+                if grant >= 0 { grants.append(grant) }
+                try fileManager.createDirectory(
+                    at: descriptorsURL,
+                    withIntermediateDirectories: true
+                )
+                if fileManager.fileExists(atPath: descriptorsURL.path) {
+                    created[identifier] = descriptorsURL
+                }
+            }
+        } catch {
+            log("wallpaper: synthetic layout failed error=\(error)")
+            throw WallpaperLabError.posterStoreUnavailable
+        }
+
+        guard !created.isEmpty else {
+            throw WallpaperLabError.unsupportedPosterLayout
+        }
+        log(
+            "wallpaper: synthetic layout generation=\(generationURL.lastPathComponent) " +
+                "extensions=\(created.keys.sorted())"
+        )
+        return WallpaperPosterLayout(
+            generation: generationURL.lastPathComponent,
+            storeURL: storeURL,
+            extensionDescriptorDirectories: created
+        )
+    }
+
+    private static func recursiveDescriptorLayout(
+        storeURL: URL,
+        fileManager: FileManager
+    ) -> WallpaperPosterLayout? {
+        let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
+        guard let enumerator = fileManager.enumerator(
+            at: storeURL,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles],
+            errorHandler: { url, error in
+                log("wallpaper: tree enumerate failed \(url.path) error=\(error.localizedDescription)")
+                return true
+            }
+        ) else { return nil }
+
+        var directories: [String: URL] = [:]
+        var generations = Set<String>()
+        while let item = enumerator.nextObject() as? URL {
+            let relative = item.path.replacingOccurrences(
+                of: storeURL.path + "/",
+                with: ""
+            )
+            let components = relative.split(separator: "/").map(String.init)
+            if components.count > 6 {
+                enumerator.skipDescendants()
+                continue
+            }
+            let values = try? item.resourceValues(forKeys: Set(keys))
+            guard values?.isDirectory == true,
+                  values?.isSymbolicLink != true else { continue }
+            guard item.lastPathComponent == "descriptors" else { continue }
+            let identifier = item.deletingLastPathComponent().lastPathComponent
+            guard validExtensionIdentifier(identifier) else { continue }
+            directories[identifier] = item
+            for component in components.dropLast() where Int(component) != nil {
+                generations.insert(component)
+            }
+        }
+        guard !directories.isEmpty else { return nil }
+        let generation = generations.max { (Int($0) ?? 0) < (Int($1) ?? 0) } ?? "1"
+        return WallpaperPosterLayout(
+            generation: generation,
+            storeURL: storeURL,
+            extensionDescriptorDirectories: directories
+        )
+    }
+
+    private static func syntheticGenerationURL(
+        storeURL: URL,
+        numericGeneration: URL?,
+        fileManager: FileManager
+    ) -> URL? {
+        if let numericGeneration { return numericGeneration }
+        let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
+        let children = (try? fileManager.contentsOfDirectory(
+            at: storeURL,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        let directories = children.filter { url in
+            let values = try? url.resourceValues(forKeys: Set(keys))
+            return values?.isDirectory == true && values?.isSymbolicLink != true
+        }
+        if let withExtensions = directories.first(where: {
+            fileManager.fileExists(
+                atPath: $0.appendingPathComponent("Extensions", isDirectory: true).path
+            )
+        }) {
+            return withExtensions
+        }
+        let fallback = storeURL.appendingPathComponent("61", isDirectory: true)
+        do {
+            try fileManager.createDirectory(at: fallback, withIntermediateDirectories: true)
+            return fallback
+        } catch {
+            log("wallpaper: cannot create generation directory \(fallback.path) error=\(error)")
+            return directories.first
+        }
+    }
+
+    private static func logStoreTree(
+        storeURL: URL,
+        fileManager: FileManager
+    ) {
+        let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
+        guard let enumerator = fileManager.enumerator(
+            at: storeURL,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles],
+            errorHandler: { url, error in
+                log("wallpaper: tree error \(url.path) error=\(error.localizedDescription)")
+                return true
+            }
+        ) else { return }
+        var count = 0
+        while let item = enumerator.nextObject() as? URL {
+            let relative = item.path.replacingOccurrences(
+                of: storeURL.path + "/",
+                with: ""
+            )
+            let depth = relative.split(separator: "/").count
+            if depth > 4 {
+                enumerator.skipDescendants()
+                continue
+            }
+            count += 1
+            if count > 200 {
+                log("wallpaper: tree truncated at 200 entries")
+                break
+            }
+            let values = try? item.resourceValues(forKeys: Set(keys))
+            let kind: String
+            if values?.isSymbolicLink == true {
+                kind = "link"
+            } else if values?.isDirectory == true {
+                kind = "dir"
+            } else {
+                kind = "file"
+            }
+            log("wallpaper: tree \(kind) \(relative)")
+        }
     }
 
     static func validExtensionIdentifier(_ value: String) -> Bool {

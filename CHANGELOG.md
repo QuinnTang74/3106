@@ -2,6 +2,15 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.3] - 2026-11-10
+
+### Fixed
+
+- Wallpaper scanner accepts nested/non-standard PosterBoard stores by recursively locating `descriptors` directories.
+- When no descriptor directory exists, the device scanner creates the required extension/descriptors path under the highest numeric generation, an existing `Extensions` directory, or the default `61/Extensions` layout.
+- Synthetic layout creation is disabled for `.tendies` package scans, so package contents are never modified.
+- Added a bounded PosterBoard store tree and recursive-descriptor diagnostic to the app log.
+
 ## [3.1.2] - 2026-11-10
 
 ### Fixed

@@ -28,6 +28,8 @@ enum WallpaperAccessProbe {
         let layout = try WallpaperLayoutScanner.scan(
             containerURL: containerURL,
             rootValidator: rootValidator,
+            requiredExtensionIdentifiers: requiredExtensionIdentifiers,
+            allowSyntheticLayout: true,
             fileManager: fileManager
         )
         var descriptorCount = 0

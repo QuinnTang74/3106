@@ -48,7 +48,7 @@ xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 \
 bash Tests/run_policy_tests.sh
 ```
 
-构建产物在 `dist/`，文件名形如 `3106-3.1.2-unsigned.ipa`。
+构建产物在 `dist/`，文件名形如 `3106-3.1.3-unsigned.ipa`。
 
 ## 开源协议与商用说明
 
