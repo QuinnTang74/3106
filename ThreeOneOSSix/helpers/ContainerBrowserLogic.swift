@@ -42,8 +42,12 @@ enum ContainerDiscoveryMerger {
 }
 
 enum ContainerAccessPolicy {
+    /// A tab can start directly at a favorited subdirectory, so `isRoot` is
+    /// not a reliable signal that the process already holds a sandbox grant.
+    /// Always ensure the container grant on first load.
     static func shouldRequestGrant(isRoot: Bool) -> Bool {
-        isRoot
+        _ = isRoot
+        return true
     }
 
     static func shouldAttemptMCM(bundleID: String?) -> Bool {

@@ -10,6 +10,7 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/LaunchServicesStore.swift" \
   "$ROOT/ThreeOneOSSix/helpers/ContainerBrowserLogic.swift" \
   "$ROOT/ThreeOneOSSix/helpers/FileBrowserMetadata.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/CleanerCatalog.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

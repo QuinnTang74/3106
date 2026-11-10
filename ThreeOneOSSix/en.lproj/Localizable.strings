@@ -92,6 +92,7 @@
 "cleaner.apps_footer" = "Only apps with removable temporary data are shown.";
 "cleaner.unidentified_footer" = "Containers marked with a lock could not be identified; they are shown for reference and cannot be cleaned.";
 "cleaner.scanned_count" = "%lld scanned";
+"cleaner.loading_count" = "Loaded %lld apps · %lld with removable data…";
 "cleaner.scanning" = "Scanning app caches…";
 "cleaner.search" = "Search apps";
 "cleaner.search_empty_message" = "Try a different app name or bundle identifier.";

@@ -95,12 +95,39 @@ struct CleanerView: View {
     @ViewBuilder
     private var cleanerList: some View {
         if records.isEmpty {
-            List { emptySection }
+            List {
+                if isScanning {
+                    loadingSection
+                } else {
+                    emptySection
+                }
+            }
         } else {
             List {
                 summarySection
                 applicationsSection
+                if isScanning {
+                    loadingSection
+                }
             }
+        }
+    }
+
+    private var loadingSection: some View {
+        Section {
+            HStack(spacing: 10) {
+                ProgressView()
+                    .controlSize(.small)
+                Text(language.text(
+                    "cleaner.loading_count",
+                    Int64(scannedAppCount),
+                    Int64(records.count)
+                ))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.vertical, 4)
         }
     }
 
@@ -476,6 +503,7 @@ struct CleanerView: View {
 
         DispatchQueue.global(qos: .userInitiated).async {
             var scannedBundleIDs = Set<String>()
+            var examinedBundleIDs = Set<String>()
             var discoveredRecords: [CleanerAppRecord] = []
             var processedCount = 0
 
@@ -507,7 +535,7 @@ struct CleanerView: View {
                         version: $0.version
                     )
                 }
-                let newRecords = CleanerCatalog.scanNewApplications(
+                _ = CleanerCatalog.scanNewApplications(
                     catalogApplications,
                     scannedBundleIDs: &scannedBundleIDs,
                     // Unidentified containers are scanned too: they are real
@@ -538,23 +566,28 @@ struct CleanerView: View {
                             log("cleaner: scan failed \(containerPath) error=\(error)")
                             return nil
                         }
+                    },
+                    onApplication: { bundleID in
+                        // Publish after every unique app so the list grows and
+                        // the footer count moves while the scan is running.
+                        guard examinedBundleIDs.insert(bundleID).inserted else { return }
+                        processedCount = examinedBundleIDs.count
+                        publish(force: true)
+                    },
+                    onRecord: { record in
+                        let original = metadata[record.bundleID]
+                        let resolvedApp = InstalledApp(
+                            bundleID: record.bundleID,
+                            name: record.application.name,
+                            containerPath: record.containerPath,
+                            version: record.application.version,
+                            icon: original?.icon
+                        )
+                        discoveredRecords.append(
+                            CleanerAppRecord(app: resolvedApp, usage: record.usage)
+                        )
                     }
                 )
-                processedCount = scannedBundleIDs.count
-                for record in newRecords {
-                    let original = metadata[record.bundleID]
-                    let resolvedApp = InstalledApp(
-                        bundleID: record.bundleID,
-                        name: record.application.name,
-                        containerPath: record.containerPath,
-                        version: record.application.version,
-                        icon: original?.icon
-                    )
-                    discoveredRecords.append(
-                        CleanerAppRecord(app: resolvedApp, usage: record.usage)
-                    )
-                }
-                publish()
             }
 
             let apiApps = ContainerStore.installedAppsFromAPI()

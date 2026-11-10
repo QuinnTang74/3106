@@ -130,10 +130,14 @@ enum WallpaperLayoutScanner {
             (Int($0.lastPathComponent) ?? -1) > (Int($1.lastPathComponent) ?? -1)
         }
 
-        guard !generationURLs.isEmpty else {
-            throw WallpaperLabError.unsupportedPosterLayout
+        if generationURLs.isEmpty {
+            log(
+                "wallpaper: no numeric generation dirs store=\(storeURL.path); " +
+                    "trying recursive/synthetic layout"
+            )
         }
 
+        var candidateLayouts: [WallpaperPosterLayout] = []
         for generationURL in generationURLs {
             let extensionsURL = generationURL.appendingPathComponent("Extensions", isDirectory: true)
             guard fileManager.fileExists(atPath: extensionsURL.path) else { continue }
@@ -161,12 +165,22 @@ enum WallpaperLayoutScanner {
             }
 
             if !descriptorDirectories.isEmpty {
-                return WallpaperPosterLayout(
+                candidateLayouts.append(WallpaperPosterLayout(
                     generation: generationURL.lastPathComponent,
                     storeURL: storeURL,
                     extensionDescriptorDirectories: descriptorDirectories
-                )
+                ))
             }
+        }
+        if let preferred = preferredLayout(
+            candidateLayouts,
+            requested: Set((requiredExtensionIdentifiers ?? []).filter(validExtensionIdentifier))
+        ) {
+            log(
+                "wallpaper: layout generation=\(preferred.generation) " +
+                    "extensions=\(preferred.extensionDescriptorDirectories.keys.sorted())"
+            )
+            return preferred
         }
 
         log(
@@ -307,6 +321,32 @@ enum WallpaperLayoutScanner {
         )
     }
 
+    /// Prefer a generation that already contains every provider the package
+    /// needs. Without this, a stale higher generation can win and the install
+    /// lands where PosterBoard never looks.
+    private static func preferredLayout(
+        _ layouts: [WallpaperPosterLayout],
+        requested: Set<String>
+    ) -> WallpaperPosterLayout? {
+        guard let first = layouts.first else { return nil }
+        guard !requested.isEmpty else { return first }
+
+        var best = first
+        var bestScore = requested.intersection(
+            Set(first.extensionDescriptorDirectories.keys)
+        ).count
+        for layout in layouts.dropFirst() {
+            let score = requested.intersection(
+                Set(layout.extensionDescriptorDirectories.keys)
+            ).count
+            if score > bestScore {
+                best = layout
+                bestScore = score
+            }
+        }
+        return best
+    }
+
     private static func syntheticGenerationURL(
         storeURL: URL,
         numericGeneration: URL?,
@@ -332,6 +372,7 @@ enum WallpaperLayoutScanner {
         }
         let fallback = storeURL.appendingPathComponent("61", isDirectory: true)
         do {
+            log("wallpaper: creating synthetic generation \(fallback.path)")
             try fileManager.createDirectory(at: fallback, withIntermediateDirectories: true)
             return fallback
         } catch {
@@ -456,6 +497,22 @@ enum TendiesPackageInspector {
         )
     }
 
+    /// Some .tendies packages put a `VideoCAML` folder inside a generically
+    /// named descriptor directory. Erosion treats that as a Photos provider
+    /// descriptor; match that behavior instead of installing it as a
+    /// collections poster.
+    private static func descriptorFolderContainsVideoCAML(
+        _ directory: URL,
+        fileManager: FileManager
+    ) -> Bool {
+        let children = (try? fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        return children.contains { $0.lastPathComponent == "VideoCAML" }
+    }
+
     private static func collectDescriptorSources(
         in directory: URL,
         packageRoot: URL,
@@ -498,7 +555,9 @@ enum TendiesPackageInspector {
                 }
             } else if name.contains("descriptor") {
                 let extensionIdentifier: String
-                if name.contains("video") || name.contains("photos") {
+                if name.contains("video")
+                    || name.contains("photos")
+                    || descriptorFolderContainsVideoCAML(child, fileManager: fileManager) {
                     extensionIdentifier = WallpaperPosterLayout.photosExtension
                 } else if name.contains("mercury") {
                     extensionIdentifier = WallpaperPosterLayout.mercuryExtension
@@ -537,16 +596,22 @@ enum TendiesPackageInspector {
         try WallpaperLayoutScanner.validateDirectory(directory, fileManager: fileManager)
         let children = try fileManager.contentsOfDirectory(
             at: directory,
-            includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
+            includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey],
             options: [.skipsHiddenFiles]
         ).sorted { $0.lastPathComponent < $1.lastPathComponent }
         var result: [WallpaperDescriptorSource] = []
+        var regularFileCount = 0
         for child in children where child.lastPathComponent != "__MACOSX" {
-            let values = try child.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+            let values = try child.resourceValues(
+                forKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey]
+            )
             guard values.isSymbolicLink != true else {
                 throw WallpaperLabError.symbolicLinkUnsupported
             }
-            guard values.isDirectory == true else { continue }
+            guard values.isDirectory == true else {
+                if values.isRegularFile == true { regularFileCount += 1 }
+                continue
+            }
             let summary = try validateTree(
                 at: child,
                 packageRoot: packageRoot,
@@ -561,6 +626,26 @@ enum TendiesPackageInspector {
                     isOrdered: isOrdered
                 )
             )
+        }
+        // Some .tendies packages store the descriptor files directly under
+        // `descriptors/` instead of one folder per descriptor. Treat the
+        // folder itself as the descriptor so those packages are not rejected.
+        if result.isEmpty, regularFileCount > 0 {
+            let summary = try validateTree(
+                at: directory,
+                packageRoot: packageRoot,
+                fileManager: fileManager
+            )
+            result.append(
+                WallpaperDescriptorSource(
+                    extensionIdentifier: extensionIdentifier,
+                    directoryURL: directory,
+                    byteCount: summary.bytes,
+                    fileCount: summary.files,
+                    isOrdered: isOrdered
+                )
+            )
+            log("wallpaper: loose descriptor files in \(directory.path) treated as one descriptor")
         }
         return result
     }

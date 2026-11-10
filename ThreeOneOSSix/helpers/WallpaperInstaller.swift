@@ -107,8 +107,18 @@ enum WallpaperInstaller {
                     fileManager: fileManager
                 )
 
-                let directoryName = UUID().uuidString.uppercased()
-                guard !(originalNames[source.extensionIdentifier] ?? []).contains(directoryName) else {
+                // Mercury keeps the descriptor folder name, matching Erosion's
+                // working path; other providers use a fresh UUID directory.
+                let directoryName: String
+                if source.extensionIdentifier == WallpaperPosterLayout.mercuryExtension,
+                   source.directoryURL.lastPathComponent != "descriptors" {
+                    directoryName = source.directoryURL.lastPathComponent
+                } else {
+                    directoryName = UUID().uuidString.uppercased()
+                }
+                guard !directoryName.isEmpty,
+                      !directoryName.hasPrefix("."),
+                      !(originalNames[source.extensionIdentifier] ?? []).contains(directoryName) else {
                     throw WallpaperLabError.installFailed
                 }
                 let installedDescriptor = WallpaperInstalledDescriptor(
@@ -127,6 +137,7 @@ enum WallpaperInstaller {
                     directoryName,
                     isDirectory: true
                 )
+                log("wallpaper: install \(source.extensionIdentifier) \(directoryName) -> \(destinationDirectory.path)")
                 defer { try? fileManager.removeItem(at: stagingURL) }
                 try fileManager.copyItem(at: source.directoryURL, to: stagingURL)
                 try validateDescriptorTree(

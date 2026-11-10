@@ -1203,6 +1203,10 @@ struct FileBrowserView: View {
         hasGranted = true
         isLoadingEntries = true
         let path = currentPath
+        // A tab can open directly at a favorited subdirectory with no root
+        // browser beneath it. Grant the container root, not just `path`, so
+        // the first listing is not empty.
+        let grantPath = containerPath.isEmpty ? path : containerPath
         let targetBundleID = bundleID
         DispatchQueue.global(qos: .userInitiated).async {
             if shouldGrant {
@@ -1215,8 +1219,8 @@ struct FileBrowserView: View {
                     log("filebrowser: MCM activate \(targetBundleID) -> \(handle), detail=\(detail)")
                 }
                 if handle < 0 {
-                    handle = ContainerStore.grantContainerAccess(path)
-                    log("filebrowser: traversal grant \(path) -> \(handle)")
+                    handle = ContainerStore.grantContainerAccess(grantPath)
+                    log("filebrowser: traversal grant container=\(grantPath) start=\(path) -> \(handle)")
                 }
             }
             let loadedEntries = ContainerStore.listFiles(at: path)

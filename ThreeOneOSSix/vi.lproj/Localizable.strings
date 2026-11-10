@@ -92,6 +92,7 @@
 "cleaner.apps_footer" = "Chỉ hiện ứng dụng có dữ liệu tạm có thể xóa.";
 "cleaner.unidentified_footer" = "Các vùng chứa có biểu tượng khóa chưa xác định được danh tính; chỉ để tham khảo và không thể dọn dẹp.";
 "cleaner.scanned_count" = "Đã quét %lld";
+"cleaner.loading_count" = "Đã tải %lld ứng dụng · %lld có dữ liệu có thể xóa…";
 "cleaner.scanning" = "Đang quét bộ nhớ đệm…";
 "cleaner.search" = "Tìm ứng dụng";
 "cleaner.search_empty_message" = "Thử tên ứng dụng hoặc bundle khác.";

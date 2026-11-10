@@ -2,6 +2,23 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.7] - 2026-11-10
+
+### Fixed
+
+- Wallpaper layout scanning no longer throws when the PosterBoard store has no numeric generation directory; it now falls through to the recursive search and the `61` generation fallback used by Erosion. This unblocks iOS 27.3 layouts where the old early `throw` made both fallbacks unreachable.
+- Wallpaper generation selection now prefers the generation that already contains the provider extensions required by the package instead of always taking the highest numeric generation.
+- Mercury wallpapers keep their original descriptor folder name (matching Erosion); other providers still use a fresh UUID directory.
+- `.tendies` packages whose descriptor files live directly under `descriptors/` are accepted as one descriptor instead of being rejected with “no descriptors”.
+- Descriptor folders containing `VideoCAML` are installed into the Photos provider instead of Collections.
+- Added wallpaper layout and per-descriptor install diagnostics.
+- Opening a favorited folder from the file tab page no longer shows an empty file list. A tab that starts directly at a subdirectory has no root browser beneath it, so it now grants the container root before the first listing instead of skipping the grant for non-root views.
+
+### Changed
+
+- Cleaner publishes after every app instead of only after an entire batch. Rows appear progressively, and a bottom row shows “Loaded N apps · M with removable data…” while the scan is running.
+- Marketing version **3.1.7**; `CFBundleVersion` **11**.
+
 ## [3.1.6] - 2026-11-10
 
 ### Added

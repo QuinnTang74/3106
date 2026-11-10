@@ -75,6 +75,14 @@ expect(
     ContainerPresentationPolicy.classification(bundleID: "com.example.app") == .identified,
     "bundle id classified as identified"
 )
+expect(
+    ContainerAccessPolicy.shouldRequestGrant(isRoot: true),
+    "root browser requests a container grant"
+)
+expect(
+    ContainerAccessPolicy.shouldRequestGrant(isRoot: false),
+    "favorite subdirectory browser still requests a container grant"
+)
 
 let identifiedEntry = BrowserTestEntry(
     id: "com.example.app",
@@ -228,6 +236,75 @@ expect(
     ) == nil,
     "favorite container root ignores non-container paths"
 )
+
+// MARK: - Cleaner incremental callbacks
+
+// Shape-compatible stand-in for the real type in LimitedCleanerService.
+// CleanerCatalog only needs these fields for its pure scanning loop.
+struct LimitedCleanerUsage: Equatable {
+    let cacheBytes: Int64
+    let temporaryBytes: Int64
+    let removableItemCount: Int
+
+    var totalBytes: Int64 { cacheBytes + temporaryBytes }
+}
+
+let cleanerApplications = [
+    CleanerResolvedApplication(
+        bundleID: "com.example.one",
+        name: "One",
+        containerPath: "/private/var/mobile/Containers/Data/Application/\(testUUID)",
+        version: "1.0"
+    ),
+    CleanerResolvedApplication(
+        bundleID: "com.example.two",
+        name: "Two",
+        containerPath: "/private/var/mobile/Containers/Data/Application/\(testUUID)",
+        version: "1.0"
+    ),
+    CleanerResolvedApplication(
+        bundleID: "com.example.three",
+        name: "Three",
+        containerPath: "/private/var/mobile/Containers/Data/Application/\(testUUID)",
+        version: "1.0"
+    ),
+]
+var cleanerScanned = Set<String>()
+var cleanerApplicationCallbacks: [String] = []
+var cleanerRecordCallbacks: [String] = []
+let cleanerRecords = CleanerCatalog.scanNewApplications(
+    cleanerApplications,
+    scannedBundleIDs: &cleanerScanned,
+    shouldIncludeBundleID: { _ in true },
+    activateContainer: { $0.containerPath },
+    isValidContainerPath: { _ in true },
+    usageForContainer: { _ in
+        LimitedCleanerUsage(cacheBytes: 10, temporaryBytes: 2, removableItemCount: 1)
+    },
+    onApplication: { cleanerApplicationCallbacks.append($0) },
+    onRecord: { cleanerRecordCallbacks.append($0.bundleID) }
+)
+expect(cleanerApplicationCallbacks.count == 3, "cleaner reports every examined app")
+expect(cleanerRecordCallbacks.count == 3, "cleaner reports every app with removable data")
+expect(cleanerRecords.count == 3, "cleaner returns every record")
+
+var cleanerEmptyScanned = Set<String>()
+var cleanerEmptyApplications: [String] = []
+let cleanerEmptyRecords = CleanerCatalog.scanNewApplications(
+    [cleanerApplications[0]],
+    scannedBundleIDs: &cleanerEmptyScanned,
+    shouldIncludeBundleID: { _ in true },
+    activateContainer: { $0.containerPath },
+    isValidContainerPath: { _ in true },
+    usageForContainer: { _ in
+        LimitedCleanerUsage(cacheBytes: 0, temporaryBytes: 0, removableItemCount: 0)
+    },
+    onApplication: { cleanerEmptyApplications.append($0) },
+    onRecord: { _ in }
+)
+expect(cleanerEmptyApplications.count == 1, "cleaner still reports an app with no removable data")
+expect(cleanerEmptyRecords.isEmpty, "cleaner does not return an empty record")
+expect(cleanerEmptyScanned.isEmpty, "cleaner does not mark an empty app as scanned")
 
 if failures == 0 {
     print("PASS: \(checks) policy checks")
