@@ -2,6 +2,33 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.0.0] - 2026-11-10
+
+### Added
+
+- `worse_query` sandbox backend for iOS 26.7–26.7.2 and iOS 27.0–27.2, ported from Taj C (forcequitOS) with the Caches-swap recovery, grant cache, and open verification adapted from WQ Files.
+- Container identifier fallback through `container_query_iterate_results_sync` for iOS 27.2, where the identifier xattr and metadata plist are unreadable.
+- App Group entitlement and a Settings row showing the active backend and App Group status.
+- `.3106` patch extension for new exports; legacy `.3105` packages remain importable and decrypt with the unchanged `3105PATCH` format.
+
+### Changed
+
+- Project, target, scheme, product name, bundle identifier, URL scheme, localized strings, and documentation renamed from 3105 to 3106.
+- Bundle identifier is now `com.qingtang.3106`; the MHA-C2 spoof was retired because it cannot carry an App Group for `worse_query`.
+- iOS 26.0–26.6.1 keeps `bad_query`; iOS 26.7+ and 27.x automatically select `worse_query`.
+- Signing guidance now targets AltStore/SideStore/Sideloadly with a free Apple ID, or an explicit App ID with App Groups.
+
+### Fixed
+
+- System Data/System Groups visibility follows the active backend (iOS 26 hides them; iOS 27 shows them).
+- File browser, cleaner, patch transaction, and wallpaper installer now hold container grants for the whole operation.
+
+### Compatibility
+
+- Verified iOS 17.0–17.7.x and 18.0–18.7.1 (kernel exploit).
+- Verified iOS 26.0–26.6.1 (`bad_query`) and 26.7–26.7.2 (`worse_query`).
+- Verified iOS 27.0–27.2 (`worse_query`); 27.3 beta is experimental.
+
 ## [1.0.1] - 2026-08-15
 
 ### Added

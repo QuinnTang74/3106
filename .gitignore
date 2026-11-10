@@ -33,8 +33,6 @@ DerivedData/
 # Local QA artifacts and internal working notes
 /*.png
 /tasks/
-/Tests/
-/.github/
 /CONTRIBUTING.md
 /SECURITY.md
 
