@@ -2,6 +2,20 @@
 
 All notable user-facing changes are documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- 备份中心：首次触碰的原始文件快照、每次修改前的自动版本备份、手动备份、恢复与未完成事务恢复。
+- 文件浏览器长按文件可创建手动备份；删除文件、替换文件、应用补丁前自动备份。
+- 备份中心入口位于设置 → 备份与恢复；简中 / English / Tiếng Việt 三语界面。
+- `VerifiedFileWriter`：原地写入，保留 inode/xattr，回读摘要校验，失败自动回滚。
+
+### Changed
+
+- 补丁应用与文件替换改用 `VerifiedFileWriter`，不再因原子写换掉 inode。
+- 备份目录排除在系统备份与清理器之外，原始数据不可删除。
+
 ## [3.1.12] - 2026-11-10
 
 ### Fixed

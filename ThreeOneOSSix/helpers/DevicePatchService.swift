@@ -12,7 +12,8 @@ enum DevicePatchService {
                         throw PatchPackageError.targetAppUnavailable(bundleID)
                     }
                     return root
-                }
+                },
+                backupCenter: .shared
             )
         }
     }

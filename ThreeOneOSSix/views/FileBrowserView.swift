@@ -466,6 +466,16 @@ struct FileBrowserView: View {
         ShareLink(item: URL(fileURLWithPath: entry.path)) {
             Label(language.text("browser.share"), systemImage: "square.and.arrow.up")
         }
+        if !entry.isDirectory {
+            Button {
+                createManualBackup(for: entry)
+            } label: {
+                Label(
+                    language.text("backup.create_manual"),
+                    systemImage: "externaldrive.badge.plus"
+                )
+            }
+        }
         if !readOnly {
             Button {
                 selectedEntryIDs = [entry.id]
@@ -541,6 +551,43 @@ struct FileBrowserView: View {
             ]
         )
         filesTabSession.wrappedValue = updatedSession
+    }
+
+    private func createManualBackup(for entry: FileEntry) {
+        let url = URL(fileURLWithPath: entry.path)
+        activityText = language.text("backup.creating")
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let record = try BackupCenter.shared.manualBackup(
+                    target: url,
+                    feature: .file,
+                    label: entry.name,
+                    containerPath: containerPath.isEmpty ? nil : containerPath,
+                    bundleID: bundleID
+                )
+                let size = ByteCountFormatter.string(
+                    fromByteCount: record.byteCount,
+                    countStyle: .file
+                )
+                log("filebrowser: manual backup created path=\(entry.path)")
+                DispatchQueue.main.async {
+                    activityText = nil
+                    operationNotice = FileReplacementNotice(
+                        title: language.text("backup.created_title"),
+                        message: language.text("backup.created_message", record.fileName, size)
+                    )
+                }
+            } catch {
+                log("filebrowser: manual backup failed path=\(entry.path) error=\(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    activityText = nil
+                    operationNotice = FileReplacementNotice(
+                        title: language.text("backup.error_title"),
+                        message: error.localizedDescription
+                    )
+                }
+            }
+        }
     }
 
     private var fileEmptyView: some View {

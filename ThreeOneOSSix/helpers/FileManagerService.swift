@@ -252,6 +252,13 @@ enum FileManagerService {
         guard itemValues.isSymbolicLink != true else {
             throw FileManagerOperationError.symbolicLinkUnsupported
         }
+        if itemValues.isRegularFile == true {
+            try BackupCenter.shared.createVersionSnapshot(
+                target: itemURL,
+                feature: .file,
+                reason: "delete \(itemURL.lastPathComponent)"
+            )
+        }
         do {
             try fileManager.removeItem(at: itemURL)
         } catch {

@@ -102,6 +102,11 @@ enum FileReplacementService {
                 != sourceURL.standardizedFileURL.resolvingSymlinksInPath() else {
             throw FileReplacementError.sameFile
         }
+        try BackupCenter.shared.createVersionSnapshot(
+            target: targetURL,
+            feature: .file,
+            reason: "replace \(targetURL.lastPathComponent)"
+        )
         let targetAttributes = try fileManager.attributesOfItem(atPath: targetURL.path)
         let stagingURL = targetURL.deletingLastPathComponent()
             .appendingPathComponent(".3106-replacement-\(UUID().uuidString)")

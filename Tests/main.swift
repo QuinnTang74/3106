@@ -320,6 +320,90 @@ expect(cleanerEmptyApplications.count == 1, "cleaner still reports an app with n
 expect(cleanerEmptyRecords.isEmpty, "cleaner does not return an empty record")
 expect(cleanerEmptyScanned.isEmpty, "cleaner does not mark an empty app as scanned")
 
+// Backup center: originals, versions, verified writes, restore and journals.
+do {
+    let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent("3106-backup-tests-\(UUID().uuidString)", isDirectory: true)
+    let center = BackupCenter(rootURL: root)
+    let fileManager = FileManager.default
+    let target = root.appendingPathComponent("target.txt")
+    try Data("original".utf8).write(to: target)
+
+    let original = try center.recordOriginalIfNeeded(target: target, feature: .file, reason: "test")
+    expect(original.kind == .original, "backup records the first original")
+    expect(original.sha256 == BackupCenter.hashData(Data("original".utf8)), "original hash matches")
+    let originalAgain = try center.recordOriginalIfNeeded(target: target, feature: .file, reason: "again")
+    expect(originalAgain.id == original.id, "original snapshot is immutable")
+
+    let version = try center.createVersionSnapshot(target: target, feature: .file, reason: "before write")
+    expect(version.kind == .version, "version snapshot is recorded")
+    expect(version.sha256 == BackupCenter.hashData(Data("original".utf8)), "version holds the pre-write content")
+
+    try VerifiedFileWriter.write(
+        Data("updated".utf8),
+        to: target,
+        feature: .file,
+        reason: "test write",
+        center: center
+    )
+    expect((try? String(contentsOf: target, encoding: .utf8)) == "updated", "verified writer updates the file")
+
+    try center.restore(original)
+    expect((try? String(contentsOf: target, encoding: .utf8)) == "original", "restore returns the original content")
+
+    try center.delete(version)
+    expect(!center.records().contains { $0.id == version.id }, "version backup can be deleted")
+
+    do {
+        try center.delete(original)
+        expect(false, "original backups cannot be deleted")
+    } catch {
+        expect(true, "original backups cannot be deleted")
+    }
+
+    let manual = try center.manualBackup(target: target, feature: .file, label: "manual")
+    expect(manual.kind == .manual, "manual backup is recorded")
+
+    let journalTarget = root.appendingPathComponent("journal.txt")
+    try Data("before".utf8).write(to: journalTarget)
+    let journalOriginal = try center.recordOriginalIfNeeded(
+        target: journalTarget,
+        feature: .file,
+        reason: "journal"
+    )
+    let journalID = try center.beginJournal(
+        target: journalTarget,
+        feature: .file,
+        backupRecordID: journalOriginal.id,
+        reason: "crash simulation"
+    )
+    expect(center.pendingJournals().contains { $0.id == journalID }, "journal is listed as pending")
+    try Data("after".utf8).write(to: journalTarget)
+    let recovered = center.recoverPendingJournals()
+    expect(recovered >= 1, "pending journal is recovered")
+    expect((try? String(contentsOf: journalTarget, encoding: .utf8)) == "before",
+           "journal recovery restores the backup")
+
+    let symlink = root.appendingPathComponent("link.txt")
+    try fileManager.createSymbolicLink(atPath: symlink.path, withDestinationPath: target.path)
+    do {
+        try VerifiedFileWriter.write(
+            Data("x".utf8),
+            to: symlink,
+            feature: .file,
+            reason: "symlink",
+            center: center
+        )
+        expect(false, "verified writer refuses symlinks")
+    } catch {
+        expect(true, "verified writer refuses symlinks")
+    }
+
+    try? fileManager.removeItem(at: root)
+} catch {
+    expect(false, "backup center test failed: \(error)")
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

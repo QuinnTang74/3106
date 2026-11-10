@@ -101,7 +101,8 @@ enum PatchTransaction {
         backupRoot: URL,
         containerResolver: (String) throws -> URL,
         beforeWrite: ((Int) throws -> Void)? = nil,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        backupCenter: BackupCenter? = nil
     ) throws -> PatchTransactionReceipt {
         guard !project.rules.isEmpty || !project.directories.isEmpty else {
             throw PatchPackageError.invalidProject
@@ -286,12 +287,24 @@ enum PatchTransaction {
             }
             for (index, resolved) in resolvedRules.enumerated() {
                 try beforeWrite?(index)
-                try atomicWrite(
-                    resolved.rule.replacementData,
-                    to: resolved.target,
-                    preservingExistingAttributes: true,
-                    fileManager: fileManager
-                )
+                if let backupCenter {
+                    try VerifiedFileWriter.write(
+                        resolved.rule.replacementData,
+                        to: resolved.target,
+                        feature: .patch,
+                        reason: "patch \(project.name)/\(resolved.rule.relativePath)",
+                        containerPath: roots[resolved.rule.bundleID]?.path,
+                        bundleID: resolved.rule.bundleID,
+                        center: backupCenter
+                    )
+                } else {
+                    try atomicWrite(
+                        resolved.rule.replacementData,
+                        to: resolved.target,
+                        preservingExistingAttributes: true,
+                        fileManager: fileManager
+                    )
+                }
                 guard try digestFile(resolved.target) == records[index].replacementDigest else {
                     throw PatchPackageError.applyFailed
                 }

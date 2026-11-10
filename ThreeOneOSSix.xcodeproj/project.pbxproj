@@ -74,6 +74,8 @@
 		3105L203 /* RepositoryHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105L103; };
 		3105L204 /* RepositorySourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105L104; };
 		3105L205 /* RepositoryPresentationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105L105; };
+		3106B200 /* BackupCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106B100; };
+		3106B201 /* BackupCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106B101; };
 		3105A233 /* ContainerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A104; };
 		3105A234 /* AppDataBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A105; };
 		3105A228 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3105A120; };
@@ -172,6 +174,8 @@
 		3105A121 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3105A122 /* vi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = vi; path = vi.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3105B123 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		3106B100 /* BackupCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenter.swift; sourceTree = "<group>"; };
+		3106B101 /* BackupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenterView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -253,6 +257,7 @@
 				3105L102 /* RepositoryMarketplaceView.swift */,
 				3105L103 /* RepositoryHomeView.swift */,
 				3105L104 /* RepositorySourcesView.swift */,
+				3106B101 /* BackupCenterView.swift */,
 			);
 			path = views;
 			sourceTree = "<group>";
@@ -303,6 +308,7 @@
 				3105A025 /* Utils.swift */,
 				3105A026 /* SBX.swift */,
 				3105A027 /* MG.swift */,
+				3106B100 /* BackupCenter.swift */,
 			);
 			path = helpers;
 			sourceTree = "<group>";
@@ -453,6 +459,8 @@
 				3105L203,
 				3105L204,
 				3105L205,
+				3106B200,
+				3106B201,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
