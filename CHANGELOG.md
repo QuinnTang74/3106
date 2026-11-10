@@ -2,6 +2,18 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.10] - 2026-11-10
+
+### Fixed
+
+- `.tendies` import no longer fails with `unsafeArchive` after extraction. `WallpaperLayoutScanner.isContained` compared raw `/var/...` and `/private/var/...` paths, so the extracted package root and its descriptor children looked like different trees; both paths are now canonicalized before the containment check.
+- On-device wallpaper layout discovery now uses a FileManager enumerator first. A direct `fileExists`/`contentsOfDirectory` on `.../61/Extensions/...` is denied by the sandbox even though the enumerator can list it; the enumerator now finds all provider `descriptors` directories without the previous recursive depth heuristic.
+
+### Changed
+
+- Includes the 3.1.9 fixes: GB18030/backslash ZIP names, duplicate directory entries, 768 MB entry limit, `/private/var` scan root, LaunchServices/filesystem caches, and MHA scan skipping.
+- Marketing version **3.1.10**; `CFBundleVersion` **14** (test build, not published).
+
 ## [3.1.9] - 2026-11-10
 
 ### Fixed

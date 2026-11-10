@@ -175,6 +175,20 @@ expect(
     LaunchServicesStore.isDataContainerPath(identifiedEntry.path),
     "app data container path is recognized"
 )
+expect(
+    LaunchServicesStore.isPath(
+        "/private/var/mobile/Containers/Data/Application/\(testUUID)/Library/Caches",
+        containedIn: "/var/mobile/Containers/Data/Application/\(testUUID)"
+    ),
+    "path containment treats /var and /private/var as the same tree"
+)
+expectFalse(
+    LaunchServicesStore.isPath(
+        "/private/var/mobile/Containers/Data/Application/\(testUUID)X",
+        containedIn: "/var/mobile/Containers/Data/Application/\(testUUID)"
+    ),
+    "path containment does not match a sibling prefix"
+)
 
 // MARK: - Favorites store checks
 

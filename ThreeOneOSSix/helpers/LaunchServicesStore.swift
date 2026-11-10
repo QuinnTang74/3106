@@ -344,6 +344,15 @@ enum LaunchServicesStore {
         return path
     }
 
+    /// Path containment that treats `/var/...` and `/private/var/...` as the
+    /// same tree. A raw string prefix check here rejected extracted `.tendies`
+    /// packages after the archive itself had unpacked successfully.
+    static func isPath(_ candidate: String, containedIn root: String) -> Bool {
+        let rootPath = canonicalContainerPath(root)
+        let candidatePath = canonicalContainerPath(candidate)
+        return candidatePath == rootPath || candidatePath.hasPrefix(rootPath + "/")
+    }
+
     static func isDataContainerPath(_ path: String) -> Bool {
         let prefixes = [
             "/private/var/mobile/Containers/Data/Application/",

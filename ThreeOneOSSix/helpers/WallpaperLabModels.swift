@@ -126,6 +126,21 @@ enum WallpaperLayoutScanner {
             fileManager: fileManager
         )
 
+        // FileManager's enumerator can descend into sandboxed subdirectories
+        // even when a direct fileExists/contentsOfDirectory on a deeper path is
+        // denied. Use it first; it is also what produced the diagnostic tree
+        // that showed the descriptors were really there.
+        if let enumerated = recursiveDescriptorLayout(
+            storeURL: storeURL,
+            fileManager: fileManager
+        ) {
+            log(
+                "wallpaper: enumerated layout generation=\(enumerated.generation) " +
+                    "extensions=\(enumerated.extensionDescriptorDirectories.keys.sorted())"
+            )
+            return enumerated
+        }
+
         let generationURLs = try fileManager.contentsOfDirectory(
             at: storeURL,
             includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
@@ -298,27 +313,25 @@ enum WallpaperLayoutScanner {
         ) else { return nil }
 
         var directories: [String: URL] = [:]
-        var generations = Set<String>()
+        var generation = "61"
         while let item = enumerator.nextObject() as? URL {
-            let relative = relativePath(of: item, under: storeURL)
-            let components = relative.split(separator: "/").map(String.init)
-            if components.count > 6 {
-                enumerator.skipDescendants()
-                continue
-            }
+            guard item.lastPathComponent == "descriptors" else { continue }
             let values = try? item.resourceValues(forKeys: Set(keys))
             guard values?.isDirectory == true,
                   values?.isSymbolicLink != true else { continue }
-            guard item.lastPathComponent == "descriptors" else { continue }
             let identifier = item.deletingLastPathComponent().lastPathComponent
             guard validExtensionIdentifier(identifier) else { continue }
             directories[identifier] = item
-            for component in components.dropLast() where Int(component) != nil {
-                generations.insert(component)
+
+            let components = item.pathComponents
+            if let extensionsIndex = components.firstIndex(of: "Extensions"),
+               extensionsIndex > 0,
+               let numeric = Int(components[extensionsIndex - 1]) {
+                generation = String(numeric)
             }
         }
         guard !directories.isEmpty else { return nil }
-        let generation = generations.max { (Int($0) ?? 0) < (Int($1) ?? 0) } ?? "1"
+        log("wallpaper: enumerator found \(directories.count) descriptor directories")
         return WallpaperPosterLayout(
             generation: generation,
             storeURL: storeURL,
@@ -501,9 +514,10 @@ enum WallpaperLayoutScanner {
     }
 
     static func isContained(_ candidate: URL, in root: URL) -> Bool {
-        let rootPath = root.standardizedFileURL.path
-        let candidatePath = candidate.standardizedFileURL.path
-        return candidatePath == rootPath || candidatePath.hasPrefix(rootPath + "/")
+        LaunchServicesStore.isPath(
+            candidate.standardizedFileURL.resolvingSymlinksInPath().path,
+            containedIn: root.standardizedFileURL.resolvingSymlinksInPath().path
+        )
     }
 }
 
