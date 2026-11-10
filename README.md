@@ -85,7 +85,7 @@
 | --- | --- |
 | 无签名构建 | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | 策略测试 | `bash Tests/run_policy_tests.sh` |
-| 产物目录 | `dist/`，本次文件名 `3106-3.1.4-r2-unsigned.ipa` |
+| 产物目录 | `dist/`，本次文件名 `3106-3.1.7-unsigned.ipa` |
 
 ## 下载
 
@@ -94,6 +94,8 @@
 <https://github.com/QuinnTang74/3106/releases>
 
 发布资产为未签名 IPA，需要按上面的签名方式自行签名后安装。
+
+当前版本：`3106-3.1.7-unsigned.ipa`（SHA256 `1da708f9298b1131ba92e0537d05571d9aec311489c7840fbb5fafad6d0be70e`）。
 
 ## 开源协议与商用说明
 

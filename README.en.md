@@ -84,7 +84,7 @@ With a certificate and provisioning profile, the profile must be an explicit App
 | --- | --- |
 | Unsigned build | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | Policy tests | `bash Tests/run_policy_tests.sh` |
-| Output | `dist/`, this release is `3106-3.1.4-r2-unsigned.ipa` |
+| Output | `dist/`, this release is `3106-3.1.7-unsigned.ipa` |
 
 ## Download
 
@@ -93,6 +93,8 @@ Stable releases are published on GitHub Releases:
 <https://github.com/QuinnTang74/3106/releases>
 
 The release asset is an unsigned IPA; sign it with one of the methods above before installing.
+
+Current asset: `3106-3.1.7-unsigned.ipa` (SHA256 `1da708f9298b1131ba92e0537d05571d9aec311489c7840fbb5fafad6d0be70e`).
 
 ## License and commercial use
 
