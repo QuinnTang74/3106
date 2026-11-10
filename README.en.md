@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.1.11** (test build, not published) |
-| Current release | **v3.1.11 test build** (build 15, wallpaper scan and import stage logs) |
+| Version | **3.1.12** (test build, not published) |
+| Current release | **v3.1.12 test build** (build 16, wallpaper import validation and scan fallback) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | Access backend | kernel / `bad_query` / `worse_query` |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -42,6 +42,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.1.12** | Test build: skip bad items in package validation instead of rejecting the whole `.tendies`; path-enumeration fallback after the tree; both real packages pass the standalone inspector |
 | **3.1.11** | Test build: collect descriptors from the same successful tree enumeration; add import stage logs and a launch version banner |
 | **3.1.10** | Test build: fix `isContained` `/var` vs `/private/var` after `.tendies` extraction; find device descriptors with an enumerator first |
 | **3.1.9** | Test build: force `/private/var` for wallpaper scans; ZIP GB18030 names, backslash paths, duplicate dirs and 768 MB video entries; reuse LS/filesystem caches and skip redundant MHA scanning |
@@ -88,7 +89,7 @@ With a certificate and provisioning profile, the profile must be an explicit App
 | --- | --- |
 | Unsigned build | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | Policy tests | `bash Tests/run_policy_tests.sh` |
-| Output | `dist/`, this release is `3106-3.1.11-unsigned.ipa` |
+| Output | `dist/`, this release is `3106-3.1.12-unsigned.ipa` |
 
 ## Download
 
@@ -98,7 +99,7 @@ Stable releases are published on GitHub Releases:
 
 The release asset is an unsigned IPA; sign it with one of the methods above before installing.
 
-Current asset: `3106-3.1.11-unsigned.ipa` (SHA256 `5f71fb469a44769dc6a99d300ff1d2909333c397074a7b3b39a8cabe5f060b2d`).
+Current asset: `3106-3.1.12-unsigned.ipa` (SHA256 `788fafd2814aaa626d474f07e1dc3369ff3e2320eaf95a3368d274f03f9a56cf`).
 
 ## License and commercial use
 

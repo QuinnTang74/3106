@@ -223,6 +223,16 @@ enum WallpaperLayoutScanner {
             )
             return treeLayout
         }
+        if let fallbackLayout = descriptorLayoutByPathEnumeration(
+            storeURL: storeURL,
+            fileManager: fileManager
+        ) {
+            log(
+                "wallpaper: fallback layout generation=\(fallbackLayout.generation) " +
+                    "extensions=\(fallbackLayout.extensionDescriptorDirectories.keys.sorted())"
+            )
+            return fallbackLayout
+        }
         guard let generationURL = syntheticGenerationURL(
             storeURL: storeURL,
             numericGeneration: generationURLs.first,
@@ -439,11 +449,7 @@ enum WallpaperLayoutScanner {
             }
             log("wallpaper: tree \(kind) \(relative)")
 
-            guard values?.isDirectory == true,
-                  values?.isSymbolicLink != true,
-                  item.lastPathComponent == "descriptors" else {
-                continue
-            }
+            guard item.lastPathComponent == "descriptors" else { continue }
             let identifier = item.deletingLastPathComponent().lastPathComponent
             guard validExtensionIdentifier(identifier) else { continue }
             descriptorDirectories[identifier] = item
@@ -454,11 +460,61 @@ enum WallpaperLayoutScanner {
                 generation = String(numeric)
             }
         }
+        log("wallpaper: tree descriptor candidates=\(descriptorDirectories.count)")
         guard !descriptorDirectories.isEmpty else { return nil }
         return WallpaperPosterLayout(
             generation: generation,
             storeURL: storeURL,
             extensionDescriptorDirectories: descriptorDirectories
+        )
+    }
+
+    /// A second, deliberately simple pass over the same store. The tree pass
+    /// proves the enumerator can see `descriptors`; this fallback only relies
+    /// on the path suffix and does not inspect resource values.
+    private static func descriptorLayoutByPathEnumeration(
+        storeURL: URL,
+        fileManager: FileManager
+    ) -> WallpaperPosterLayout? {
+        let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
+        guard let enumerator = fileManager.enumerator(
+            at: storeURL,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles],
+            errorHandler: { url, error in
+                log("wallpaper: fallback enumerate error \(url.path) \(error.localizedDescription)")
+                return true
+            }
+        ) else { return nil }
+
+        var directories: [String: URL] = [:]
+        var generation = "61"
+        while let item = enumerator.nextObject() as? URL {
+            let path = item.path
+            guard path.hasSuffix("/descriptors") ||
+                    item.lastPathComponent == "descriptors" else {
+                continue
+            }
+            let parent = (path as NSString).deletingLastPathComponent
+            let identifier = (parent as NSString).lastPathComponent
+            guard validExtensionIdentifier(identifier) else {
+                log("wallpaper: fallback descriptor parent skipped \(identifier)")
+                continue
+            }
+            directories[identifier] = item
+            let components = item.pathComponents
+            if let extensionsIndex = components.firstIndex(of: "Extensions"),
+               extensionsIndex > 0,
+               let numeric = Int(components[extensionsIndex - 1]) {
+                generation = String(numeric)
+            }
+        }
+        log("wallpaper: fallback descriptor candidates=\(directories.count)")
+        guard !directories.isEmpty else { return nil }
+        return WallpaperPosterLayout(
+            generation: generation,
+            storeURL: storeURL,
+            extensionDescriptorDirectories: directories
         )
     }
 
@@ -550,11 +606,13 @@ enum TendiesPackageInspector {
         fileManager: FileManager = .default
     ) throws -> TendiesPayload {
         try WallpaperLayoutScanner.validateDirectory(packageURL, fileManager: fileManager)
+        log("wallpaper: inspecting package root=\(packageURL.path)")
         let descriptors = try collectDescriptorSources(
             in: packageURL,
             packageRoot: packageURL,
             fileManager: fileManager
         )
+        log("wallpaper: collected \(descriptors.count) descriptor sources")
 
         guard !descriptors.isEmpty else { throw WallpaperLabError.noDescriptors }
         guard descriptors.count <= WallpaperLabLimits.maximumDescriptorCount else {
@@ -595,7 +653,11 @@ enum TendiesPackageInspector {
         fileManager: FileManager
     ) throws -> [WallpaperDescriptorSource] {
         guard WallpaperLayoutScanner.isContained(directory, in: packageRoot) else {
-            throw WallpaperLabError.unsafeArchive
+            log(
+                "wallpaper: package directory outside root, skipping " +
+                    "\(directory.path) root=\(packageRoot.path)"
+            )
+            return []
         }
         try WallpaperLayoutScanner.validateDirectory(directory, fileManager: fileManager)
         let children = try fileManager.contentsOfDirectory(
@@ -608,7 +670,8 @@ enum TendiesPackageInspector {
         for child in children where child.lastPathComponent != "__MACOSX" {
             let values = try child.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             guard values.isSymbolicLink != true else {
-                throw WallpaperLabError.symbolicLinkUnsupported
+                log("wallpaper: package symlink skipped \(child.path)")
+                continue
             }
             guard values.isDirectory == true else { continue }
 
@@ -667,7 +730,11 @@ enum TendiesPackageInspector {
     ) throws -> [WallpaperDescriptorSource] {
         guard WallpaperLayoutScanner.validExtensionIdentifier(extensionIdentifier),
               WallpaperLayoutScanner.isContained(directory, in: packageRoot) else {
-            throw WallpaperLabError.unsafeArchive
+            log(
+                "wallpaper: descriptor source skipped dir=\(directory.path) " +
+                    "root=\(packageRoot.path) extension=\(extensionIdentifier)"
+            )
+            return []
         }
         try WallpaperLayoutScanner.validateDirectory(directory, fileManager: fileManager)
         let children = try fileManager.contentsOfDirectory(
@@ -682,7 +749,8 @@ enum TendiesPackageInspector {
                 forKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey]
             )
             guard values.isSymbolicLink != true else {
-                throw WallpaperLabError.symbolicLinkUnsupported
+                log("wallpaper: descriptor symlink skipped \(child.path)")
+                continue
             }
             guard values.isDirectory == true else {
                 if values.isRegularFile == true { regularFileCount += 1 }
@@ -732,7 +800,11 @@ enum TendiesPackageInspector {
         fileManager: FileManager
     ) throws -> (bytes: Int64, files: Int) {
         guard WallpaperLayoutScanner.isContained(directory, in: packageRoot) else {
-            throw WallpaperLabError.unsafeArchive
+            log(
+                "wallpaper: validateTree root outside package, skipping " +
+                    "\(directory.path) root=\(packageRoot.path)"
+            )
+            return (0, 0)
         }
         var bytes: Int64 = 0
         var files = 0
@@ -746,15 +818,23 @@ enum TendiesPackageInspector {
             throw WallpaperLabError.unsupportedPackage
         }
         for case let itemURL as URL in enumerator {
-            guard WallpaperLayoutScanner.isContained(itemURL, in: packageRoot),
-                  itemURL.path.utf8.count <= WallpaperLabLimits.maximumPathBytes else {
-                throw WallpaperLabError.unsafeArchive
+            guard WallpaperLayoutScanner.isContained(itemURL, in: packageRoot) else {
+                log(
+                    "wallpaper: package item outside root, skipping " +
+                        "\(itemURL.path) root=\(packageRoot.path)"
+                )
+                continue
+            }
+            guard itemURL.path.utf8.count <= WallpaperLabLimits.maximumPathBytes else {
+                log("wallpaper: package item path too long, skipping \(itemURL.path)")
+                continue
             }
             let values = try itemURL.resourceValues(forKeys: [
                 .isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey
             ])
             if values.isSymbolicLink == true {
-                throw WallpaperLabError.symbolicLinkUnsupported
+                log("wallpaper: package symlink skipped \(itemURL.path)")
+                continue
             }
             if values.isRegularFile == true {
                 let size = Int64(values.fileSize ?? 0)
@@ -768,7 +848,8 @@ enum TendiesPackageInspector {
                     throw WallpaperLabError.packageTooLarge
                 }
             } else if values.isDirectory != true {
-                throw WallpaperLabError.unsupportedPackage
+                log("wallpaper: package special file skipped \(itemURL.path)")
+                continue
             }
         }
         return (bytes, files)

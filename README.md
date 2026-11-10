@@ -18,8 +18,8 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 当前版本 | **3.1.11**（测试版，未发布） |
-| 当前发布 | **v3.1.11 测试构建**（build 15，壁纸扫描与导入阶段日志） |
+| 当前版本 | **3.1.12**（测试版，未发布） |
+| 当前发布 | **v3.1.12 测试构建**（build 16，壁纸导入校验与扫描兜底） |
 | 支持系统 | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | 访问后端 | kernel / `bad_query` / `worse_query` |
 | 界面语言 | 简体中文 · English · Tiếng Việt |
@@ -43,6 +43,7 @@
 
 | 版本 | 主要内容 |
 | --- | --- |
+| **3.1.12** | 测试构建：导入校验不再因单个路径/symlink 异常整包拒绝；tree 后增加路径枚举兜底；两个实际 `.tendies` 包已用独立检查器验证通过 |
 | **3.1.11** | 测试构建：直接用已成功的 tree 枚举收集 descriptors，避免早期枚举被沙箱挡住；导入增加 extracting/extracted/inspected 阶段日志；启动日志显示版本号 |
 | **3.1.10** | 测试构建：修复 `.tendies` 解包后 `isContained` 的 `/var` 与 `/private/var` 误判；设备端 descriptor 改用枚举器优先，解决“树里有目录、扫描说没有” |
 | **3.1.9** | 测试构建：壁纸扫描强制 `/private/var`；ZIP 支持 GB18030 文件名、反斜杠路径、重复目录和 768MB 视频条目；文件页复用 LS/文件系统缓存并跳过冗余 MHA 扫描 |
@@ -89,7 +90,7 @@
 | --- | --- |
 | 无签名构建 | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | 策略测试 | `bash Tests/run_policy_tests.sh` |
-| 产物目录 | `dist/`，本次文件名 `3106-3.1.11-unsigned.ipa` |
+| 产物目录 | `dist/`，本次文件名 `3106-3.1.12-unsigned.ipa` |
 
 ## 下载
 
@@ -99,7 +100,7 @@
 
 发布资产为未签名 IPA，需要按上面的签名方式自行签名后安装。
 
-当前版本：`3106-3.1.11-unsigned.ipa`（SHA256 `5f71fb469a44769dc6a99d300ff1d2909333c397074a7b3b39a8cabe5f060b2d`）。
+当前版本：`3106-3.1.12-unsigned.ipa`（SHA256 `788fafd2814aaa626d474f07e1dc3369ff3e2320eaf95a3368d274f03f9a56cf`）。
 
 ## 开源协议与商用说明
 

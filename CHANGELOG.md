@@ -2,6 +2,18 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.12] - 2026-11-10
+
+### Fixed
+
+- `.tendies` import no longer aborts the whole package with `unsafeArchive` when one extracted item fails the inspector's path/symlink check. The inspector now logs and skips that item, then continues; it also logs `inspecting package root` and `collected N descriptor sources`.
+- Wallpaper layout discovery now logs `tree descriptor candidates=N` and, if the tree pass still returns nothing, runs a second path-suffix enumeration after the tree (`fallback descriptor candidates=N`). This no longer depends on `resourceValues` succeeding for the descriptors directory.
+
+### Changed
+
+- Includes 3.1.11's launch version banner and import stage logs.
+- Marketing version **3.1.12**; `CFBundleVersion` **16** (test build, not published).
+
 ## [3.1.11] - 2026-11-10
 
 ### Fixed
