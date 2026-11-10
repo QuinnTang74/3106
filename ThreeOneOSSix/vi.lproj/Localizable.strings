@@ -90,6 +90,7 @@
 "cleaner.scope_footer" = "Chỉ xóa Library/Caches và tmp. Documents, tùy chọn và Keychain được giữ nguyên.";
 "cleaner.apps_with_cache" = "%lld ứng dụng có dữ liệu tạm";
 "cleaner.apps_footer" = "Chỉ hiện ứng dụng có dữ liệu tạm có thể xóa.";
+"cleaner.unidentified_footer" = "Các vùng chứa có biểu tượng khóa chưa xác định được danh tính; chỉ để tham khảo và không thể dọn dẹp.";
 "cleaner.scanned_count" = "Đã quét %lld";
 "cleaner.scanning" = "Đang quét bộ nhớ đệm…";
 "cleaner.search" = "Tìm ứng dụng";
@@ -364,6 +365,9 @@
 "browser.unresolved" = "Nhấn Phân giải tất cả để tải tên";
 "browser.search" = "Tìm ứng dụng";
 "browser.apps_count" = "%lld dữ liệu ứng dụng";
+"browser.unidentified_count" = "%lld vùng chứa chưa xác định";
+"browser.unidentified_badge" = "Chưa xác định";
+"browser.unidentified_footer" = "Không thể xác định danh tính ứng dụng. Có thể duyệt các vùng chứa này nhưng thao tác ghi đã bị tắt.";
 "browser.mha_scanning" = "Đang quét MHA-C2…";
 "browser.items_count" = "%lld mục";
 "browser.folder" = "Thư mục";

@@ -7,6 +7,8 @@ trap 'rm -rf "$TMP"' EXIT
 
 swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/SupportPolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/LaunchServicesStore.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/ContainerBrowserLogic.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

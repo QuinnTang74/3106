@@ -13,6 +13,7 @@ struct FileBrowserView: View {
     let title: String
     let bundleID: String?
     let isRoot: Bool
+    let readOnly: Bool
     private let filesTabSession: Binding<FilesTabSession>?
     @State private var currentPath: String
     @State private var entries: [FileEntry] = []
@@ -72,12 +73,14 @@ struct FileBrowserView: View {
         containerPath: String,
         title: String,
         bundleID: String? = nil,
+        readOnly: Bool = false,
         filesTabSession: Binding<FilesTabSession>? = nil
     ) {
         self.containerPath = containerPath
         self.title = title
         self.bundleID = bundleID
         self.isRoot = true
+        self.readOnly = readOnly
         self.filesTabSession = filesTabSession
         _currentPath = State(initialValue: containerPath)
     }
@@ -131,6 +134,7 @@ struct FileBrowserView: View {
                 startPath: destination.startPath,
                 title: destination.title,
                 bundleID: destination.bundleID,
+                readOnly: destination.readOnly,
                 filesTabSession: filesTabSession
             )
         }
@@ -143,20 +147,23 @@ struct FileBrowserView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 sortMenu
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(isSelecting
-                       ? language.text("common.cancel")
-                       : language.text("browser.select")) {
-                    toggleSelectionMode()
+            if !readOnly {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(isSelecting
+                           ? language.text("common.cancel")
+                           : language.text("browser.select")) {
+                        toggleSelectionMode()
+                    }
+                    .disabled(activityText != nil || importSession != nil)
                 }
-                .disabled(activityText != nil || importSession != nil)
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if isSelecting {
-                    Button(selectionActionTitle, action: toggleAllSelection)
-                        .disabled(entries.isEmpty)
-                } else {
-                    Menu {
+            if !readOnly {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if isSelecting {
+                        Button(selectionActionTitle, action: toggleAllSelection)
+                            .disabled(entries.isEmpty)
+                    } else {
+                        Menu {
                         if let payload = fileOperationCoordinator.payload {
                             Button {
                                 beginPaste(payload)
@@ -199,9 +206,10 @@ struct FileBrowserView: View {
                     .accessibilityLabel(language.text("browser.add"))
                 }
             }
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if isSelecting {
+            if !readOnly, isSelecting {
                 FileSelectionActionBar(
                     selectedCount: selectedEntryIDs.count,
                     language: language,
@@ -211,7 +219,7 @@ struct FileBrowserView: View {
                     onDelete: prepareBulkDelete
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if let payload = fileOperationCoordinator.payload {
+            } else if !readOnly, let payload = fileOperationCoordinator.payload {
                 FilePasteBar(
                     itemCount: payload.itemCount,
                     mode: payload.mode,
@@ -408,7 +416,8 @@ struct FileBrowserView: View {
                     containerPath: containerPath,
                     startPath: entry.path,
                     title: entry.name,
-                    bundleID: bundleID
+                    bundleID: bundleID,
+                    readOnly: readOnly
                 )
             ) {
                 FileEntryRow(entry: entry, language: language, selectionState: nil)
@@ -437,64 +446,66 @@ struct FileBrowserView: View {
             }
             Divider()
         }
-        Button {
-            selectedEntryIDs = [entry.id]
-            isSelecting = true
-        } label: {
-            Label(language.text("browser.select"), systemImage: "checkmark.circle")
-        }
-        Button {
-            prepareTransfer([entry], mode: .copy)
-        } label: {
-            Label(language.text("browser.copy"), systemImage: "doc.on.doc")
-        }
-        Button {
-            prepareTransfer([entry], mode: .move)
-        } label: {
-            Label(language.text("browser.move"), systemImage: "folder")
-        }
         ShareLink(item: URL(fileURLWithPath: entry.path)) {
             Label(language.text("browser.share"), systemImage: "square.and.arrow.up")
         }
-        Divider()
-        if bundleID != nil {
+        if !readOnly {
             Button {
-                requestPatchCreation(for: entry)
+                selectedEntryIDs = [entry.id]
+                isSelecting = true
             } label: {
-                Label(
-                    language.text("browser.create_patch"),
-                    systemImage: entry.isDirectory ? "folder.badge.plus" : "shippingbox"
-                )
+                Label(language.text("browser.select"), systemImage: "checkmark.circle")
             }
-        }
-        if !entry.isDirectory, entry.name.lowercased().hasSuffix(".zip") {
             Button {
-                extractArchive(entry)
+                prepareTransfer([entry], mode: .copy)
             } label: {
-                Label(language.text("browser.extract_zip"), systemImage: "archivebox")
+                Label(language.text("browser.copy"), systemImage: "doc.on.doc")
             }
-        }
-        Divider()
-        if !entry.isDirectory {
             Button {
-                requestReplacement(for: entry)
+                prepareTransfer([entry], mode: .move)
             } label: {
-                Label(
-                    language.text("browser.replace"),
-                    systemImage: "arrow.triangle.2.circlepath"
-                )
+                Label(language.text("browser.move"), systemImage: "folder")
             }
-        }
-        Button {
-            presentNamePrompt(.rename(entry))
-        } label: {
-            Label(language.text("browser.rename"), systemImage: "pencil")
-        }
-        Divider()
-        Button(role: .destructive) {
-            deleteTargets = [entry]
-        } label: {
-            Label(language.text("browser.delete"), systemImage: "trash")
+            Divider()
+            if bundleID != nil {
+                Button {
+                    requestPatchCreation(for: entry)
+                } label: {
+                    Label(
+                        language.text("browser.create_patch"),
+                        systemImage: entry.isDirectory ? "folder.badge.plus" : "shippingbox"
+                    )
+                }
+            }
+            if !entry.isDirectory, entry.name.lowercased().hasSuffix(".zip") {
+                Button {
+                    extractArchive(entry)
+                } label: {
+                    Label(language.text("browser.extract_zip"), systemImage: "archivebox")
+                }
+            }
+            Divider()
+            if !entry.isDirectory {
+                Button {
+                    requestReplacement(for: entry)
+                } label: {
+                    Label(
+                        language.text("browser.replace"),
+                        systemImage: "arrow.triangle.2.circlepath"
+                    )
+                }
+            }
+            Button {
+                presentNamePrompt(.rename(entry))
+            } label: {
+                Label(language.text("browser.rename"), systemImage: "pencil")
+            }
+            Divider()
+            Button(role: .destructive) {
+                deleteTargets = [entry]
+            } label: {
+                Label(language.text("browser.delete"), systemImage: "trash")
+            }
         }
     }
 
@@ -507,7 +518,8 @@ struct FileBrowserView: View {
                     containerPath: containerPath,
                     startPath: entry.path,
                     title: entry.name,
-                    bundleID: bundleID
+                    bundleID: bundleID,
+                    readOnly: readOnly
                 )
             ]
         )
@@ -1682,12 +1694,14 @@ extension FileBrowserView {
         startPath: String,
         title: String,
         bundleID: String?,
+        readOnly: Bool = false,
         filesTabSession: Binding<FilesTabSession>? = nil
     ) {
         self.containerPath = containerPath
         self.title = title
         self.bundleID = bundleID
         self.isRoot = false
+        self.readOnly = readOnly
         self.filesTabSession = filesTabSession
         _currentPath = State(initialValue: startPath)
     }

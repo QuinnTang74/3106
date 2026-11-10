@@ -6,7 +6,7 @@
 
 - **3105**，作者 YangJiii，GPL-3.0。3106 基于 3105 2.0 源码修改。
 - **worse_query**，作者 Taj C（forcequitOS），GPL-3.0-or-later。iOS 26.7+/27.x 的沙箱逃逸实现。
-- **WQ Files**，作者 Christoph Kolbicz，GPL-3.0-or-later。Caches 交换安全、授权缓存、容器标识回退等产品化实现参考。
+- **WQ Files**，作者 Christoph Kolbicz，GPL-3.0-or-later。Caches 交换安全、授权缓存、容器标识回退等产品化实现参考；`ThreeOneOSSix/helpers/LaunchServicesStore.swift` 是 `WQLaunchServices.m` 中 LaunchServices `bdsl` CSStore 解析器的 Swift 移植（容器路径 ↔ bundle id、显示名、布局选择与边界检查）。
 - **FilzaSlop**，作者 0xjohnnydev 及贡献者。MHA-C2 应用发现与沙盒逃逸基础。
 - **Pocket Poster / Nugget**，作者 LeminLimez 及贡献者，GPL-3.0。`.tendies` 壁纸格式与相关实现基础。
 - **Dopamine**，作者 opa334 及贡献者。iOS 17/18 内核利用基础。

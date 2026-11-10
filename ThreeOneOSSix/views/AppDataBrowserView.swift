@@ -7,6 +7,7 @@ struct AppDataBrowserView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var apps: [InstalledApp] = []
+    @State private var unidentifiedApps: [InstalledApp] = []
     @State private var isLoading = false
     @State private var isResolving = false
     @State private var searchText = ""
@@ -35,10 +36,20 @@ struct AppDataBrowserView: View {
         }
     }
 
+    private var filteredUnidentifiedApps: [InstalledApp] {
+        guard !searchText.isEmpty else { return unidentifiedApps }
+        let q = searchText.lowercased()
+        return unidentifiedApps.filter {
+            $0.name.lowercased().contains(q) || $0.bundleID.lowercased().contains(q)
+        }
+    }
+
     private var overlayState: AppBrowserOverlayState {
-        if (isLoading || isResolving) && apps.isEmpty { return .loading }
-        if apps.isEmpty { return .empty }
-        if filteredApps.isEmpty { return .noResults }
+        let total = apps.count + unidentifiedApps.count
+        let filtered = filteredApps.count + filteredUnidentifiedApps.count
+        if (isLoading || isResolving) && total == 0 { return .loading }
+        if total == 0 { return .empty }
+        if filtered == 0 { return .noResults }
         return .none
     }
 
@@ -191,6 +202,35 @@ struct AppDataBrowserView: View {
                 .foregroundStyle(.secondary)
                 .textCase(nil)
             }
+            if !filteredUnidentifiedApps.isEmpty {
+                Section {
+                    ForEach(filteredUnidentifiedApps) { app in
+                        let destination = FileBrowserDestination(
+                            containerPath: app.containerPath,
+                            startPath: app.containerPath,
+                            title: app.displayName,
+                            bundleID: nil,
+                            readOnly: true
+                        )
+                        NavigationLink(value: destination) {
+                            unidentifiedAppRow(app)
+                        }
+                        .contextMenu {
+                            openInNewTabButton(destination)
+                        }
+                    }
+                } header: {
+                    Text(language.text(
+                        "browser.unidentified_count",
+                        Int64(filteredUnidentifiedApps.count)
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textCase(nil)
+                } footer: {
+                    Text(language.text("browser.unidentified_footer"))
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .environment(\.defaultMinListRowHeight, 48)
@@ -212,6 +252,33 @@ struct AppDataBrowserView: View {
             .transition(.opacity)
             .animation(interfaceAnimation, value: overlayState)
         }
+    }
+
+    private func unidentifiedAppRow(_ app: InstalledApp) -> some View {
+        HStack(spacing: 10) {
+            BrowserAppIcon(app: app)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.displayName)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                Text(app.bundleID)
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer(minLength: 8)
+
+            Text(language.text("browser.unidentified_badge"))
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.secondary.opacity(0.12), in: Capsule())
+        }
+        .padding(.vertical, 2)
     }
 
     private func appRow(_ app: InstalledApp) -> some View {
@@ -282,6 +349,7 @@ struct AppDataBrowserView: View {
     }
 
     private func reload() {
+        ContainerStore.refreshLaunchServicesSnapshot()
         isLoading = true
         isResolving = true
         errorMessage = nil
@@ -310,11 +378,15 @@ struct AppDataBrowserView: View {
             log("browser: merged api=\(apiApps.count), MCM=\(mcmApps.count), filesystem=\(filesystemApps.count) -> \(result.count)")
             result.sort { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
 
-            let preliminary = result.filter {
-                ContainerPresentationPolicy.shouldShow(bundleID: $0.bundleID)
+            let preliminaryIdentified = result.filter {
+                ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+            }
+            let preliminaryUnidentified = result.filter {
+                !ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
             }
             DispatchQueue.main.async {
-                apps = preliminary
+                apps = preliminaryIdentified
+                unidentifiedApps = preliminaryUnidentified
                 isLoading = false
             }
 
@@ -335,20 +407,27 @@ struct AppDataBrowserView: View {
                 identifiers: mhaIdentifiers,
                 bundleMetadata: bundleMetadata
             ) { discoveredApps in
+                // Keep the filesystem fallback in the progressive result:
+                // replacing the list with identified-only entries made the
+                // browser visibly shrink while the MHA scan was running.
                 var progressiveResult = AppDataCatalogMerger.merge(
                     identified: discoveredApps + baseIdentifiedApps,
-                    fallback: [],
+                    fallback: filesystemApps,
                     identifier: { $0.bundleID },
                     path: { $0.containerPath }
                 )
-                progressiveResult = progressiveResult.filter {
-                    ContainerPresentationPolicy.shouldShow(bundleID: $0.bundleID)
-                }
                 progressiveResult.sort {
                     $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
                 }
+                let identified = progressiveResult.filter {
+                    ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+                }
+                let unidentified = progressiveResult.filter {
+                    !ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+                }
                 DispatchQueue.main.async {
-                    apps = progressiveResult
+                    apps = identified
+                    unidentifiedApps = unidentified
                 }
             }
 
@@ -365,24 +444,26 @@ struct AppDataBrowserView: View {
                 in: unmatchedFilesystemApps,
                 knownApps: allKnownApps,
                 launchServicesIdentifiers: Set(launchServicesIdentifiers)
-            ).filter {
-                ContainerPresentationPolicy.shouldShow(bundleID: $0.bundleID)
-            }
+            )
             result = AppDataCatalogMerger.merge(
                 identified: allKnownApps,
                 fallback: inferredFilesystemApps,
                 identifier: { $0.bundleID },
                 path: { $0.containerPath }
             )
-            result = result.filter {
-                ContainerPresentationPolicy.shouldShow(bundleID: $0.bundleID)
-            }
             result.sort {
                 $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
             }
+            let identified = result.filter {
+                ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+            }
+            let unidentified = result.filter {
+                !ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+            }
 
             DispatchQueue.main.async {
-                apps = result
+                apps = identified
+                unidentifiedApps = unidentified
                 isLoading = false
                 isResolving = false
                 if result.isEmpty {

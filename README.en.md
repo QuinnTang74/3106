@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.1.4** (stable) |
-| Current release | **v3.1.4-r2** (build 7, project URL update) |
+| Version | **3.1.5** (stable) |
+| Current release | **v3.1.5** (build 8, app data completeness fix) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | Access backend | kernel / `bad_query` / `worse_query` |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -42,6 +42,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.1.5** | App data browser shows every container again: MHA guard removed, LaunchServices `bdsl` parser, unidentified containers in a read-only section |
 | **3.1.4-r2** | Project URL moved to **QuinnTang74/3106**; in-app GitHub link, update checker, and README updated |
 | **3.1.4** | Cleaner deletion uses the scanned container path; `FileManager` removal refuses symlinks escaping the container |
 | 3.1.3 | Wallpaper scanner supports nested/non-standard iOS 27.3 PosterBoard layouts and creates required descriptors directories |

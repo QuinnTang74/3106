@@ -2,6 +2,23 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.5] - 2026-11-10
+
+### Fixed
+
+- App Data browser no longer hides containers whose bundle identity cannot be resolved. The former `shouldShow` policy dropped every UUID-named container; they now appear in a separate “Unidentified containers” section, are browsable read-only, and are excluded from selection and write actions.
+- Removed the hard-coded `com.apple.mobile.MobileHouseArrest` guard in `MCMActivateContainerPath`. After the 3106 rename to `com.qingtang.3106`, that guard made every MCM enumeration and lookup fail, which was the root cause of the missing app data.
+- Added a LaunchServices `bdsl` CSStore parser (Swift port of WQ Files) that maps container paths to bundle ids directly, without MCM, the container identifier xattr, or the root-owned metadata plist. It reads lsd’s store from the Internal Daemon container and covers the 26 / 27.0 / 27.2 record layouts.
+- Discovery now merges the LaunchServices store’s container list with the filesystem scan, and API/ MCM lookups fall back to the store path instead of dropping apps with an empty or bundle-only container.
+- `installedAppInfo` now merges LaunchServices workspace and MobileInstallation results, and both enumeration selectors (`allApplications` / `allInstalledApplications`) and MobileInstallation option sets are unioned instead of “first non-empty wins”.
+- The progress callback during the MHA candidate scan no longer replaces the list with identified-only entries, so the browser does not visibly shrink while scanning.
+- Cleaner scans unidentified containers too and shows their `Library/Caches` + `tmp` usage, but marks them with a lock and disables selection/cleaning.
+
+### Changed
+
+- App Data browser rows for unidentified containers use a read-only file browser: import, new file/folder, paste, rename, delete, replacement, archive extraction, and patch creation are hidden.
+- Marketing version **3.1.5**; `CFBundleVersion` **8**.
+
 ## [3.1.4-r2] - 2026-11-10
 
 ### Changed

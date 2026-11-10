@@ -37,6 +37,7 @@
 		3105A239 /* FileManagerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A111; };
 		3105A240 /* FileBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A112; };
 		3105A241 /* SupportPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A113; };
+		3106Q101 /* LaunchServicesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106Q100; };
 		3105B214 /* PatchProjectModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105B114; };
 		3105B215 /* PatchPackageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105B115; };
 		3105B216 /* PatchKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105B116; };
@@ -130,6 +131,7 @@
 		3105A111 /* FileManagerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManagerService.swift; sourceTree = "<group>"; };
 		3105A112 /* FileBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileBrowserView.swift; sourceTree = "<group>"; };
 		3105A113 /* SupportPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportPolicy.swift; sourceTree = "<group>"; };
+		3106Q100 /* LaunchServicesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesStore.swift; sourceTree = "<group>"; };
 		3105B114 /* PatchProjectModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatchProjectModels.swift; sourceTree = "<group>"; };
 		3105B115 /* PatchPackageCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatchPackageCodec.swift; sourceTree = "<group>"; };
 		3105B116 /* PatchKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatchKeyStore.swift; sourceTree = "<group>"; };
@@ -262,6 +264,7 @@
 				3105A104 /* ContainerStore.swift */,
 				3105A108 /* ContainerIdentityResolver.swift */,
 				3105A109 /* ContainerBrowserLogic.swift */,
+				3106Q100 /* LaunchServicesStore.swift */,
 				3105A110 /* FileReplacementService.swift */,
 				3105A111 /* FileManagerService.swift */,
 				3105G100 /* ZIPArchiveWriter.swift */,
@@ -413,6 +416,7 @@
 				3105J206,
 				3105A240,
 				3105A241,
+				3106Q101,
 				3105B214,
 				3105B215,
 				3105B216,
@@ -475,7 +479,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = "ThreeOneOSSix/ThreeOneOSSix.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -491,7 +495,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.1.4;
+				MARKETING_VERSION = 3.1.5;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.qingtang.3106;
 				PRODUCT_NAME = 3106;
@@ -509,7 +513,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = "ThreeOneOSSix/ThreeOneOSSix.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -525,7 +529,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.1.4;
+				MARKETING_VERSION = 3.1.5;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.qingtang.3106;
 				PRODUCT_NAME = 3106;

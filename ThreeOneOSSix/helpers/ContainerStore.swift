@@ -94,6 +94,13 @@ enum ContainerStore {
         guard (try? PatchPathValidator.canonicalBundleIdentifier(bundleID)) == bundleID else {
             return nil
         }
+        // The LaunchServices store pairs a bundle id with its data container
+        // even when MCM activation and the metadata plist are unavailable.
+        if let mapped = launchServicesSnapshot()?.containerPath(forBundleID: bundleID),
+           isApplicationContainerPath(mapped) {
+            log("patch: LaunchServices store resolved \(bundleID)")
+            return mapped
+        }
         var lookupError: NSString?
         if let path = MCMActivateContainerPath(2, bundleID, false, &lookupError),
            isApplicationContainerPath(path) {
@@ -153,10 +160,21 @@ enum ContainerStore {
 
     static func installedAppsFromAPI() -> [InstalledApp] {
         let raw = installedAppInfo() as? [String: [String: Any]] ?? [:]
+        let snapshot = launchServicesSnapshot()
         var apps: [InstalledApp] = []
         var missingContainer = 0
         for (bundleID, info) in raw {
             var containerPath = info["container"] as? String ?? ""
+            // `containerURL` can be the bundle container, which is not app
+            // data. Prefer the LaunchServices store's data-container path.
+            if !containerPath.isEmpty && !isApplicationContainerPath(containerPath) {
+                containerPath = ""
+            }
+            if containerPath.isEmpty,
+               let mapped = snapshot?.containerPath(forBundleID: bundleID),
+               isApplicationContainerPath(mapped) {
+                containerPath = mapped
+            }
             if containerPath.isEmpty {
                 var lookupError: NSString?
                 if let resolved = MCMActivateContainerPath(2, bundleID, false, &lookupError),
@@ -170,13 +188,16 @@ enum ContainerStore {
             guard !containerPath.isEmpty else { continue }
             apps.append(InstalledApp(
                 bundleID: bundleID,
-                name: info["name"] as? String ?? "",
+                name: AppDisplayNamePolicy.resolve(
+                    bundleID: bundleID,
+                    candidates: [info["name"] as? String, snapshot?.displayName(forBundleID: bundleID)]
+                ),
                 containerPath: containerPath,
                 version: info["version"] as? String ?? "",
                 icon: info["icon"] as? UIImage
             ))
         }
-        log("browser: LS/API apps=\(apps.count) raw=\(raw.count) missingContainer=\(missingContainer)")
+        log("browser: LS/API apps=\(apps.count) raw=\(raw.count) missingContainer=\(missingContainer) launchServices=\(snapshot?.mappedContainerCount ?? 0)")
         return apps
     }
 
@@ -223,11 +244,17 @@ enum ContainerStore {
         bundleMetadata: [String: ApplicationBundleMetadata] = [:]
     ) -> [InstalledApp] {
         let identifiers = identifiers ?? dynamicAppIdentifiers()
+        let snapshot = launchServicesSnapshot()
 
         var apps: [InstalledApp] = []
         for (index, bundleID) in identifiers.enumerated() {
             var lookupError: NSString?
-            guard let containerPath = MCMActivateContainerPath(2, bundleID, false, &lookupError) else {
+            let activatedPath = MCMActivateContainerPath(2, bundleID, false, &lookupError)
+            let containerPath = activatedPath.flatMap {
+                isApplicationContainerPath($0) ? $0 : nil
+            } ?? snapshot?.containerPath(forBundleID: bundleID)
+            guard let containerPath,
+                  isApplicationContainerPath(containerPath) else {
                 let lookupDetail = lookupError.map { String($0) } ?? "no path"
                 if index < 3 { log("mcm[\(index)]: \(bundleID) -> \(lookupDetail)") }
                 continue
@@ -240,7 +267,11 @@ enum ContainerStore {
                 bundleID: bundleID,
                 name: AppDisplayNamePolicy.resolve(
                     bundleID: bundleID,
-                    candidates: [metadata?.displayName, rawInfo["name"] as? String]
+                    candidates: [
+                        metadata?.displayName,
+                        rawInfo["name"] as? String,
+                        snapshot?.displayName(forBundleID: bundleID),
+                    ]
                 ),
                 containerPath: containerPath,
                 version: rawInfo["version"] as? String ?? metadata?.version ?? "",
@@ -263,15 +294,20 @@ enum ContainerStore {
             return []
         }
 
+        let snapshot = launchServicesSnapshot()
         var apps: [InstalledApp] = []
         for (index, bundleID) in identifiers.enumerated() {
             var lookupError: NSString?
-            guard let containerPath = MCMActivateContainerPath(
+            let activatedPath = MCMActivateContainerPath(
                 2,
                 bundleID,
                 false,
                 &lookupError
-            ),
+            )
+            let containerPath = activatedPath.flatMap {
+                isApplicationContainerPath($0) ? $0 : nil
+            } ?? snapshot?.containerPath(forBundleID: bundleID)
+            guard let containerPath,
                   isApplicationContainerPath(containerPath) else {
                 if index < 3 {
                     let detail = lookupError.map { String($0) } ?? "invalid app-data path"
@@ -286,7 +322,11 @@ enum ContainerStore {
                 bundleID: bundleID,
                 name: AppDisplayNamePolicy.resolve(
                     bundleID: bundleID,
-                    candidates: [metadata?.displayName, rawInfo["name"] as? String]
+                    candidates: [
+                        metadata?.displayName,
+                        rawInfo["name"] as? String,
+                        snapshot?.displayName(forBundleID: bundleID),
+                    ]
                 ),
                 containerPath: containerPath,
                 version: rawInfo["version"] as? String ?? metadata?.version ?? "",
@@ -353,7 +393,162 @@ enum ContainerStore {
         }
     }
 
+    // MARK: LaunchServices store snapshot
+    //
+    // On iOS 27.2+ the container identifier xattr and the root-owned metadata
+    // plist are no longer readable, and MCM cannot always pair a path with its
+    // bundle id. lsd's CSStore keeps that pairing and lives in an Internal
+    // Daemon container, so read it there first. The parser is a Swift port of
+    // WQ Files' WQLaunchServices.m (GPL-3.0-or-later); see NOTICE.md.
+
+    private struct LaunchServicesStoreCandidate {
+        let url: URL
+        let parentPath: String
+        let modifiedAt: Date
+        let size: Int
+    }
+
+    private static let launchServicesSnapshotLock = NSLock()
+    private static var launchServicesSnapshotCache: (signature: String, snapshot: LaunchServicesSnapshot?)?
+    private static var launchServicesSnapshotMissAt: Date?
+    private static let launchServicesSnapshotMissRetry: TimeInterval = 60 * 60
+
+    /// Drops the in-memory snapshot and the "store not found" backoff. Call
+    /// when the user explicitly refreshes a screen.
+    static func refreshLaunchServicesSnapshot() {
+        launchServicesSnapshotLock.lock()
+        launchServicesSnapshotCache = nil
+        launchServicesSnapshotMissAt = nil
+        launchServicesSnapshotLock.unlock()
+    }
+
+    static func launchServicesSnapshot() -> LaunchServicesSnapshot? {
+        launchServicesSnapshotLock.lock()
+        defer { launchServicesSnapshotLock.unlock() }
+
+        let now = Date()
+        if launchServicesSnapshotCache == nil,
+           let missAt = launchServicesSnapshotMissAt,
+           now.timeIntervalSince(missAt) < launchServicesSnapshotMissRetry {
+            return nil
+        }
+
+        let candidates = launchServicesStoreCandidates()
+        guard let newest = candidates.max(by: { left, right in
+            if left.modifiedAt != right.modifiedAt {
+                return left.modifiedAt < right.modifiedAt
+            }
+            return left.size < right.size
+        }) else {
+            launchServicesSnapshotCache = nil
+            launchServicesSnapshotMissAt = now
+            log("browser: LaunchServices store not found")
+            return nil
+        }
+
+        let signature = "\(newest.url.path)|\(newest.size)|\(newest.modifiedAt.timeIntervalSince1970)"
+        if let cached = launchServicesSnapshotCache, cached.signature == signature {
+            return cached.snapshot
+        }
+
+        let handle = requiresSandboxGrant ? grantContainerAccess(newest.parentPath) : -1
+        defer {
+            if handle >= 0 { SandboxAccess.release(handle) }
+        }
+        guard let data = try? Data(contentsOf: newest.url, options: .mappedIfSafe),
+              data.count <= LaunchServicesStore.maximumStoreBytes else {
+            log("browser: LaunchServices store read failed \(newest.url.lastPathComponent)")
+            launchServicesSnapshotCache = (signature, nil)
+            return nil
+        }
+        guard let snapshot = LaunchServicesStore.parse(data) else {
+            log("browser: LaunchServices store parse failed \(newest.url.lastPathComponent) bytes=\(data.count)")
+            launchServicesSnapshotCache = (signature, nil)
+            return nil
+        }
+
+        launchServicesSnapshotCache = (signature, snapshot)
+        launchServicesSnapshotMissAt = nil
+        log("browser: LaunchServices layout=\(snapshot.layoutLabel) containers=\(snapshot.mappedContainerCount) names=\(snapshot.decodedNameCount) bytes=\(data.count)")
+        return snapshot
+    }
+
+    private static func launchServicesStoreCandidates() -> [LaunchServicesStoreCandidate] {
+        var candidates: [LaunchServicesStoreCandidate] = []
+        var visited = Set<String>()
+
+        func inspectDirectory(_ rawPath: String) {
+            let directory = canonicalLookupPath(rawPath)
+            guard visited.insert(directory).inserted else { return }
+
+            // A root traversal grant is enough to enumerate the daemon
+            // container; the per-container Caches path may need its own.
+            let handle = requiresSandboxGrant ? grantContainerAccess(directory) : -1
+            defer {
+                if handle >= 0 { SandboxAccess.release(handle) }
+            }
+
+            let names = (try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []
+            for name in names where name.hasPrefix("com.apple.LaunchServices-")
+                && name.hasSuffix(".csstore") {
+                let path = (directory as NSString).appendingPathComponent(name)
+                guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+                      let sizeNumber = attributes[.size] as? NSNumber,
+                      sizeNumber.intValue >= LaunchServicesStore.minimumStoreBytes,
+                      sizeNumber.intValue <= LaunchServicesStore.maximumStoreBytes,
+                      let modifiedAt = attributes[.modificationDate] as? Date else {
+                    continue
+                }
+                guard let headerHandle = try? FileHandle(forReadingFrom: URL(fileURLWithPath: path)) else {
+                    continue
+                }
+                let magic = (try? headerHandle.read(upToCount: 4)) ?? Data()
+                try? headerHandle.close()
+                guard magic == Data([0x62, 0x64, 0x73, 0x6c]) else { continue }
+                candidates.append(LaunchServicesStoreCandidate(
+                    url: URL(fileURLWithPath: path),
+                    parentPath: directory,
+                    modifiedAt: modifiedAt,
+                    size: sizeNumber.intValue
+                ))
+            }
+        }
+
+        // lsd's store lives under the Internal Daemon containers on iOS 27.
+        // System containers and the legacy locations remain as fallbacks.
+        let daemonRoots = [
+            "/var/mobile/Containers/Data/InternalDaemon",
+            systemDataRoot,
+        ]
+        for root in daemonRoots {
+            var containers = enumerateDirectoriesWithTraversalGrant(path: root)
+            if containers.isEmpty {
+                containers = enumerateDirectories(path: root)
+            }
+            for container in containers {
+                inspectDirectory((container as NSString).appendingPathComponent("Library/Caches"))
+            }
+        }
+        inspectDirectory("/var/db/lsd")
+        inspectDirectory("/var/mobile/Library/Caches")
+        return candidates
+    }
+
     static func launchServicesStoreIdentifiers() -> [String] {
+        var identifiers: [String] = []
+        var seenIdentifiers = Set<String>()
+        if let snapshot = launchServicesSnapshot(), !snapshot.containerBundleIDs.isEmpty {
+            for bundleID in snapshot.containerBundleIDs.values where seenIdentifiers.insert(bundleID).inserted {
+                guard ContainerBundleCandidateResolver.isValidBundleIdentifier(bundleID),
+                      !bundleID.hasPrefix("group."),
+                      !bundleID.hasPrefix("systemgroup.") else {
+                    continue
+                }
+                identifiers.append(bundleID)
+            }
+            log("browser: LaunchServices identifiers=\(identifiers.count) layout=\(snapshot.layoutLabel)")
+        }
+
         var cachePaths: [String] = []
         var seenCachePaths = Set<String>()
 
@@ -398,8 +593,6 @@ enum ContainerStore {
         addCachePath("/var/db/lsd")
         addCachePath("/var/mobile/Library/Caches")
 
-        var identifiers: [String] = []
-        var seenIdentifiers = Set<String>()
         let maximumCandidateCount = 65_536
 
         for cachePath in cachePaths where identifiers.count < maximumCandidateCount {
@@ -552,7 +745,7 @@ enum ContainerStore {
 
     static func containersFromFilesystem() -> [InstalledApp] {
         let grantedDirectories = enumerateDirectoriesWithTraversalGrant(path: appDataRoot)
-        let dirs: [String]
+        var dirs: [String]
         if grantedDirectories.isEmpty {
             dirs = enumerateDirectories(path: appDataRoot)
             log("browser: filesystem root=\(appDataRoot) inode fallback enumerated \(dirs.count) containers")
@@ -560,9 +753,40 @@ enum ContainerStore {
             dirs = grantedDirectories
             log("browser: filesystem root=\(appDataRoot) traversal enumerated \(dirs.count) containers")
         }
+
+        let snapshot = launchServicesSnapshot()
+        if let snapshot {
+            let root = canonicalLookupPath(appDataRoot)
+            var seen = Set(dirs.map { canonicalLookupPath($0) })
+            var added = 0
+            for path in snapshot.containerPaths where path.hasPrefix(root + "/") {
+                let canonical = canonicalLookupPath(path)
+                guard seen.insert(canonical).inserted,
+                      FileManager.default.fileExists(atPath: path) else {
+                    continue
+                }
+                dirs.append(path)
+                added += 1
+            }
+            if added > 0 {
+                log("browser: LaunchServices added \(added) containers missed by the scan")
+            }
+        }
+
         let apps = dirs.compactMap { dir -> InstalledApp? in
             let uuid = (dir as NSString).lastPathComponent
             guard UUID(uuidString: uuid) != nil else { return nil }
+            if let bundleID = snapshot?.bundleID(forContainerPath: dir),
+               ContainerBundleCandidateResolver.isValidBundleIdentifier(bundleID),
+               !bundleID.hasPrefix("systemgroup.") {
+                return InstalledApp(
+                    bundleID: bundleID,
+                    name: snapshot?.displayName(forBundleID: bundleID) ?? "",
+                    containerPath: dir,
+                    version: "",
+                    icon: nil
+                )
+            }
             let fallback = ContainerIdentityResolver.fallbackIdentity(containerPath: dir)
             return InstalledApp(
                 bundleID: fallback.bundleID,
@@ -582,6 +806,26 @@ enum ContainerStore {
         launchServicesIdentifiers: Set<String>
     ) -> InstalledApp? {
         guard UUID(uuidString: fallback.bundleID) != nil else { return fallback }
+
+        // LaunchServices is the strongest source on iOS 27.2+: it pairs the
+        // container path with its bundle id directly, without MCM, the
+        // identifier xattr, or the root-owned metadata plist.
+        if let snapshot = launchServicesSnapshot(),
+           let mappedID = snapshot.bundleID(forContainerPath: fallback.containerPath),
+           ContainerBundleCandidateResolver.isValidBundleIdentifier(mappedID),
+           !mappedID.hasPrefix("systemgroup.") {
+            let info = appInfoForBundleID(mappedID) as? [String: Any] ?? [:]
+            return InstalledApp(
+                bundleID: mappedID,
+                name: AppDisplayNamePolicy.resolve(
+                    bundleID: mappedID,
+                    candidates: [snapshot.displayName(forBundleID: mappedID), info["name"] as? String]
+                ),
+                containerPath: fallback.containerPath,
+                version: info["version"] as? String ?? "",
+                icon: info["icon"] as? UIImage
+            )
+        }
 
         // iOS 27.2: path → identifier from containermanager is the most
         // reliable source once the xattr and metadata plist are unavailable.

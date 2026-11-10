@@ -160,6 +160,21 @@ struct FileBrowserDestination: Hashable {
     let startPath: String
     let title: String
     let bundleID: String?
+    let readOnly: Bool
+
+    init(
+        containerPath: String,
+        startPath: String,
+        title: String,
+        bundleID: String?,
+        readOnly: Bool = false
+    ) {
+        self.containerPath = containerPath
+        self.startPath = startPath
+        self.title = title
+        self.bundleID = bundleID
+        self.readOnly = readOnly
+    }
 }
 
 struct FilesTabState: Identifiable, Equatable {

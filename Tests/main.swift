@@ -59,6 +59,115 @@ expect(ExploitSupportPolicy.isSupported(major: 27, minor: 3, patch: 0, build: "a
 expectFalse(ExploitSupportPolicy.isSupported(major: 28, minor: 0, patch: 0, build: "any"), "28.0 unsupported")
 expectFalse(ExploitSupportPolicy.isSupported(major: 16, minor: 7, patch: 0, build: "any"), "16.x unsupported")
 
+// MARK: - App data browser regression checks
+
+struct BrowserTestEntry {
+    let id: String
+    let path: String
+}
+
+let testUUID = "12345678-1234-1234-1234-1234567890AB"
+expect(
+    ContainerPresentationPolicy.classification(bundleID: testUUID) == .unidentified,
+    "UUID container classified as unidentified"
+)
+expect(
+    ContainerPresentationPolicy.classification(bundleID: "com.example.app") == .identified,
+    "bundle id classified as identified"
+)
+
+let identifiedEntry = BrowserTestEntry(
+    id: "com.example.app",
+    path: "/private/var/mobile/Containers/Data/Application/\(testUUID)"
+)
+let unidentifiedEntry = BrowserTestEntry(
+    id: "87654321-4321-4321-4321-BA0987654321",
+    path: "/private/var/mobile/Containers/Data/Application/87654321-4321-4321-4321-BA0987654321"
+)
+
+let discoveredMerged = ContainerDiscoveryMerger.merge(
+    enumerated: [unidentifiedEntry],
+    identified: [identifiedEntry],
+    path: { $0.path }
+)
+expect(discoveredMerged.count == 2, "discovery merger keeps identified and unidentified containers")
+
+let catalogMerged = AppDataCatalogMerger.merge(
+    identified: [identifiedEntry],
+    fallback: [unidentifiedEntry],
+    identifier: { $0.id },
+    path: { $0.path }
+)
+expect(catalogMerged.count == 2, "catalog merger keeps unidentified fallback")
+
+// Synthetic LaunchServices `bdsl` store: one Bundle record (0x250 layout)
+// that points at a bundle id, a display name, and an app-data container.
+func writeU32(_ data: inout Data, _ offset: Int, _ value: UInt32) {
+    data[offset] = UInt8(value & 0xff)
+    data[offset + 1] = UInt8((value >> 8) & 0xff)
+    data[offset + 2] = UInt8((value >> 16) & 0xff)
+    data[offset + 3] = UInt8((value >> 24) & 0xff)
+}
+
+func writeString(_ data: inout Data, at offset: Int, id: UInt32, value: String) {
+    let bytes = Array(value.utf8)
+    writeU32(&data, offset, id)
+    writeU32(&data, offset + 4, UInt32(bytes.count))
+    data.replaceSubrange((offset + 8)..<(offset + 8 + bytes.count), with: bytes)
+}
+
+var store = Data(repeating: 0, count: 0x1000)
+store.replaceSubrange(0..<4, with: Data([0x62, 0x64, 0x73, 0x6c])) // "bdsl"
+store.replaceSubrange(0x200..<0x208, with: Data("<string>".utf8))
+
+let recordOffset = 0x100
+let body = recordOffset + 8
+writeU32(&store, recordOffset + 4, 0x250)
+writeU32(&store, body + 0x0c, 4)   // string id 1: bundle id
+writeU32(&store, body + 0x6c, 8)   // string id 2: bundle name
+writeU32(&store, body + 0x74, 12)  // string id 3: display name
+writeU32(&store, body + 0x68, 16)  // string id 4: container path
+writeU32(&store, body + 0x00, 0)   // no bundle path
+
+writeString(&store, at: 0x300, id: 1, value: "com.example.app")
+writeString(&store, at: 0x340, id: 2, value: "Example")
+writeString(&store, at: 0x380, id: 3, value: "Example App")
+writeString(
+    &store,
+    at: 0x3C0,
+    id: 4,
+    value: "/private/var/mobile/Containers/Data/Application/\(testUUID)"
+)
+
+let snapshot = LaunchServicesStore.parse(store)
+expect(snapshot != nil, "LaunchServices parser accepts a synthetic bdsl store")
+if let snapshot {
+    expect(
+        snapshot.containerBundleIDs.values.contains("com.example.app"),
+        "LaunchServices parser maps a container to its bundle id"
+    )
+    expect(
+        snapshot.displayName(forBundleID: "com.example.app") == "Example App",
+        "LaunchServices parser decodes the display name"
+    )
+    expect(snapshot.containerPaths.count == 1, "LaunchServices parser reports one container")
+    expect(
+        snapshot.bundleID(forContainerPath: identifiedEntry.path) == "com.example.app",
+        "LaunchServices snapshot lookup canonicalizes the path"
+    )
+}
+
+expect(
+    LaunchServicesStore.canonicalContainerPath(
+        "/var/mobile/Containers/Data/Application/\(testUUID)/"
+    ) == "/private/var/mobile/Containers/Data/Application/\(testUUID)",
+    "container path canonicalization"
+)
+expect(
+    LaunchServicesStore.isDataContainerPath(identifiedEntry.path),
+    "app data container path is recognized"
+)
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

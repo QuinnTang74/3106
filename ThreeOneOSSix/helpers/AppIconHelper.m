@@ -94,24 +94,25 @@ static NSDictionary *appsFromMobileInstallation(void) {
     }
     if (!lookupFn) return result;
 
-    NSDictionary *apps = nil;
     NSArray *optionSets = @[
         @{@"ApplicationType": @"Any"},
         @{@"ApplicationType": @"User"},
         @{@"ApplicationType": @"System"},
         @{},
     ];
+    // Merge every option set instead of stopping at the first non-empty one:
+    // "Any" can omit apps that only appear in "User" or "System" on newer
+    // iOS builds, which used to drop whole groups from the browser.
     for (NSDictionary *options in optionSets) {
-        apps = ((NSDictionary *(*)(NSDictionary *, void *))lookupFn)(options, NULL);
-        if (apps && [apps isKindOfClass:[NSDictionary class]] && apps.count > 0) break;
-    }
-    if (!apps || apps.count == 0) return result;
-
-    for (NSString *bundleID in apps) {
-        @autoreleasepool {
-            id rawInfo = apps[bundleID];
-            if (![rawInfo isKindOfClass:[NSDictionary class]]) continue;
-            addApplicationInfo(result, bundleID, rawInfo);
+        NSDictionary *apps = ((NSDictionary *(*)(NSDictionary *, void *))lookupFn)(options, NULL);
+        if (![apps isKindOfClass:[NSDictionary class]] || apps.count == 0) continue;
+        for (NSString *bundleID in apps) {
+            if (result[bundleID]) continue;
+            @autoreleasepool {
+                id rawInfo = apps[bundleID];
+                if (![rawInfo isKindOfClass:[NSDictionary class]]) continue;
+                addApplicationInfo(result, bundleID, rawInfo);
+            }
         }
     }
     return result;
@@ -155,25 +156,27 @@ static NSDictionary *appsFromWorkspace(void) {
         return result;
     }
 
-    NSArray *apps = nil;
-    NSString *usedSelector = nil;
+    NSMutableArray *apps = [NSMutableArray array];
+    NSMutableArray<NSString *> *usedSelectors = [NSMutableArray array];
     for (NSString *selectorName in @[@"allApplications", @"allInstalledApplications"]) {
         SEL allAppsSel = NSSelectorFromString(selectorName);
         if (![workspace respondsToSelector:allAppsSel]) continue;
         id candidate = ((id (*)(id, SEL))objc_msgSend)(workspace, allAppsSel);
         if ([candidate isKindOfClass:[NSArray class]] && [candidate count] > 0) {
-            apps = candidate;
-            usedSelector = selectorName;
-            break;
+            [apps addObjectsFromArray:candidate];
+            [usedSelectors addObject:[NSString stringWithFormat:@"%@:%lu", selectorName,
+                                      (unsigned long)[candidate count]]];
+        } else {
+            NSLog(@"[3106] ls: %@ returned %lu", selectorName,
+                  (unsigned long)([candidate isKindOfClass:[NSArray class]] ? [candidate count] : 0));
         }
-        NSLog(@"[3106] ls: %@ returned %lu", selectorName,
-              (unsigned long)([candidate isKindOfClass:[NSArray class]] ? [candidate count] : 0));
     }
-    if (!apps || apps.count == 0) {
+    if (apps.count == 0) {
         NSLog(@"[3106] ls: workspace enumeration empty");
         return result;
     }
-    NSLog(@"[3106] ls: %@ returned %lu proxies", usedSelector, (unsigned long)apps.count);
+    NSLog(@"[3106] ls: workspace proxies %@ total=%lu",
+          [usedSelectors componentsJoinedByString:@","], (unsigned long)apps.count);
 
     NSUInteger withContainer = 0;
     for (id app in apps) {
@@ -215,7 +218,9 @@ static NSDictionary *appsFromWorkspace(void) {
                     break;
                 }
             }
-            result[bundleID] = entry;
+            if (!result[bundleID]) {
+                result[bundleID] = entry;
+            }
         }
     }
     NSLog(@"[3106] ls: extracted %lu apps (%lu with container)",
@@ -224,12 +229,26 @@ static NSDictionary *appsFromWorkspace(void) {
 }
 
 NSDictionary<NSString *, NSDictionary *> *installedAppInfo(void) {
-    NSDictionary *workspace = appsFromWorkspace();
-    if (workspace.count > 0) return workspace;
+    // Both sources carry apps the other can miss (workspace has fresher
+    // metadata, MobileInstallation has different coverage). Merge them rather
+    // than returning whichever happens to be non-empty first.
     NSDictionary *mobileInstallation = appsFromMobileInstallation();
-    NSLog(@"[3106] ls: workspace empty; MobileInstallation=%lu",
-          (unsigned long)mobileInstallation.count);
-    return mobileInstallation;
+    NSDictionary *workspace = appsFromWorkspace();
+    NSMutableDictionary *merged = [NSMutableDictionary dictionaryWithDictionary:mobileInstallation];
+    for (NSString *bundleID in workspace) {
+        NSDictionary *entry = workspace[bundleID];
+        if (![entry isKindOfClass:[NSDictionary class]]) continue;
+        NSMutableDictionary *combined = [merged[bundleID] mutableCopy];
+        if (!combined) combined = [NSMutableDictionary dictionary];
+        for (NSString *key in entry) {
+            combined[key] = entry[key];
+        }
+        merged[bundleID] = combined;
+    }
+    NSLog(@"[3106] ls: workspace=%lu MobileInstallation=%lu merged=%lu",
+          (unsigned long)workspace.count, (unsigned long)mobileInstallation.count,
+          (unsigned long)merged.count);
+    return merged;
 }
 
 // Icon via LSApplicationProxy (per bundle ID)

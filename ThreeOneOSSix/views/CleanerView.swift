@@ -46,7 +46,7 @@ struct CleanerView: View {
     }
 
     private var visibleBundleIDs: [String] {
-        filteredRecords.map(\.id)
+        filteredRecords.filter(\.isIdentified).map(\.id)
     }
 
     private var areAllVisibleRecordsSelected: Bool {
@@ -164,7 +164,12 @@ struct CleanerView: View {
             .textCase(nil)
         } footer: {
             if !records.isEmpty {
-                Text(language.text("cleaner.apps_footer"))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(language.text("cleaner.apps_footer"))
+                    if records.contains(where: { !$0.isIdentified }) {
+                        Text(language.text("cleaner.unidentified_footer"))
+                    }
+                }
             }
         }
     }
@@ -191,9 +196,15 @@ struct CleanerView: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
 
-            Image(systemName: selectedBundleIDs.contains(record.id) ? "checkmark.circle.fill" : "circle")
+            Image(systemName: record.isIdentified
+                  ? (selectedBundleIDs.contains(record.id) ? "checkmark.circle.fill" : "circle")
+                  : "lock.circle")
                 .font(.system(size: AppTheme.selectionIconSize, weight: .medium))
-                .foregroundStyle(selectedBundleIDs.contains(record.id) ? AppTheme.accent : Color.secondary)
+                .foregroundStyle(
+                    record.isIdentified && selectedBundleIDs.contains(record.id)
+                        ? AppTheme.accent
+                        : Color.secondary
+                )
                 .accessibilityHidden(true)
         }
         .contentShape(Rectangle())
@@ -380,6 +391,9 @@ struct CleanerView: View {
     }
 
     private func toggleSelection(_ bundleID: String) {
+        guard ContainerPresentationPolicy.isIdentified(bundleID: bundleID) else {
+            return
+        }
         if selectedBundleIDs.contains(bundleID) {
             selectedBundleIDs.remove(bundleID)
         } else {
@@ -389,6 +403,7 @@ struct CleanerView: View {
 
     private func reload() {
         guard !isBusy else { return }
+        ContainerStore.refreshLaunchServicesSnapshot()
 #if targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("--simulate-cleaner-empty") {
             records = []
@@ -495,9 +510,10 @@ struct CleanerView: View {
                 let newRecords = CleanerCatalog.scanNewApplications(
                     catalogApplications,
                     scannedBundleIDs: &scannedBundleIDs,
-                    shouldIncludeBundleID: {
-                        ContainerPresentationPolicy.shouldShow(bundleID: $0)
-                    },
+                    // Unidentified containers are scanned too: they are real
+                    // app data and the user asked to see everything. They are
+                    // shown with a lock and cannot be selected for cleaning.
+                    shouldIncludeBundleID: { _ in true },
                     activateContainer: { application in
                         // Filesystem enumeration already knows the exact
                         // container; do not throw it away when MCM/LS fail.
@@ -555,12 +571,12 @@ struct CleanerView: View {
                 (apiApps + mcmApps).map { ($0.bundleID, $0) },
                 uniquingKeysWith: { first, _ in first }
             )
-            let resolvedFilesystemApps = ContainerStore.containersFromFilesystem().compactMap {
+            let resolvedFilesystemApps = ContainerStore.containersFromFilesystem().map {
                 ContainerStore.inferredApp(
                     for: $0,
                     knownAppsByBundleID: knownAppsByBundleID,
                     launchServicesIdentifiers: Set(launchServicesIdentifiers)
-                )
+                ) ?? $0
             }
             scanNewApps(resolvedFilesystemApps)
 
@@ -671,6 +687,9 @@ private struct CleanerAppRecord: Identifiable {
     let usage: LimitedCleanerUsage
 
     var id: String { app.bundleID }
+    var isIdentified: Bool {
+        ContainerPresentationPolicy.isIdentified(bundleID: app.bundleID)
+    }
 }
 
 private enum CleanerAlert: Identifiable {

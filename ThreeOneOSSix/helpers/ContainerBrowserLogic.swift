@@ -232,9 +232,21 @@ enum AppDataCatalogMerger {
     }
 }
 
+enum ContainerIdentityClass: Equatable {
+    case identified
+    case unidentified
+}
+
 enum ContainerPresentationPolicy {
-    static func shouldShow(bundleID: String) -> Bool {
-        UUID(uuidString: bundleID) == nil
+    /// A UUID bundle id is a filesystem container whose app identity could
+    /// not be resolved. It is still real app data and must stay visible; the
+    /// UI puts it in the "unidentified" section and disables write actions.
+    static func classification(bundleID: String) -> ContainerIdentityClass {
+        UUID(uuidString: bundleID) == nil ? .identified : .unidentified
+    }
+
+    static func isIdentified(bundleID: String) -> Bool {
+        classification(bundleID: bundleID) == .identified
     }
 }
 
