@@ -7,10 +7,6 @@ struct ContentView: View {
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
     @EnvironmentObject private var patchStore: PatchProjectStore
     @EnvironmentObject private var repositoryStore: PackageRepositoryStore
-    @AppStorage(TabBarSelection.storageKey)
-    private var tabBarSelectionRaw = TabBarSelection.defaultRaw
-    @AppStorage(FeatureVisibility.developerModeStorageKey)
-    private var developerModeEnabled = true
     @State private var tabNavigation: AppTabNavigationState
     @State private var showSettings = false
     @State private var showLogs = false
@@ -59,16 +55,7 @@ struct ContentView: View {
         .onChange(of: patchDraftCoordinator.importRequest?.id) { requestID in
             if requestID != nil { tabNavigation.select(AppSection.installed.rawValue) }
         }
-        .onChange(of: developerModeEnabled) { _ in
-            tabNavigation.reconcileSelection(with: featureVisibility)
-        }
-        .onChange(of: tabBarSelectionRaw) { _ in
-            tabNavigation.reconcileSelection(with: featureVisibility)
-        }
         .onAppear {
-            if tabBarSelectionRaw == TabBarSelection.legacyDefaultRaw {
-                tabBarSelectionRaw = TabBarSelection.defaultRaw
-            }
             tabNavigation.reconcileSelection(with: featureVisibility)
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
@@ -130,7 +117,10 @@ struct ContentView: View {
     private func sectionContent(_ section: AppSection) -> some View {
         switch section {
         case .home:
-            RepositoryHomeView(
+            FeatureHubView(
+                onSelectTab: { section in
+                    tabNavigation.select(section.rawValue)
+                },
                 onOpenSettings: openSettings,
                 onOpenLogs: openLogs
             )
@@ -186,22 +176,12 @@ struct ContentView: View {
 
     private var featureVisibility: FeatureVisibility {
         FeatureVisibility(
-            selectedSections: TabBarSelection.sections(from: tabBarSelectionRaw),
+            selectedSections: [.home, .files, .search, .cleaner, .wallpapers],
             wallpapersSupported: WallpaperFeatureSupportPolicy.isSupported(
                 major: AppInfo.versionTuple.major
             ),
-            developerModeEnabled: developerModeActive
+            developerModeEnabled: true
         )
-    }
-
-    private var developerModeActive: Bool {
-#if targetEnvironment(simulator)
-        developerModeEnabled
-            || ProcessInfo.processInfo.arguments.contains("--simulate-developer-mode")
-            || ProcessInfo.processInfo.arguments.contains("--simulate-files-tab")
-#else
-        developerModeEnabled
-#endif
     }
 
     private var selectedVisibleSection: AppSection {

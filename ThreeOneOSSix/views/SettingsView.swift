@@ -5,10 +5,6 @@ struct SettingsView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var appState: AppState
     @AppStorage(AppLanguage.storageKey) private var languageCode = AppLanguage.english.rawValue
-    @AppStorage(TabBarSelection.storageKey)
-    private var tabBarSelectionRaw = TabBarSelection.defaultRaw
-    @AppStorage(FeatureVisibility.developerModeStorageKey)
-    private var developerModeEnabled = true
 
     var body: some View {
         NavigationStack {
@@ -48,35 +44,6 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text(language.text("settings.backup"))
-                }
-
-                Section {
-                    ForEach(AppSection.allCases) { section in
-                        tabBarToggle(for: section)
-                    }
-                } header: {
-                    Text(language.text("settings.tab_bar"))
-                } footer: {
-                    Text(
-                        language.text(
-                            "settings.tab_bar_footer",
-                            Int64(selectedSections.count),
-                            Int64(TabBarSelection.maxSections)
-                        )
-                    )
-                }
-
-                Section {
-                    Toggle(isOn: $developerModeEnabled) {
-                        Label(
-                            language.text("settings.developer_mode"),
-                            systemImage: "hammer.fill"
-                        )
-                    }
-                } header: {
-                    Text(language.text("dashboard.features"))
-                } footer: {
-                    Text(language.text("settings.developer_mode_footer"))
                 }
 
                 if WallpaperFeatureSupportPolicy.isSupported(
@@ -163,59 +130,4 @@ struct SettingsView: View {
         return SandboxAccess.appGroup ?? language.text("settings.app_group_missing")
     }
 
-    private var selectedSections: [AppSection] {
-        TabBarSelection.sections(from: tabBarSelectionRaw)
     }
-
-    private var wallpapersSupported: Bool {
-        WallpaperFeatureSupportPolicy.isSupported(major: AppInfo.versionTuple.major)
-    }
-
-    @ViewBuilder
-    private func tabBarToggle(for section: AppSection) -> some View {
-        if section == .wallpapers && !wallpapersSupported {
-            EmptyView()
-        } else if section == .home {
-            Toggle(isOn: .constant(true)) {
-                Label(language.text(section.titleKey), systemImage: section.systemImage)
-            }
-            .disabled(true)
-            .accessibilityValue(language.text("settings.tab_bar_fixed"))
-        } else {
-            Toggle(isOn: tabBarBinding(for: section)) {
-                Label(language.text(section.titleKey), systemImage: section.systemImage)
-            }
-            .disabled(isTabBarToggleDisabled(section))
-        }
-    }
-
-    private func isTabBarToggleDisabled(_ section: AppSection) -> Bool {
-        if selectedSections.contains(section) { return false }
-        guard selectedSections.count >= TabBarSelection.maxSections else { return false }
-        return !(section == .cleaner && selectedSections.contains(.sources))
-    }
-
-    private func tabBarBinding(for section: AppSection) -> Binding<Bool> {
-        Binding(
-            get: { selectedSections.contains(section) },
-            set: { isOn in
-                var sections = selectedSections
-                if isOn {
-                    guard !sections.contains(section) else { return }
-                    if sections.count >= TabBarSelection.maxSections {
-                        guard section == .cleaner,
-                              let sourcesIndex = sections.firstIndex(of: .sources) else {
-                            return
-                        }
-                        sections.remove(at: sourcesIndex)
-                    }
-                    sections.append(section)
-                } else {
-                    guard section != .home else { return }
-                    sections.removeAll { $0 == section }
-                }
-                tabBarSelectionRaw = TabBarSelection.encode(sections)
-            }
-        )
-    }
-}

@@ -16,7 +16,7 @@ enum AppSection: Int, CaseIterable, Identifiable {
 extension AppSection {
     var titleKey: String {
         switch self {
-        case .home: return "tab.home"
+        case .home: return "tab.features"
         case .new: return "tab.new"
         case .sources: return "tab.sources"
         case .installed: return "tab.installed"
@@ -29,7 +29,7 @@ extension AppSection {
 
     var systemImage: String {
         switch self {
-        case .home: return "house.fill"
+        case .home: return "square.grid.2x2.fill"
         case .new: return "clock.fill"
         case .sources: return "shippingbox.fill"
         case .installed: return "tray.full.fill"
@@ -104,11 +104,11 @@ struct FeatureVisibility: Equatable {
     }
 
     var visibleSections: [AppSection] {
-        selectedSections.filter { section in
-            if section == .wallpapers && !wallpapersSupported { return false }
-            if section == .files && !developerModeEnabled { return false }
-            return true
-        }
+        // Fixed product shape: 功能 / 文件 / 搜索 / 清理 / 壁纸. Repository and
+        // patch entry points live inside the feature hub instead of the tab bar.
+        var sections: [AppSection] = [.home, .files, .search, .cleaner]
+        if wallpapersSupported { sections.append(.wallpapers) }
+        return sections
     }
 
     func isVisible(_ section: AppSection) -> Bool {
