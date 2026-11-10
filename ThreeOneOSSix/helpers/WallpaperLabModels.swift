@@ -126,21 +126,6 @@ enum WallpaperLayoutScanner {
             fileManager: fileManager
         )
 
-        // FileManager's enumerator can descend into sandboxed subdirectories
-        // even when a direct fileExists/contentsOfDirectory on a deeper path is
-        // denied. Use it first; it is also what produced the diagnostic tree
-        // that showed the descriptors were really there.
-        if let enumerated = recursiveDescriptorLayout(
-            storeURL: storeURL,
-            fileManager: fileManager
-        ) {
-            log(
-                "wallpaper: enumerated layout generation=\(enumerated.generation) " +
-                    "extensions=\(enumerated.extensionDescriptorDirectories.keys.sorted())"
-            )
-            return enumerated
-        }
-
         let generationURLs = try fileManager.contentsOfDirectory(
             at: storeURL,
             includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
@@ -228,7 +213,16 @@ enum WallpaperLayoutScanner {
             throw WallpaperLabError.unsupportedPosterLayout
         }
 
-        logStoreTree(storeURL: storeURL, fileManager: fileManager)
+        if let treeLayout = logStoreTree(
+            storeURL: storeURL,
+            fileManager: fileManager
+        ) {
+            log(
+                "wallpaper: tree layout generation=\(treeLayout.generation) " +
+                    "extensions=\(treeLayout.extensionDescriptorDirectories.keys.sorted())"
+            )
+            return treeLayout
+        }
         guard let generationURL = syntheticGenerationURL(
             storeURL: storeURL,
             numericGeneration: generationURLs.first,
@@ -399,10 +393,16 @@ enum WallpaperLayoutScanner {
         }
     }
 
+    /// The diagnostic tree and the descriptor discovery share one enumerator:
+    /// the direct `fileExists`/`contentsOfDirectory` calls can be denied by the
+    /// sandbox while this traversal succeeds. Returning the layout from the
+    /// same pass avoids a second enumeration that may fail at a different
+    /// moment.
+    @discardableResult
     private static func logStoreTree(
         storeURL: URL,
         fileManager: FileManager
-    ) {
+    ) -> WallpaperPosterLayout? {
         let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
         guard let enumerator = fileManager.enumerator(
             at: storeURL,
@@ -412,18 +412,20 @@ enum WallpaperLayoutScanner {
                 log("wallpaper: tree error \(url.path) error=\(error.localizedDescription)")
                 return true
             }
-        ) else { return }
+        ) else { return nil }
         var count = 0
+        var descriptorDirectories: [String: URL] = [:]
+        var generation = "61"
         while let item = enumerator.nextObject() as? URL {
             let relative = relativePath(of: item, under: storeURL)
             let depth = relative.split(separator: "/").count
-            if depth > 4 {
+            if depth > 6 {
                 enumerator.skipDescendants()
                 continue
             }
             count += 1
-            if count > 200 {
-                log("wallpaper: tree truncated at 200 entries")
+            if count > 1_000 {
+                log("wallpaper: tree truncated at 1000 entries")
                 break
             }
             let values = try? item.resourceValues(forKeys: Set(keys))
@@ -436,7 +438,28 @@ enum WallpaperLayoutScanner {
                 kind = "file"
             }
             log("wallpaper: tree \(kind) \(relative)")
+
+            guard values?.isDirectory == true,
+                  values?.isSymbolicLink != true,
+                  item.lastPathComponent == "descriptors" else {
+                continue
+            }
+            let identifier = item.deletingLastPathComponent().lastPathComponent
+            guard validExtensionIdentifier(identifier) else { continue }
+            descriptorDirectories[identifier] = item
+            let components = item.pathComponents
+            if let extensionsIndex = components.firstIndex(of: "Extensions"),
+               extensionsIndex > 0,
+               let numeric = Int(components[extensionsIndex - 1]) {
+                generation = String(numeric)
+            }
         }
+        guard !descriptorDirectories.isEmpty else { return nil }
+        return WallpaperPosterLayout(
+            generation: generation,
+            storeURL: storeURL,
+            extensionDescriptorDirectories: descriptorDirectories
+        )
     }
 
     static func validExtensionIdentifier(_ value: String) -> Bool {

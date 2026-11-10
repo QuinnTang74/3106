@@ -317,14 +317,20 @@ enum WallpaperPackageStore {
                 extractedName,
                 isDirectory: true
             )
+            log("wallpaper: extracting \(sourceURL.lastPathComponent) bytes=\(size)")
             _ = try SecureZIPArchive.extract(
                 archiveURL: archiveURL,
                 destinationURL: extractedURL,
                 fileManager: fileManager
             )
-            _ = try TendiesPackageInspector.inspectExtractedPackage(
+            log("wallpaper: extracted \(sourceURL.lastPathComponent)")
+            let inspected = try TendiesPackageInspector.inspectExtractedPackage(
                 at: extractedURL,
                 fileManager: fileManager
+            )
+            log(
+                "wallpaper: inspected \(sourceURL.lastPathComponent) " +
+                    "descriptors=\(inspected.descriptors.count)"
             )
             let metadata = PackageMetadata(
                 id: id,

@@ -2,6 +2,19 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.11] - 2026-11-10
+
+### Fixed
+
+- Wallpaper layout discovery now collects `descriptors` directories from the same FileManager enumeration that produces the diagnostic tree. The earlier enumerator could return nothing depending on when the store directory was opened, even though the tree immediately afterwards listed every provider. The tree pass now returns the layout directly, so the probe sees all providers instead of falling back to a synthetic Collections-only layout.
+- Import now logs `extracting`, `extracted`, and `inspected` stages, so an `unsafeArchive` can be attributed to the ZIP layer, the package inspector, or the final rename.
+- The app logs its exact version and build at launch; a stale installed build is now visible in the first log line.
+- Includes 3.1.10's `isContained` `/var` fix and 3.1.9's ZIP compatibility/caching fixes.
+
+### Changed
+
+- Marketing version **3.1.11**; `CFBundleVersion` **15** (test build, not published).
+
 ## [3.1.10] - 2026-11-10
 
 ### Fixed
