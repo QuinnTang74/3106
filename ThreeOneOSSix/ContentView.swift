@@ -7,8 +7,10 @@ struct ContentView: View {
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
     @EnvironmentObject private var patchStore: PatchProjectStore
     @EnvironmentObject private var repositoryStore: PackageRepositoryStore
+    @AppStorage(TabBarSelection.storageKey)
+    private var tabBarSelectionRaw = TabBarSelection.defaultRaw
     @AppStorage(FeatureVisibility.developerModeStorageKey)
-    private var developerModeEnabled = false
+    private var developerModeEnabled = true
     @State private var tabNavigation: AppTabNavigationState
     @State private var showSettings = false
     @State private var showLogs = false
@@ -60,7 +62,13 @@ struct ContentView: View {
         .onChange(of: developerModeEnabled) { _ in
             tabNavigation.reconcileSelection(with: featureVisibility)
         }
+        .onChange(of: tabBarSelectionRaw) { _ in
+            tabNavigation.reconcileSelection(with: featureVisibility)
+        }
         .onAppear {
+            if tabBarSelectionRaw == TabBarSelection.legacyDefaultRaw {
+                tabBarSelectionRaw = TabBarSelection.defaultRaw
+            }
             tabNavigation.reconcileSelection(with: featureVisibility)
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
@@ -152,6 +160,13 @@ struct ContentView: View {
                 onOpenSettings: openSettings,
                 onOpenLogs: openLogs
             )
+        case .cleaner:
+            CleanerView()
+        case .wallpapers:
+            WallpaperLabView(
+                onOpenSettings: openSettings,
+                onOpenLogs: openLogs
+            )
         }
     }
 
@@ -170,7 +185,13 @@ struct ContentView: View {
     }
 
     private var featureVisibility: FeatureVisibility {
-        FeatureVisibility(developerModeEnabled: developerModeActive)
+        FeatureVisibility(
+            selectedSections: TabBarSelection.sections(from: tabBarSelectionRaw),
+            wallpapersSupported: WallpaperFeatureSupportPolicy.isSupported(
+                major: AppInfo.versionTuple.major
+            ),
+            developerModeEnabled: developerModeActive
+        )
     }
 
     private var developerModeActive: Bool {
@@ -218,26 +239,3 @@ private struct CompactTabLabel: View {
     }
 }
 
-private extension AppSection {
-    var titleKey: String {
-        switch self {
-        case .home: return "tab.home"
-        case .new: return "tab.new"
-        case .sources: return "tab.sources"
-        case .installed: return "tab.installed"
-        case .files: return "tab.files"
-        case .search: return "tab.search"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .home: return "house.fill"
-        case .new: return "clock.fill"
-        case .sources: return "shippingbox.fill"
-        case .installed: return "tray.full.fill"
-        case .files: return "folder.fill"
-        case .search: return "magnifyingglass"
-        }
-    }
-}

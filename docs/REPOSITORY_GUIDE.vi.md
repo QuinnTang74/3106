@@ -5,10 +5,10 @@ trong kho, nhưng vẫn coi toàn bộ dữ liệu và gói tải xuống là kh
 
 ## Danh sách nguồn mặc định
 
-3106 đồng bộ danh sách nguồn mặc định từ:
+3106 không kèm danh sách nguồn mặc định. Bạn tự thêm URL `sources.json` của mình trong ứng dụng. Ví dụ chỉ minh họa định dạng, không phải địa chỉ thật:
 
 ```text
-https://raw.githubusercontent.com/YangJiiii/3106-repo/main/sources.json
+https://example.com/3106/sources.json
 ```
 
 Định dạng catalog:

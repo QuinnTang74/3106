@@ -32,7 +32,7 @@
 "onboarding.language_subtitle" = "You can change this later in Settings.";
 "onboarding.language_hint" = "Selected: %@";
 "onboarding.welcome_title" = "Welcome to 3106";
-"onboarding.welcome_message" = "Developed by YangJiii";
+"onboarding.welcome_message" = "3106";
 "onboarding.welcome_badge" = "Official 3106 identity";
 "onboarding.versions_title" = "Supported iOS versions";
 "onboarding.versions_subtitle" = "3106 is verified on the ranges below. Unsupported builds are blocked.";
@@ -260,6 +260,10 @@
 "settings.compatibility" = "Compatibility";
 "settings.current_version" = "Current version";
 "settings.verified_versions" = "Verified versions";
+"settings.tab_bar" = "Tab Bar";
+"settings.tab_bar_footer" = "%lld of %lld slots selected. Home is always shown.";
+"settings.tab_bar_fixed" = "Always shown";
+"settings.github" = "GitHub";
 "settings.beta_build" = "Beta %lld · %@";
 "settings.developer_beta_build" = "Developer Beta %lld · %@";
 "settings.developer_public_beta_build" = "Developer Beta %lld / Public Beta %lld · %@";
@@ -277,22 +281,9 @@
 "settings.sandbox_token" = "Sandbox Token";
 "settings.generate_token" = "Generate Token";
 "settings.token_footer" = "Available after exploit access succeeds.";
-"settings.credits" = "Credits";
-"settings.social_media" = "Social media";
-"social.github_role" = "3106 source code";
-"social.iosvn_role" = "iOSVN Community";
-"credit.yangjiii" = "Developer & designer";
-"credit.forcequit" = "worse_query exploit";
-"credit.worse_query" = "worse_query exploit";
-"credit.wqfiles" = "worse_query product safety reference";
 "settings.access_backend" = "Access backend";
 "settings.app_group" = "App Group";
 "settings.app_group_missing" = "Missing — worse_query needs an App Group signature";
-"credit.filzaslop" = "FilzaSlop — MHA-C2 and app discovery";
-"credit.pocket_poster" = "Pocket Poster, Nugget & .tendies format";
-"credit.sandbox_escape" = "FilzaSlop sandbox escape foundation";
-"credit.opa" = "Dopamine jailbreak, kexploit base";
-"credit.seo" = "kexploit_opa334 port";
 
 "gestalt.title" = "Gestalt Editor";
 "gestalt.apply_changes" = "Apply Changes";

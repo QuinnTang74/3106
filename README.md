@@ -1,99 +1,65 @@
-<p align="center">
-  <img src="docs/images/app-icon.png" width="132" alt="3106 app icon">
-</p>
+# 3106
 
-<h1 align="center">3106</h1>
+3106 是一个 iOS 容器管理工具：在无越狱环境下浏览应用数据、安装补丁、清理缓存、安装 PosterBoard 壁纸与拨号主题。
 
-<p align="center">
-  An iOS content hub and manager for patches, app data, dialer themes, and PosterBoard wallpapers.
-</p>
+**仓库：** <https://github.com/t479842598/3106.git>
 
-<p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-3.0-E6753A?style=flat-square">
-  <img alt="iOS" src="https://img.shields.io/badge/iOS-17.0–18.7.1%20%7C%2026.0–26.7.2%20%7C%2027.0–27.2-222222?style=flat-square">
-  <img alt="Swift" src="https://img.shields.io/badge/Swift-5-F05138?style=flat-square&logo=swift&logoColor=white">
-  <img alt="Languages" src="https://img.shields.io/badge/languages-English%20%7C%20Tiếng%20Việt%20%7C%20简体中文-E6753A?style=flat-square">
-</p>
+[English](README.en.md)
 
-<p align="center">
-  <a href="README.vi.md">Tiếng Việt</a> ·
-  <a href="docs/PATCH_GUIDE.md">Patch guide</a> ·
-  <a href="#compatibility">Compatibility</a> ·
-  <a href="#license">License</a>
-</p>
+## 功能
 
-> [!WARNING]
-> 3106 is research software for personal device management. Keep a backup and use it only on devices and data you own. Simulator screenshots demonstrate UI only; they do not verify device-level access.
+- **iOS 26/27 容器访问**：iOS 26.7–26.7.2 与 iOS 27.0–27.3 beta 使用 `worse_query` 沙箱逃逸；iOS 26.0–26.6.1 使用 `bad_query`；iOS 17/18 保留内核链路。
+- **应用数据浏览**：应用容器、App Group、扩展数据、内部守护进程；iOS 27 可列出 System Data 与部分 System Groups。
+- **补丁管理**：导出 `.3106`，兼容导入 `.3105`；支持多目标、用户输入、可选密码与失败回滚。
+- **清理器、壁纸与拨号主题**：按应用清理缓存、安装 `.tendies` 壁纸与 `.3105pass` 拨号主题。
+- **可配置底栏**：设置中可开关底栏项目，最多 5 个槽位，首页固定显示；开发者模式默认开启。
+- **三语言界面**：简体中文、English、Tiếng Việt。
 
-## What's new in 3.0
+## 兼容性
 
-- **iOS 27 container access through `worse_query`** — 3106 replaces the obsolete `bad_query` path on iOS 26.7–26.7.2 and iOS 27.0–27.2 with the `worse_query` sandbox escape by Taj C (forcequitOS). No kernel exploit is involved on these versions.
-- **Hybrid backend** — iOS 26.0–26.6.1 keeps `bad_query` (it still reaches System Data there); iOS 26.7+ and 27.x use `worse_query` automatically.
-- **App Group signing** — `worse_query` requires an App Group entitlement. AltStore, SideStore, and Sideloadly create one automatically with a free Apple ID; wildcard certificate profiles cannot carry it.
-- **iOS 27.2 identity fallback** — when the container identifier xattr and metadata plist are unreadable, 3106 maps containers through `container_query_iterate_results_sync` and the LaunchServices database.
-- **Renamed to 3106** — new product name, `com.qingtang.3106` bundle identifier, `threeoneossix` URL scheme, and a new `.3106` patch extension. Existing `.3105` patch packages remain importable and keep decrypting with the unchanged `3105PATCH` format magic.
-
-## Highlights
-
-- **Repository marketplace** — browse multiple sources and install supported content directly in 3106.
-- **Installed library** — keep patches, wallpapers, dialer themes, and 3106 features together with clear type labels and package icons.
-- **Application and App Group browser** — locate app data by a recognizable app name or stable identifier.
-- **File operations** — search, preview, share, import, copy, move, rename, delete, create and extract ZIP archives, use tabs, and save favorites.
-- **Portable patches** — target multiple apps or App Groups, expose user choices, use optional passwords, and restore original files after use. New exports use `.3106`; legacy `.3105` packages still import.
-- **Additional packages** — install `.3105pass` dialer themes, `.tendies` wallpapers, and built-in 3106 features.
-- **No jailbreak installation** — 3106 does not install a persistent jailbreak, bootstrap, or daemon and does not inject code into third-party apps. On iOS 26/27 it obtains sandbox extensions for containers; it does not gain root or kernel access. Because it can modify app data, no universal guarantee can be made against every app's integrity or jailbreak-detection policy.
-- **Localized interface** — English, Vietnamese, and Simplified Chinese.
-
-## Compatibility
-
-3106 enables device-level features only for builds explicitly verified by the project:
-
-| System | Verified range | Backend |
+| 系统 | 已验证范围 | 访问后端 |
 | --- | --- | --- |
-| iOS 17 | 17.0 through 17.7.x | kernel exploit (opt-in) |
-| iOS 18 | 18.0 through 18.7.1 | kernel exploit (opt-in) |
-| iOS 26 | 26.0 through 26.6.1 | `bad_query` |
-| iOS 26 | 26.7 through 26.7.2 | `worse_query` |
-| iOS 27 | 27.0 through 27.2 | `worse_query` |
-| iOS 27.3 beta 1 | experimental | `worse_query` (unverified) |
+| iOS 17 | 17.0–17.7.x | 内核链路 |
+| iOS 18 | 18.0–18.7.1 | 内核链路 |
+| iOS 26 | 26.0–26.6.1 | `bad_query` |
+| iOS 26 | 26.7–26.7.2 | `worse_query` |
+| iOS 27 | 27.0–27.2 | `worse_query` |
+| iOS 27 | 27.3 beta 1 | `worse_query`（实验性） |
 
-The iOS 17–18 kernel exploit is opt-in (manual button) because a failed exploit attempt may restart the app. On iOS 26/27 there is no kernel exploit: container access is a sandbox extension, and the app reports the active backend in Settings.
+## 安装与签名
 
-## Installation notes
+- **iOS 26.7+ / 27.x 必须有 App Group entitlement**。推荐用 AltStore、SideStore 或 Sideloadly 配合 Apple ID（免费账号即可）签名，它们会自动创建 App Group。
+- 使用证书（`.p12`）与描述文件时，描述文件必须是包含 **App Groups** 能力的显式 App ID；通配符 profile 不能携带 App Group，`worse_query` 会报 “No App Group”。
+- **Bundle ID：** `com.qingtang.3106`。
+- LiveContainer 是否保留 App Group 取决于其签名环境；可在应用内 **设置 → App Group** 查看，若为空则 `worse_query` 无法工作。
+- iOS 17/18 仍需手动启用内核链路；iOS 26/27 不需要内核漏洞。
 
-- **iOS 26.7+ and iOS 27 need an App Group.** Sign with AltStore, SideStore, or Sideloadly using your Apple ID (free or paid) — they create the App Group automatically. With Feather, ESign, or similar certificate tools, the provisioning profile must be an explicit App ID with the App Groups capability; wildcard profiles fail with an entitlement error.
-- **Bundle identifier:** `com.qingtang.3106`. The former `com.apple.mobile.MobileHouseArrest` spoof was tied to the MHA-C2 workflow and cannot be registered with an App Group; 3106 no longer uses that workflow on iOS 26/27.
-- **iOS 17/18:** the kernel exploit chain is unchanged. A kernel-capable device does not need `worse_query`, but the App Group entitlement is harmless.
-- The source tree does not contain certificates, provisioning profiles, signed applications, or IPA files; release assets may provide an unsigned IPA.
+## 构建
 
-## Project layout
-
-```text
-3106/
-├── ThreeOneOSSix/          # SwiftUI app, helpers, native bridges, localizations
-├── ThreeOneOSSix.xcodeproj # Xcode project and 3106 scheme
-└── docs/images/            # Repository artwork and current UI previews
+```bash
+xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 \
+  -configuration Release -sdk iphoneos \
+  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
 ```
 
-## Security and responsible use
+策略测试：
 
-Do not publish logs, app containers, cookies, account databases, or patch payloads containing personal data. Report security-sensitive issues privately to the maintainer.
+```bash
+bash Tests/run_policy_tests.sh
+```
 
-## Credits
+构建产物在 `dist/`，文件名形如 `3106-3.1.0-unsigned.ipa`。
 
-3106 is a fork of [3105](https://github.com/YangJiiii/3105), developed and designed by [YangJiii](https://x.com/duongduong0908). The 3106 rename and iOS 27 backend were added on top of the upstream 2.0 source.
+## 开源协议与商用说明
 
-`worse_query` sandbox escape by Taj C ([forcequitOS](https://github.com/forcequitOS/worse_query), GPL-3.0-or-later). Product-level safety work — Caches swap recovery, grant caching, container identifier fallback — is adapted from [WQ Files](https://github.com/kolbicz/WQFiles) by Christoph Kolbicz (GPL-3.0-or-later).
+本仓库整体以 **GNU GPL v3.0** 发布，完整文本见 [LICENSE](LICENSE)。
 
-Special thanks to [0xjohnny](https://x.com/0xjohnny) for [FilzaSlop](https://github.com/0xjohnnydev/FilzaSlop) and related research:
+项目包含来自 3105、`worse_query`、WQ Files 等 GPL-3.0 代码。GPL-3.0 不允许再附加“禁止商用”一类额外限制，因此不能把整体改成严格意义上的非商用协议。
 
-- [MobileHouseArrest-PoC](https://github.com/0xjohnnydev/MobileHouseArrest-PoC) — ContainerManager identity-trust bug
-- [Geod-MCM-PoC](https://github.com/0xjohnnydev/Geod-MCM-PoC) — `geod` MobileContainerManager `partDomain` traversal
-- [InstallCoordination-PoC](https://github.com/0xjohnnydev/InstallCoordination-PoC) — persisted-state and final-symlink chain
-- [CFPrefsZeroFile-PoC](https://github.com/0xjohnnydev/CFPrefsZeroFile-PoC) — `cfprefsd` zero-file creation
+作者不希望本项目被用于商业用途；如需商用，请先联系仓库作者。这句话是作者意愿说明，不构成对 GPL-3.0 的额外限制，也不改变上游及第三方代码的许可。
 
-The project also builds on work from Pocket Poster/Nugget, CrazyMind90, forcequitOS, Dopamine, and their contributors. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for full attribution and upstream links.
+二次修改或再分发时，必须保留 [LICENSE](LICENSE) 与 [NOTICE.md](NOTICE.md) 中的版权、来源和许可声明，并注明你做了哪些修改；这是 GPL-3.0 的要求，也是本项目的要求。
 
-## License
+## 参考项目
 
-Original portions of 3105/3106 are distributed under the [GNU General Public License v3.0](LICENSE). Third-party components remain subject to their respective upstream copyright and license terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+本项目参考并基于 **3105 项目**（原作者 YangJiii）的 2.0 源码；iOS 27 适配、`worse_query` 移植与 3106 改名在此基础上完成。第三方代码的版权与来源声明见 [NOTICE.md](NOTICE.md)（GPL-3.0 要求，不是推广内容）。

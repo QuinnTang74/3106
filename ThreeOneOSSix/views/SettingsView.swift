@@ -5,9 +5,10 @@ struct SettingsView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var appState: AppState
     @AppStorage(AppLanguage.storageKey) private var languageCode = AppLanguage.english.rawValue
-    @AppStorage(FeatureVisibility.cleanerStorageKey) private var cleanerEnabled = true
+    @AppStorage(TabBarSelection.storageKey)
+    private var tabBarSelectionRaw = TabBarSelection.defaultRaw
     @AppStorage(FeatureVisibility.developerModeStorageKey)
-    private var developerModeEnabled = false
+    private var developerModeEnabled = true
 
     var body: some View {
         NavigationStack {
@@ -37,9 +38,22 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle(isOn: $cleanerEnabled) {
-                        Label(language.text("tab.cleaner"), systemImage: "sparkles")
+                    ForEach(AppSection.allCases) { section in
+                        tabBarToggle(for: section)
                     }
+                } header: {
+                    Text(language.text("settings.tab_bar"))
+                } footer: {
+                    Text(
+                        language.text(
+                            "settings.tab_bar_footer",
+                            Int64(selectedSections.count),
+                            Int64(TabBarSelection.maxSections)
+                        )
+                    )
+                }
+
+                Section {
                     Toggle(isOn: $developerModeEnabled) {
                         Label(
                             language.text("settings.developer_mode"),
@@ -98,50 +112,19 @@ struct SettingsView: View {
                     Text(language.text("settings.supported_versions_footer"))
                 }
 
-                Section(language.text("settings.social_media")) {
-                    creditsRow(
-                        name: "GitHub",
-                        role: language.text("social.github_role"),
-                        url: "https://github.com/YangJiiii/3105"
-                    )
-                    creditsRow(
-                        name: "Cộng Đồng IOSVN",
-                        role: language.text("social.iosvn_role"),
-                        url: "https://t.me/ioscrackvn"
-                    )
-                }
-
-                Section(language.text("settings.credits")) {
-                    creditsRow(
-                        name: "YangJiii",
-                        role: language.text("credit.yangjiii"),
-                        url: "https://x.com/duongduong0908"
-                    )
-                    creditsRow(
-                        name: "0xjohnnydev",
-                        role: language.text("credit.filzaslop"),
-                        url: "https://github.com/0xjohnnydev/FilzaSlop"
-                    )
-                    creditsRow(
-                        name: "LeminLimez",
-                        role: language.text("credit.pocket_poster"),
-                        url: "https://github.com/leminlimez/Pocket-Poster"
-                    )
-                    creditsRow(
-                        name: "CrazyMind90",
-                        role: language.text("credit.sandbox_escape"),
-                        url: "https://github.com/CrazyMind90"
-                    )
-                    creditsRow(
-                        name: "forcequitOS",
-                        role: language.text("credit.worse_query"),
-                        url: "https://github.com/forcequitOS/worse_query"
-                    )
-                    creditsRow(
-                        name: "Christoph Kolbicz",
-                        role: language.text("credit.wqfiles"),
-                        url: "https://github.com/kolbicz/WQFiles"
-                    )
+                Section(language.text("settings.github")) {
+                    if let destination = URL(string: "https://github.com/t479842598/3106.git") {
+                        Link(destination: destination) {
+                            HStack(spacing: 12) {
+                                Label("GitHub", systemImage: "link")
+                                Spacer()
+                                Text("t479842598/3106")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                    }
                 }
             }
             .tint(AppTheme.accent)
@@ -167,28 +150,59 @@ struct SettingsView: View {
         return SandboxAccess.appGroup ?? language.text("settings.app_group_missing")
     }
 
+    private var selectedSections: [AppSection] {
+        TabBarSelection.sections(from: tabBarSelectionRaw)
+    }
+
+    private var wallpapersSupported: Bool {
+        WallpaperFeatureSupportPolicy.isSupported(major: AppInfo.versionTuple.major)
+    }
+
     @ViewBuilder
-    private func creditsRow(name: String, role: String, url: String) -> some View {
-        if let destination = URL(string: url) {
-            Link(destination: destination) {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(name)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Text(role)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(AppTheme.accent)
-                        .frame(width: 28, height: 28)
-                }
-                .contentShape(Rectangle())
+    private func tabBarToggle(for section: AppSection) -> some View {
+        if section == .wallpapers && !wallpapersSupported {
+            EmptyView()
+        } else if section == .home {
+            Toggle(isOn: .constant(true)) {
+                Label(language.text(section.titleKey), systemImage: section.systemImage)
             }
-            .accessibilityLabel(language.text("accessibility.open_profile", name))
+            .disabled(true)
+            .accessibilityValue(language.text("settings.tab_bar_fixed"))
+        } else {
+            Toggle(isOn: tabBarBinding(for: section)) {
+                Label(language.text(section.titleKey), systemImage: section.systemImage)
+            }
+            .disabled(isTabBarToggleDisabled(section))
         }
+    }
+
+    private func isTabBarToggleDisabled(_ section: AppSection) -> Bool {
+        if selectedSections.contains(section) { return false }
+        guard selectedSections.count >= TabBarSelection.maxSections else { return false }
+        return !(section == .cleaner && selectedSections.contains(.sources))
+    }
+
+    private func tabBarBinding(for section: AppSection) -> Binding<Bool> {
+        Binding(
+            get: { selectedSections.contains(section) },
+            set: { isOn in
+                var sections = selectedSections
+                if isOn {
+                    guard !sections.contains(section) else { return }
+                    if sections.count >= TabBarSelection.maxSections {
+                        guard section == .cleaner,
+                              let sourcesIndex = sections.firstIndex(of: .sources) else {
+                            return
+                        }
+                        sections.remove(at: sourcesIndex)
+                    }
+                    sections.append(section)
+                } else {
+                    guard section != .home else { return }
+                    sections.removeAll { $0 == section }
+                }
+                tabBarSelectionRaw = TabBarSelection.encode(sections)
+            }
+        )
     }
 }

@@ -2,6 +2,24 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.0] - 2026-11-10
+
+### Added
+
+- Settings now has tab bar toggles: up to five slots, Home always shown. Default slots are Home, New, Installed, Files, and Cleaner.
+- Developer Mode is enabled by default.
+
+### Changed
+
+- Removed the social media and credits sections from Settings; the only link kept is the project repository.
+- README is now Chinese-first with an English entry. Promotional content and the Vietnamese README were removed.
+- `THIRD_PARTY_NOTICES.md` became `NOTICE.md`, containing only the attribution required by GPL-3.0.
+- The license section now explains that the GPL-3.0 code cannot carry an additional non-commercial restriction, while retaining the author's commercial-use request and the mandatory attribution requirement.
+
+### Compatibility
+
+- iOS 27.3 beta 1 is exposed as an experimental `worse_query` target (device build 24C5037i).
+
 ## [3.0.0] - 2026-11-10
 
 ### Added

@@ -44,9 +44,7 @@ final class PackageRepositoryStore: ObservableObject {
             sourceStates[source.id] = .idle
         }
 #if targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains("--simulate-wallpaper-repository") {
-            installSimulatorWallpaperRepository()
-        } else if ProcessInfo.processInfo.arguments.contains("--simulate-repository") {
+        if ProcessInfo.processInfo.arguments.contains("--simulate-repository") {
             installSimulatorPreviewRepository()
         }
 #endif
@@ -163,38 +161,8 @@ final class PackageRepositoryStore: ObservableObject {
     }
 
     private func synchronizeDefaultSources() async {
-        catalogSyncOperations += 1
-        defer { catalogSyncOperations -= 1 }
-        do {
-            let catalogURLs = try await PackageRepositoryNetworkClient
-                .loadSourceCatalog(from: PackageRepositoryDefaults.catalogURL)
-            let existingCount = sources.count
-            let merged = RepositorySourceMergePolicy.merge(
-                existing: sources,
-                catalogURLs: catalogURLs
-            )
-            guard merged.count > existingCount else {
-                log(
-                    "repository: default catalog synced " +
-                    "sources=\(catalogURLs.count) added=0"
-                )
-                return
-            }
-
-            sources = merged
-            for source in sources.dropFirst(existingCount) {
-                sourceStates[source.id] = .idle
-            }
-            persist()
-            log(
-                "repository: default catalog synced " +
-                "sources=\(catalogURLs.count) added=\(merged.count - existingCount)"
-            )
-        } catch let error as PackageRepositoryError {
-            log("repository: default catalog unavailable \(error)")
-        } catch {
-            log("repository: default catalog unavailable")
-        }
+        // 3106 ships no upstream source catalog; users add their own sources.
+        log("repository: default catalog disabled")
     }
 
     func refresh(_ source: RepositorySource) {
@@ -369,7 +337,7 @@ final class PackageRepositoryStore: ObservableObject {
                 identifier: "clean-layout",
                 kind: .patch,
                 name: "Clean Layout",
-                author: "YangJiii",
+                author: "3106",
                 version: "1.2.0",
                 summary: "A compact layout patch for a cleaner app interface.",
                 details: "Simulator preview package used to verify marketplace layout.",
@@ -422,7 +390,7 @@ final class PackageRepositoryStore: ObservableObject {
         ]
         sources = [source]
         repositories[source.id] = PackageRepository(
-            identifier: "com.yangjiii.preview",
+            identifier: "com.qingtang.3106.preview",
             name: "3106 Preview",
             summary: "Simulator-only marketplace preview",
             iconURL: nil,
@@ -433,65 +401,6 @@ final class PackageRepositoryStore: ObservableObject {
         refreshedThisLaunch = true
     }
 
-    private func installSimulatorWallpaperRepository() {
-        let revision = "f04c0a8e81c328201ad7769fac16b907ce905035"
-        let sourceURL = URL(
-            string: "https://raw.githubusercontent.com/YangJiiii/3105-repo/main/" +
-                "repositories/demo/repo.json"
-        )!
-        let previewURL = URL(
-            string: "https://raw.githubusercontent.com/SerStars/" +
-                "Nugget-Wallpapers/\(revision)/previews/custom/gifs/Cipher.gif"
-        )!
-        let downloadURL = URL(
-            string: "https://raw.githubusercontent.com/SerStars/" +
-                "Nugget-Wallpapers/\(revision)/wallpapers/custom/Cipher.tendies"
-        )!
-        let source = RepositorySource(manifestURL: sourceURL)
-        let ranges = [
-            PackageOSRange(minimum: "17.0", maximum: "18.7.1", builds: nil),
-            PackageOSRange(minimum: "26.0", maximum: "26.6.1", builds: nil),
-            PackageOSRange(
-                minimum: "27.0",
-                maximum: "27.0",
-                builds: ["24A5355q", "24A5370h", "24A5380h", "24A5390f"]
-            )
-        ]
-        let package = RepositoryPackage(
-            identifier: "nugget-custom-113",
-            kind: .wallpaper,
-            name: "Cipher",
-            author: "@mightycooldude12",
-            version: "1.0.0",
-            summary: "Decoding...",
-            details: "Decoding...\n\nNguồn: SerStars/Nugget-Wallpapers (GPL-3.0).",
-            category: "Wallpaper",
-            tags: ["Wallpaper", "Custom"],
-            publishedAt: nil,
-            iconURL: previewURL,
-            bannerURL: nil,
-            screenshotURLs: [previewURL],
-            downloadURL: downloadURL,
-            sha256: nil,
-            expectedSize: nil,
-            supportedOS: ranges,
-            changelog: nil,
-            isFeatured: false,
-            isPrivate: false,
-            sharedPassword: nil
-        )
-        sources = [source]
-        repositories[source.id] = PackageRepository(
-            identifier: "com.yangjiii.3105",
-            name: "3105 Repository",
-            summary: "Nguồn chính thức cho tweak và wallpaper của 3105.",
-            iconURL: nil,
-            sourceURL: sourceURL,
-            packages: [package]
-        )
-        sourceStates[source.id] = .loaded(Date())
-        refreshedThisLaunch = true
-    }
 #endif
 }
 

@@ -32,7 +32,7 @@
 "onboarding.language_subtitle" = "Bạn có thể đổi lại trong Cài đặt.";
 "onboarding.language_hint" = "Đã chọn: %@";
 "onboarding.welcome_title" = "Chào mừng đến với 3106";
-"onboarding.welcome_message" = "Ứng dụng được phát triển bởi YangJiii";
+"onboarding.welcome_message" = "3106";
 "onboarding.welcome_badge" = "Định danh chính thức 3106";
 "onboarding.versions_title" = "Phiên bản iOS được hỗ trợ";
 "onboarding.versions_subtitle" = "3106 đã được xác minh trên các khoảng bên dưới. Build ngoài phạm vi sẽ bị chặn.";
@@ -260,6 +260,10 @@
 "settings.compatibility" = "Tương thích";
 "settings.current_version" = "Phiên bản hiện tại";
 "settings.verified_versions" = "Phiên bản đã xác minh";
+"settings.tab_bar" = "Thanh dưới";
+"settings.tab_bar_footer" = "Đã chọn %lld/%lld vị trí. Trang chủ luôn hiển thị.";
+"settings.tab_bar_fixed" = "Luôn hiển thị";
+"settings.github" = "GitHub";
 "settings.beta_build" = "Beta %lld · %@";
 "settings.developer_beta_build" = "Developer Beta %lld · %@";
 "settings.developer_public_beta_build" = "Developer Beta %lld / Public Beta %lld · %@";
@@ -277,22 +281,9 @@
 "settings.sandbox_token" = "Token sandbox";
 "settings.generate_token" = "Tạo token";
 "settings.token_footer" = "Khả dụng sau khi exploit cấp quyền thành công.";
-"settings.credits" = "Ghi công";
-"settings.social_media" = "Mạng Xã Hội";
-"social.github_role" = "Mã nguồn 3106";
-"social.iosvn_role" = "Cộng Đồng IOSVN";
-"credit.yangjiii" = "Nhà phát triển & thiết kế";
-"credit.forcequit" = "Khai thác worse_query";
-"credit.worse_query" = "Khai thác worse_query";
-"credit.wqfiles" = "Tham chiếu an toàn sản phẩm worse_query";
 "settings.access_backend" = "Backend truy cập";
 "settings.app_group" = "App Group";
 "settings.app_group_missing" = "Thiếu — worse_query cần chữ ký có App Group";
-"credit.filzaslop" = "FilzaSlop — MHA-C2 và dò dữ liệu ứng dụng";
-"credit.pocket_poster" = "Pocket Poster, Nugget và định dạng .tendies";
-"credit.sandbox_escape" = "Nền tảng sandbox escape của FilzaSlop";
-"credit.opa" = "Dopamine jailbreak, nền tảng kexploit";
-"credit.seo" = "Bản chuyển kexploit_opa334";
 
 "gestalt.title" = "Trình chỉnh sửa Gestalt";
 "gestalt.apply_changes" = "Áp dụng thay đổi";
