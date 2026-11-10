@@ -11,29 +11,10 @@ struct FilesTabSwitcherView: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(session.tabs) { tab in
-                    Button {
-                        session.selectTab(tab.id)
-                        dismiss()
-                    } label: {
-                        tabRow(tab)
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu { tabActions(tab) }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            session.closeTab(tab.id)
-                        } label: {
-                            Label(language.text("browser.close_tab"), systemImage: "xmark")
-                        }
-                        Button {
-                            beginRename(tab)
-                        } label: {
-                            Label(language.text("browser.rename_tab"), systemImage: "pencil")
-                        }
-                        .tint(AppTheme.accent)
-                    }
-                }
+                // Official 3105 2.0 order: the Favorites section is part of
+                // the file tab page itself and comes first; the open tabs
+                // follow in their own section. There is no separate favorites
+                // screen.
                 if !favoritesStore.favorites.isEmpty {
                     Section {
                         ForEach(favoritesStore.favorites) { favorite in
@@ -44,7 +25,7 @@ struct FilesTabSwitcherView: View {
                                 FileFavoriteRow(favorite: favorite)
                             }
                             .buttonStyle(.plain)
-                            .contextMenu {
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     favoritesStore.remove(path: favorite.path)
                                 } label: {
@@ -57,6 +38,31 @@ struct FilesTabSwitcherView: View {
                         }
                     } header: {
                         Text(language.text("browser.favorites"))
+                    }
+                }
+                Section {
+                    ForEach(session.tabs) { tab in
+                        Button {
+                            session.selectTab(tab.id)
+                            dismiss()
+                        } label: {
+                            tabRow(tab)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu { tabActions(tab) }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                session.closeTab(tab.id)
+                            } label: {
+                                Label(language.text("browser.close_tab"), systemImage: "xmark")
+                            }
+                            Button {
+                                beginRename(tab)
+                            } label: {
+                                Label(language.text("browser.rename_tab"), systemImage: "pencil")
+                            }
+                            .tint(AppTheme.accent)
+                        }
                     }
                 }
             }
@@ -154,42 +160,6 @@ struct FilesTabSwitcherView: View {
     private func beginRename(_ tab: FilesTabState) {
         renameText = tab.displayTitle(defaultTitle: language.text("browser.tabs_root"))
         renameTargetID = tab.id
-    }
-}
-
-struct FileFavoritesView: View {
-    @Environment(\.appLanguage) private var language
-    @ObservedObject private var store = FileFavoritesStore.shared
-
-    var body: some View {
-        List {
-            if store.favorites.isEmpty {
-                Text(language.text("browser.favorites_empty"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .listRowBackground(Color.clear)
-            } else {
-                ForEach(store.favorites) { favorite in
-                    NavigationLink(value: favorite.destination) {
-                        FileFavoriteRow(favorite: favorite)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            store.remove(path: favorite.path)
-                        } label: {
-                            Label(
-                                language.text("browser.favorite_remove"),
-                                systemImage: "star.slash"
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle(language.text("browser.favorites"))
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

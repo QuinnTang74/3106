@@ -8,13 +8,12 @@ All notable user-facing changes are documented in this file.
 
 - Folder favorites: long-press a folder in the file browser and choose “Add to Favorites”. The JSON key and shape (`fileBrowserFavorites`, `id`/`path`/`name`) match 3105 2.0, so existing favorites survive the upgrade.
 - Favorite paths are normalized (`/var` and `/private/var` are the same entry, trailing slashes ignored, duplicates removed).
-- The file tab switcher (top-right) now has a Favorites section listing each folder’s name and path; tapping one opens it in a new tab.
-- The Files home has a Favorites row with the current count, opening the full favorites list; rows support swipe-to-remove.
+- The file tab switcher (top-right) now has an inline Favorites section at the top, matching 3105 2.0’s actual layout: it lists each favorited folder’s name and full path directly, with swipe-to-remove, and tapping a row opens it in a new tab. There is no separate favorites screen and no Favorites entry in the Files home.
 - Long-press favorite actions work in both normal and read-only file browsers (favoriting is local state, not a container write).
 
 ### Changed
 
-- Marketing version **3.1.6**; `CFBundleVersion` **9**.
+- Marketing version **3.1.6**; `CFBundleVersion` **10**.
 
 ## [3.1.5] - 2026-11-10
 
