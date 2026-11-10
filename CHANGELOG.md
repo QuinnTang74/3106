@@ -15,6 +15,9 @@ All notable user-facing changes are documented in this file.
 
 - 补丁应用与文件替换改用 `VerifiedFileWriter`，不再因原子写换掉 inode。
 - 备份目录排除在系统备份与清理器之外，原始数据不可删除。
+- App Data 与清理器改为 LaunchServices 数据库直出：首次找到库后持久化库路径与紧凑目录缓存，后续冷启动不再做 6–13 秒文件系统枚举。
+- 列表先发布缓存目录，再后台补图标/版本；日志新增 `catalog cache load/built` 与首屏耗时。
+- 数据库不可用时才回退文件系统扫描；MHA 候选激活在目录已完整时跳过。
 
 ## [3.1.12] - 2026-11-10
 

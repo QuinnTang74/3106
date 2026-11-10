@@ -320,6 +320,54 @@ expect(cleanerEmptyApplications.count == 1, "cleaner still reports an app with n
 expect(cleanerEmptyRecords.isEmpty, "cleaner does not return an empty record")
 expect(cleanerEmptyScanned.isEmpty, "cleaner does not mark an empty app as scanned")
 
+// LaunchServices fast container catalog: build, filter and disk cache.
+do {
+    let appA = "/private/var/mobile/Containers/Data/Application/11111111-1111-1111-1111-111111111111"
+    let appB = "/private/var/mobile/Containers/Data/Application/22222222-2222-2222-2222-222222222222"
+    let plugin = "/private/var/mobile/Containers/Data/PluginKitPlugin/33333333-3333-3333-3333-333333333333"
+    let snapshot = LaunchServicesSnapshot(
+        containerBundleIDs: [
+            appA: "com.example.alpha",
+            appB: "com.example.beta",
+            plugin: "com.example.alpha.widget"
+        ],
+        displayNames: [
+            "com.example.alpha": "Alpha",
+            "com.example.beta": "Beta",
+            "com.example.alpha.widget": "Alpha Widget"
+        ],
+        bundleNames: [:],
+        containerPaths: [appA, appB, plugin, appB],
+        bundlePaths: [:],
+        layoutLabel: "test",
+        mappedContainerCount: 3,
+        decodedNameCount: 3
+    )
+    let catalog = ContainerCatalogBuilder.build(
+        from: snapshot,
+        signature: "sig-1",
+        osBuild: "27.0"
+    )
+    expect(catalog.entries.count == 3, "catalog keeps each container once")
+    expect(catalog.entries.contains { $0.bundleID == "com.example.alpha" && $0.displayName == "Alpha" },
+           "catalog decodes display names")
+    expect(catalog.entries.contains { $0.kind == .extensionContainer && $0.bundleID == "com.example.alpha.widget" },
+           "catalog marks plugin containers")
+
+    let catalogRoot = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent("3106-catalog-tests-\(UUID().uuidString).json")
+    do {
+        try ContainerCatalogCache.save(catalog, rootURL: catalogRoot)
+        let loaded = ContainerCatalogCache.load(signature: "sig-1", rootURL: catalogRoot)
+        expect(loaded?.entries.count == 3, "catalog cache round-trips")
+        expect(ContainerCatalogCache.load(signature: "other", rootURL: catalogRoot) == nil,
+               "catalog cache rejects a different store signature")
+        ContainerCatalogCache.clear(rootURL: catalogRoot)
+    } catch {
+        expect(false, "catalog cache test failed: \(error)")
+    }
+}
+
 // Backup center: originals, versions, verified writes, restore and journals.
 do {
     let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)

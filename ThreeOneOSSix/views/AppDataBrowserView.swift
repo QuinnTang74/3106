@@ -355,9 +355,63 @@ struct AppDataBrowserView: View {
         isLoading = true
         isResolving = true
         errorMessage = nil
+        let reloadStarted = CFAbsoluteTimeGetCurrent()
         let emptyMessage = language.text("browser.empty")
+
+        // Phase A: publish the LaunchServices catalog immediately. This is the
+        // WQ Files 0.8 fast path: no filesystem scan, no 18 MB parse on the
+        // main thread, no waiting for MCM.
+        let cachedCatalogApps = ContainerStore.installedAppsFromCachedCatalog()
+        if !cachedCatalogApps.isEmpty {
+            let sortedCatalog = cachedCatalogApps.sorted {
+                $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+            }
+            apps = sortedCatalog
+            unidentifiedApps = []
+            isLoading = false
+            hasLoaded = true
+            log(
+                "browser: catalog cache published \(sortedCatalog.count) apps " +
+                    "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - reloadStarted))s"
+            )
+        }
+
+        // Phase B: discover the catalog on first run, then enrich with names,
+        // versions and icons without blocking the list.
         DispatchQueue.global(qos: .userInitiated).async {
-            let bundleMetadata = ContainerStore.applicationBundleMetadataCatalog()
+            var catalogApps = cachedCatalogApps
+            let catalogGroup = DispatchGroup()
+            let catalogBox = NSLock()
+            var discoveredCatalog: [InstalledApp] = []
+            if catalogApps.isEmpty {
+                // Discover the database in parallel with the API/MCM passes;
+                // the first run used to wait for both sequentially.
+                catalogGroup.enter()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let discovered = ContainerStore.installedAppsFromCatalog()
+                    catalogBox.lock()
+                    discoveredCatalog = discovered
+                    catalogBox.unlock()
+                    if !discovered.isEmpty {
+                        let sortedCatalog = discovered.sorted {
+                            $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+                        }
+                        DispatchQueue.main.async {
+                            apps = sortedCatalog
+                            unidentifiedApps = []
+                            isLoading = false
+                            hasLoaded = true
+                        }
+                        log(
+                            "browser: catalog discovered and published \(sortedCatalog.count) apps " +
+                                "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - reloadStarted))s"
+                        )
+                    }
+                    catalogGroup.leave()
+                }
+            }
+            let bundleMetadata: [String: ApplicationBundleMetadata] =
+                cachedCatalogApps.isEmpty ? ContainerStore.applicationBundleMetadataCatalog() : [:]
             let apiApps = ContainerStore.applyingBundleMetadata(
                 to: ContainerStore.installedAppsFromAPI(),
                 catalog: bundleMetadata
@@ -370,14 +424,49 @@ struct AppDataBrowserView: View {
                 identifiers: dynamicIdentifiers,
                 bundleMetadata: bundleMetadata
             )
-            let filesystemApps = ContainerStore.containersFromFilesystem()
+            if cachedCatalogApps.isEmpty, (!apiApps.isEmpty || !mcmApps.isEmpty) {
+                let preliminary = ContainerDiscoveryMerger.merge(
+                    enumerated: [],
+                    identified: mcmApps + apiApps,
+                    path: { $0.containerPath }
+                ).sorted {
+                    $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+                }
+                if !preliminary.isEmpty {
+                    DispatchQueue.main.async {
+                        apps = preliminary.filter {
+                            ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+                        }
+                        unidentifiedApps = preliminary.filter {
+                            !ContainerPresentationPolicy.isIdentified(bundleID: $0.bundleID)
+                        }
+                        isLoading = false
+                        hasLoaded = true
+                    }
+                    log("browser: API/MCM preliminary published \(preliminary.count) apps")
+                }
+            }
+
+            catalogGroup.wait()
+            catalogBox.lock()
+            if !discoveredCatalog.isEmpty {
+                catalogApps = discoveredCatalog
+            }
+            catalogBox.unlock()
+
+            let filesystemApps = catalogApps.isEmpty
+                ? ContainerStore.containersFromFilesystem()
+                : []
             let baseIdentifiedApps = mcmApps + apiApps
             var result = ContainerDiscoveryMerger.merge(
-                enumerated: filesystemApps,
-                identified: baseIdentifiedApps,
+                enumerated: catalogApps.isEmpty ? filesystemApps : catalogApps,
+                identified: catalogApps + baseIdentifiedApps,
                 path: { $0.containerPath }
             )
-            log("browser: merged api=\(apiApps.count), MCM=\(mcmApps.count), filesystem=\(filesystemApps.count) -> \(result.count)")
+            log(
+                "browser: merged catalog=\(catalogApps.count), api=\(apiApps.count), " +
+                    "MCM=\(mcmApps.count), filesystem=\(filesystemApps.count) -> \(result.count)"
+            )
             result.sort { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
 
             let preliminaryIdentified = result.filter {
@@ -392,7 +481,9 @@ struct AppDataBrowserView: View {
                 isLoading = false
             }
 
-            let launchServicesIdentifiers = ContainerStore.launchServicesStoreIdentifiers()
+            let launchServicesIdentifiers: [String] = catalogApps.isEmpty
+                ? ContainerStore.launchServicesStoreIdentifiers()
+                : Array(Set(catalogApps.map(\.bundleID)))
             let resolvedContainerCount = filesystemApps.reduce(0) { count, app in
                 count + (UUID(uuidString: app.bundleID) == nil ? 1 : 0)
             }
@@ -400,8 +491,8 @@ struct AppDataBrowserView: View {
             // filesystem container. The MHA-C2 pass activates each candidate
             // through MCM and costs several seconds; only run it when the
             // filesystem list is mostly unidentified.
-            let shouldScanMHA = filesystemApps.isEmpty
-                || resolvedContainerCount * 4 < filesystemApps.count * 3
+            let shouldScanMHA = catalogApps.isEmpty && (filesystemApps.isEmpty
+                || resolvedContainerCount * 4 < filesystemApps.count * 3)
             var mhaApps: [InstalledApp] = []
             if shouldScanMHA {
                 let mhaIdentifiers = MHAIdentifierCatalog.identifiers(
@@ -424,7 +515,7 @@ struct AppDataBrowserView: View {
                     // replacing the list with identified-only entries made the
                     // browser visibly shrink while the MHA scan was running.
                     var progressiveResult = AppDataCatalogMerger.merge(
-                        identified: discoveredApps + baseIdentifiedApps,
+                        identified: discoveredApps + baseIdentifiedApps + catalogApps,
                         fallback: filesystemApps,
                         identifier: { $0.bundleID },
                         path: { $0.containerPath }
@@ -450,7 +541,7 @@ struct AppDataBrowserView: View {
                 )
             }
 
-            let allKnownApps = mhaApps + baseIdentifiedApps
+            let allKnownApps = mhaApps + baseIdentifiedApps + catalogApps
             let identifiedPaths = Set(allKnownApps.map {
                 ContainerDiscoveryMerger.canonicalPath($0.containerPath)
             })
@@ -488,6 +579,10 @@ struct AppDataBrowserView: View {
                 if result.isEmpty {
                     errorMessage = emptyMessage
                 }
+                log(
+                    "browser: app data ready apps=\(identified.count + unidentified.count) " +
+                        "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - reloadStarted))s"
+                )
             }
         }
     }

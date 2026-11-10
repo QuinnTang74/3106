@@ -499,3 +499,139 @@ enum LaunchServicesStore {
             || value == 0xfeff
     }
 }
+
+// MARK: - Fast container catalog
+
+/// One entry derived directly from lsd's database. No filesystem scan is
+/// involved; the list is the source of truth for App Data and the cleaner on
+/// every iOS version where the database is readable.
+enum ContainerCatalogKind: String, Codable, Equatable {
+    case application
+    case extensionContainer = "extension"
+}
+
+struct ContainerCatalogEntry: Codable, Equatable, Identifiable {
+    let containerPath: String
+    let bundleID: String
+    let displayName: String
+    let kind: ContainerCatalogKind
+
+    var id: String { containerPath }
+}
+
+struct ContainerCatalogSnapshot: Codable, Equatable {
+    static let currentVersion = 1
+
+    let version: Int
+    let signature: String
+    let osBuild: String
+    let createdAt: Date
+    let entries: [ContainerCatalogEntry]
+}
+
+enum ContainerCatalogBuilder {
+    static func build(
+        from snapshot: LaunchServicesSnapshot,
+        signature: String,
+        osBuild: String
+    ) -> ContainerCatalogSnapshot {
+        var seen = Set<String>()
+        var entries: [ContainerCatalogEntry] = []
+        entries.reserveCapacity(snapshot.containerPaths.count)
+
+        for rawPath in snapshot.containerPaths {
+            let path = LaunchServicesStore.canonicalContainerPath(rawPath)
+            guard LaunchServicesStore.isDataContainerPath(path),
+                  seen.insert(path).inserted,
+                  let bundleID = snapshot.bundleID(forContainerPath: path),
+                  LaunchServicesStore.looksLikeBundleID(bundleID),
+                  !bundleID.hasPrefix("systemgroup.") else {
+                continue
+            }
+            let kind: ContainerCatalogKind =
+                path.contains("/PluginKitPlugin/") ? .extensionContainer : .application
+            let name = snapshot.displayName(forBundleID: bundleID) ?? bundleID
+            entries.append(ContainerCatalogEntry(
+                containerPath: path,
+                bundleID: bundleID,
+                displayName: name,
+                kind: kind
+            ))
+        }
+
+        entries.sort {
+            let comparison = $0.displayName.localizedCaseInsensitiveCompare($1.displayName)
+            if comparison != .orderedSame { return comparison == .orderedAscending }
+            return $0.containerPath < $1.containerPath
+        }
+        return ContainerCatalogSnapshot(
+            version: ContainerCatalogSnapshot.currentVersion,
+            signature: signature,
+            osBuild: osBuild,
+            createdAt: Date(),
+            entries: entries
+        )
+    }
+}
+
+enum ContainerCatalogCache {
+    static func defaultURL(fileManager: FileManager = .default) -> URL {
+        let base = (try? fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )) ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return base
+            .appendingPathComponent("3106", isDirectory: true)
+            .appendingPathComponent("container-catalog.json")
+    }
+
+    static func load(
+        signature: String,
+        rootURL: URL? = nil,
+        fileManager: FileManager = .default
+    ) -> ContainerCatalogSnapshot? {
+        let url = rootURL ?? defaultURL(fileManager: fileManager)
+        guard let data = try? Data(contentsOf: url),
+              let snapshot = try? decoder.decode(ContainerCatalogSnapshot.self, from: data),
+              snapshot.version == ContainerCatalogSnapshot.currentVersion,
+              snapshot.signature == signature,
+              !snapshot.entries.isEmpty else {
+            return nil
+        }
+        return snapshot
+    }
+
+    static func save(
+        _ snapshot: ContainerCatalogSnapshot,
+        rootURL: URL? = nil,
+        fileManager: FileManager = .default
+    ) throws {
+        let url = rootURL ?? defaultURL(fileManager: fileManager)
+        try fileManager.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let data = try encoder.encode(snapshot)
+        try data.write(to: url, options: .atomic)
+    }
+
+    static func clear(rootURL: URL? = nil, fileManager: FileManager = .default) {
+        let url = rootURL ?? defaultURL(fileManager: fileManager)
+        try? fileManager.removeItem(at: url)
+    }
+
+    private static let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
+    }()
+
+    private static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+}

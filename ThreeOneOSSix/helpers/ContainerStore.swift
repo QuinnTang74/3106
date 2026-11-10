@@ -409,17 +409,30 @@ enum ContainerStore {
     }
 
     private static let launchServicesSnapshotLock = NSLock()
+    private static let launchServicesCatalogLock = NSLock()
     private static var launchServicesSnapshotCache: (signature: String, snapshot: LaunchServicesSnapshot?)?
+    private static var launchServicesActiveCandidate: LaunchServicesStoreCandidate?
     private static var launchServicesSnapshotMissAt: Date?
     private static let launchServicesSnapshotMissRetry: TimeInterval = 60 * 60
+
+    private static let launchServicesStorePathKey = "browser.launchServicesStorePath"
+    private static let launchServicesStoreMissKey = "browser.launchServicesStoreMissedAt"
+    private static let launchServicesStoreMissRetry: TimeInterval = 24 * 60 * 60
 
     /// Drops the in-memory snapshot and the "store not found" backoff. Call
     /// when the user explicitly refreshes a screen.
     static func refreshLaunchServicesSnapshot() {
         launchServicesSnapshotLock.lock()
         launchServicesSnapshotCache = nil
+        launchServicesActiveCandidate = nil
         launchServicesSnapshotMissAt = nil
         launchServicesSnapshotLock.unlock()
+
+        launchServicesCatalogLock.lock()
+        ContainerCatalogCache.clear()
+        UserDefaults.standard.removeObject(forKey: launchServicesStorePathKey)
+        UserDefaults.standard.removeObject(forKey: launchServicesStoreMissKey)
+        launchServicesCatalogLock.unlock()
 
         filesystemContainerCacheLock.lock()
         filesystemContainerCache = nil
@@ -436,6 +449,11 @@ enum ContainerStore {
            now.timeIntervalSince(missAt) < launchServicesSnapshotMissRetry {
             return nil
         }
+        if launchServicesSnapshotCache == nil,
+           let missedAt = UserDefaults.standard.object(forKey: launchServicesStoreMissKey) as? Date,
+           now.timeIntervalSince(missedAt) < launchServicesStoreMissRetry {
+            return nil
+        }
 
         let candidates = launchServicesStoreCandidates()
         guard let newest = candidates.max(by: { left, right in
@@ -445,10 +463,12 @@ enum ContainerStore {
             return left.size < right.size
         }) else {
             launchServicesSnapshotCache = nil
+            launchServicesActiveCandidate = nil
             launchServicesSnapshotMissAt = now
             log("browser: LaunchServices store not found")
             return nil
         }
+        launchServicesActiveCandidate = newest
 
         let signature = "\(newest.url.path)|\(newest.size)|\(newest.modifiedAt.timeIntervalSince1970)"
         if let cached = launchServicesSnapshotCache, cached.signature == signature {
@@ -477,7 +497,48 @@ enum ContainerStore {
         return snapshot
     }
 
+    private static func activeLaunchServicesStoreCandidate() -> LaunchServicesStoreCandidate? {
+        launchServicesSnapshotLock.lock()
+        defer { launchServicesSnapshotLock.unlock() }
+        return launchServicesActiveCandidate
+    }
+
+    private static func rememberedLaunchServicesStoreCandidate() -> LaunchServicesStoreCandidate? {
+        guard let path = UserDefaults.standard.string(forKey: launchServicesStorePathKey) else {
+            return nil
+        }
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+              let sizeNumber = attributes[.size] as? NSNumber,
+              sizeNumber.intValue >= LaunchServicesStore.minimumStoreBytes,
+              sizeNumber.intValue <= LaunchServicesStore.maximumStoreBytes,
+              let modifiedAt = attributes[.modificationDate] as? Date,
+              let headerHandle = try? FileHandle(forReadingFrom: URL(fileURLWithPath: path)) else {
+            UserDefaults.standard.removeObject(forKey: launchServicesStorePathKey)
+            return nil
+        }
+        let magic = (try? headerHandle.read(upToCount: 4)) ?? Data()
+        try? headerHandle.close()
+        guard magic == Data([0x62, 0x64, 0x73, 0x6c]) else {
+            UserDefaults.standard.removeObject(forKey: launchServicesStorePathKey)
+            return nil
+        }
+        return LaunchServicesStoreCandidate(
+            url: URL(fileURLWithPath: path),
+            parentPath: (path as NSString).deletingLastPathComponent,
+            modifiedAt: modifiedAt,
+            size: sizeNumber.intValue
+        )
+    }
+
     private static func launchServicesStoreCandidates() -> [LaunchServicesStoreCandidate] {
+        if let remembered = rememberedLaunchServicesStoreCandidate() {
+            return [remembered]
+        }
+        if let missedAt = UserDefaults.standard.object(forKey: launchServicesStoreMissKey) as? Date,
+           Date().timeIntervalSince(missedAt) < launchServicesStoreMissRetry {
+            return []
+        }
+
         var candidates: [LaunchServicesStoreCandidate] = []
         var visited = Set<String>()
 
@@ -535,7 +596,131 @@ enum ContainerStore {
         }
         inspectDirectory("/var/db/lsd")
         inspectDirectory("/var/mobile/Library/Caches")
+
+        if let best = candidates.max(by: { left, right in
+            if left.modifiedAt != right.modifiedAt {
+                return left.modifiedAt < right.modifiedAt
+            }
+            return left.size < right.size
+        }) {
+            UserDefaults.standard.set(best.url.path, forKey: launchServicesStorePathKey)
+            UserDefaults.standard.removeObject(forKey: launchServicesStoreMissKey)
+        } else {
+            UserDefaults.standard.set(Date(), forKey: launchServicesStoreMissKey)
+        }
         return candidates
+    }
+
+    /// Cache-only lookup used for the first paint. Never searches for the store,
+    /// so it cannot block the main thread on a cold start.
+    static func cachedLaunchServicesCatalog() -> ContainerCatalogSnapshot? {
+        // Deliberately lock-free: this runs on the first paint and must never
+        // wait for a background catalog rebuild. The cache file is written
+        // atomically, and a missing/mid-write file simply returns nil.
+        let started = CFAbsoluteTimeGetCurrent()
+        guard let newest = rememberedLaunchServicesStoreCandidate() else { return nil }
+        let signature = "\(newest.url.path)|\(newest.size)|\(newest.modifiedAt.timeIntervalSince1970)|\(AppInfo.osBuild)"
+        let snapshot = ContainerCatalogCache.load(signature: signature)
+        if let snapshot {
+            log(
+                "browser: catalog cache load entries=\(snapshot.entries.count) " +
+                    "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - started))s"
+            )
+        }
+        return snapshot
+    }
+
+    /// The instant path for App Data and the cleaner: build the list straight
+    /// from lsd's database and reuse a compact on-disk catalog when the store
+    /// has not changed. No filesystem enumeration is performed here.
+    static func launchServicesCatalog() -> ContainerCatalogSnapshot? {
+        launchServicesCatalogLock.lock()
+        defer { launchServicesCatalogLock.unlock() }
+        let started = CFAbsoluteTimeGetCurrent()
+
+        // Fast path: a remembered store plus a matching compact cache needs
+        // neither a store search nor an 18 MB parse.
+        if let remembered = rememberedLaunchServicesStoreCandidate() {
+            let signature = "\(remembered.url.path)|\(remembered.size)|\(remembered.modifiedAt.timeIntervalSince1970)|\(AppInfo.osBuild)"
+            if let cached = ContainerCatalogCache.load(signature: signature) {
+                log(
+                    "browser: catalog cache hit entries=\(cached.entries.count) " +
+                        "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - started))s"
+                )
+                return cached
+            }
+        }
+
+        guard let snapshot = launchServicesSnapshot() else {
+            log("browser: catalog unavailable — LaunchServices store not found")
+            return nil
+        }
+        guard let newest = activeLaunchServicesStoreCandidate() else {
+            log("browser: catalog unavailable — no active LaunchServices store")
+            return nil
+        }
+
+        let signature = "\(newest.url.path)|\(newest.size)|\(newest.modifiedAt.timeIntervalSince1970)|\(AppInfo.osBuild)"
+        if let cached = ContainerCatalogCache.load(signature: signature) {
+            log(
+                "browser: catalog cache hit entries=\(cached.entries.count) " +
+                    "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - started))s"
+            )
+            return cached
+        }
+
+        let catalog = ContainerCatalogBuilder.build(
+            from: snapshot,
+            signature: signature,
+            osBuild: AppInfo.osBuild
+        )
+        guard !catalog.entries.isEmpty else {
+            log("browser: catalog empty — database mapped no app containers")
+            return nil
+        }
+        do {
+            try ContainerCatalogCache.save(catalog)
+            log(
+                "browser: catalog built entries=\(catalog.entries.count) " +
+                    "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - started))s"
+            )
+        } catch {
+            log("browser: catalog cache write failed error=\(error.localizedDescription)")
+        }
+        return catalog
+    }
+
+    /// App Data rows straight from the LaunchServices catalog. Version and
+    /// icon are filled in later by the API/MCM passes.
+    static func installedAppsFromCatalog(
+        _ catalog: ContainerCatalogSnapshot? = nil,
+        includeExtensions: Bool = false
+    ) -> [InstalledApp] {
+        guard let catalog = catalog ?? launchServicesCatalog() else { return [] }
+        return apps(from: catalog, includeExtensions: includeExtensions)
+    }
+
+    static func installedAppsFromCachedCatalog(
+        includeExtensions: Bool = false
+    ) -> [InstalledApp] {
+        guard let catalog = cachedLaunchServicesCatalog() else { return [] }
+        return apps(from: catalog, includeExtensions: includeExtensions)
+    }
+
+    private static func apps(
+        from catalog: ContainerCatalogSnapshot,
+        includeExtensions: Bool
+    ) -> [InstalledApp] {
+        catalog.entries.compactMap { entry in
+            if !includeExtensions, entry.kind != .application { return nil }
+            return InstalledApp(
+                bundleID: entry.bundleID,
+                name: entry.displayName,
+                containerPath: entry.containerPath,
+                version: "",
+                icon: nil
+            )
+        }
     }
 
     static func launchServicesStoreIdentifiers() -> [String] {

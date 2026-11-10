@@ -600,12 +600,24 @@ struct CleanerView: View {
                 publish(force: true)
             }
 
+            let catalogApps = ContainerStore.installedAppsFromCatalog()
+            if !catalogApps.isEmpty {
+                log("cleaner: catalog fast path \(catalogApps.count) apps")
+                scanNewApps(catalogApps)
+            }
+
             let apiApps = ContainerStore.installedAppsFromAPI()
-            let dynamicIdentifiers = ContainerStore.dynamicAppIdentifiers()
-            let mcmApps = ContainerStore.installedAppsFromMCM(identifiers: dynamicIdentifiers)
+            let dynamicIdentifiers = catalogApps.isEmpty
+                ? ContainerStore.dynamicAppIdentifiers()
+                : []
+            let mcmApps = catalogApps.isEmpty
+                ? ContainerStore.installedAppsFromMCM(identifiers: dynamicIdentifiers)
+                : []
             scanNewApps(apiApps + mcmApps)
 
-            let launchServicesIdentifiers = ContainerStore.launchServicesStoreIdentifiers()
+            let launchServicesIdentifiers: [String] = catalogApps.isEmpty
+                ? ContainerStore.launchServicesStoreIdentifiers()
+                : Array(Set(catalogApps.map(\.bundleID)))
 
             // MCM/LS can be empty inside signing containers such as
             // LiveContainer; enumerate the app-data root directly and resolve
@@ -614,22 +626,27 @@ struct CleanerView: View {
                 (apiApps + mcmApps).map { ($0.bundleID, $0) },
                 uniquingKeysWith: { first, _ in first }
             )
-            let resolvedFilesystemApps = ContainerStore.containersFromFilesystem().map {
-                ContainerStore.inferredApp(
-                    for: $0,
-                    knownAppsByBundleID: knownAppsByBundleID,
-                    launchServicesIdentifiers: Set(launchServicesIdentifiers)
-                ) ?? $0
+            let resolvedFilesystemApps: [InstalledApp]
+            if catalogApps.isEmpty {
+                resolvedFilesystemApps = ContainerStore.containersFromFilesystem().map {
+                    ContainerStore.inferredApp(
+                        for: $0,
+                        knownAppsByBundleID: knownAppsByBundleID,
+                        launchServicesIdentifiers: Set(launchServicesIdentifiers)
+                    ) ?? $0
+                }
+            } else {
+                resolvedFilesystemApps = []
             }
             scanNewApps(resolvedFilesystemApps)
 
-            let candidates = MHAIdentifierCatalog.identifiers(
+            let candidates = catalogApps.isEmpty ? MHAIdentifierCatalog.identifiers(
                 dynamic: dynamicIdentifiers,
                 installed: apiApps.map(\.bundleID),
                 research: ContainerStore.researchAppIdentifiers,
                 custom: [],
                 launchServices: launchServicesIdentifiers
-            )
+            ) : []
             log("cleaner: resolving \(candidates.count) MHA-C2 bundle candidates")
             let mhaApps = ContainerStore.installedAppsFromMHACandidates(
                 identifiers: candidates
