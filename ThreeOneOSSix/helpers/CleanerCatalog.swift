@@ -68,14 +68,18 @@ enum CleanerCatalog {
         var records: [CleanerCatalogRecord] = []
         for application in applications {
             let bundleID = application.bundleID
+            // Do not mark an app as scanned until its container was actually
+            // resolved and measured; otherwise a failed MCM/LS pass hides the
+            // filesystem fallback for the same bundle id.
             guard shouldIncludeBundleID(bundleID),
-                  scannedBundleIDs.insert(bundleID).inserted,
+                  !scannedBundleIDs.contains(bundleID),
                   let containerPath = activateContainer(application),
                   isValidContainerPath(containerPath),
                   let usage = usageForContainer(containerPath),
                   usage.totalBytes > 0 else {
                 continue
             }
+            scannedBundleIDs.insert(bundleID)
             records.append(
                 CleanerCatalogRecord(
                     application: application,

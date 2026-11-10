@@ -483,20 +483,27 @@ struct CleanerView: View {
                         ContainerPresentationPolicy.shouldShow(bundleID: $0)
                     },
                     activateContainer: { application in
-                    var activationError: NSString?
-                        return MCMActivateContainerPath(
-                        2,
-                            application.bundleID,
-                        false,
-                        &activationError
-                        )
+                        if let resolved = ContainerStore.resolveAppContainerPath(
+                            bundleID: application.bundleID
+                        ), ContainerStore.isApplicationContainerPath(resolved) {
+                            return resolved
+                        }
+                        if ContainerStore.isApplicationContainerPath(application.containerPath) {
+                            return application.containerPath
+                        }
+                        return nil
                     },
                     isValidContainerPath: ContainerStore.isApplicationContainerPath,
                     usageForContainer: { containerPath in
-                        try? LimitedCleanerService.scan(
-                            containerURL: URL(fileURLWithPath: containerPath, isDirectory: true),
-                            rootValidator: { ContainerStore.isApplicationContainerPath($0.path) }
-                        )
+                        do {
+                            return try LimitedCleanerService.scan(
+                                containerURL: URL(fileURLWithPath: containerPath, isDirectory: true),
+                                rootValidator: { ContainerStore.isApplicationContainerPath($0.path) }
+                            )
+                        } catch {
+                            log("cleaner: scan failed \(containerPath) error=\(error)")
+                            return nil
+                        }
                     }
                 )
                 processedCount = scannedBundleIDs.count
@@ -522,6 +529,23 @@ struct CleanerView: View {
             scanNewApps(apiApps + mcmApps)
 
             let launchServicesIdentifiers = ContainerStore.launchServicesStoreIdentifiers()
+
+            // MCM/LS can be empty inside signing containers such as
+            // LiveContainer; enumerate the app-data root directly and resolve
+            // identities through the container index, exactly like App Data.
+            let knownAppsByBundleID = Dictionary(
+                (apiApps + mcmApps).map { ($0.bundleID, $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
+            let resolvedFilesystemApps = ContainerStore.containersFromFilesystem().compactMap {
+                ContainerStore.inferredApp(
+                    for: $0,
+                    knownAppsByBundleID: knownAppsByBundleID,
+                    launchServicesIdentifiers: Set(launchServicesIdentifiers)
+                )
+            }
+            scanNewApps(resolvedFilesystemApps)
+
             let candidates = MHAIdentifierCatalog.identifiers(
                 dynamic: dynamicIdentifiers,
                 installed: apiApps.map(\.bundleID),
@@ -536,6 +560,7 @@ struct CleanerView: View {
                 scanNewApps(progressiveApps)
             }
             scanNewApps(mhaApps)
+            log("cleaner: scan finished apps=\(scannedBundleIDs.count) records=\(discoveredRecords.count)")
             publish(force: true)
 
             DispatchQueue.main.async {

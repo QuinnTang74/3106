@@ -261,7 +261,7 @@
 "settings.current_version" = "Phiên bản hiện tại";
 "settings.verified_versions" = "Phiên bản đã xác minh";
 "settings.tab_bar" = "Thanh dưới";
-"settings.tab_bar_footer" = "Đã chọn %lld/%lld vị trí. Trang chủ luôn hiển thị.";
+"settings.tab_bar_footer" = "Đã chọn %lld/%lld vị trí. Trang chủ luôn hiển thị; hãy tắt một mục trước khi bật mục khác khi đã đủ.";
 "settings.tab_bar_fixed" = "Luôn hiển thị";
 "settings.github" = "GitHub";
 "settings.beta_build" = "Beta %lld · %@";

@@ -178,6 +178,8 @@ enum WallpaperInstaller {
               Int(layout.generation) != nil else {
             throw WallpaperLabError.unsafeContainerRoot
         }
+        let containerGrant = ContainerStore.grantContainerAccess(containerURL.path)
+        defer { SandboxAccess.release(containerGrant) }
         try WallpaperLayoutScanner.validateDirectory(containerURL, fileManager: fileManager)
         try WallpaperLayoutScanner.validatePathComponents(
             relativePath: WallpaperLayoutScanner.storeRelativePath,
@@ -245,6 +247,8 @@ enum WallpaperInstaller {
               Int(rawReceipt.generation) != nil else {
             throw WallpaperLabError.unsafeContainerRoot
         }
+        let containerGrant = ContainerStore.grantContainerAccess(containerURL.path)
+        defer { SandboxAccess.release(containerGrant) }
         try WallpaperLayoutScanner.validateDirectory(containerURL, fileManager: fileManager)
         try WallpaperLayoutScanner.validatePathComponents(
             relativePath: WallpaperLayoutScanner.storeRelativePath,

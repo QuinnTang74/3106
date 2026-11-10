@@ -2,6 +2,16 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.1.1] - 2026-11-10
+
+### Fixed
+
+- Cleaner now enumerates app-data containers from the filesystem when MCM/LaunchServices return nothing (LiveContainer and similar signing environments).
+- Cleaner resolves container paths through the iOS 27.2+ identifier index and no longer marks an app as scanned before its container was actually measured.
+- Cleaner explicitly grants `Library/Caches` and `tmp` before measuring, matching WQ Files' grant-before-access pattern.
+- Wallpaper layout scan, access probe, install, and reset now grant the PosterBoard container and descriptor directories before reading or creating probe files.
+- Added a reverse container-index fallback plus `wallpaper:` / `cleaner:` diagnostics in the app log.
+
 ## [3.1.0] - 2026-11-10
 
 ### Added

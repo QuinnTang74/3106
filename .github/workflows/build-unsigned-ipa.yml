@@ -35,17 +35,17 @@ jobs:
           APP="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos/3106.app"
           mkdir Payload
           cp -R "$APP" Payload/
-          zip -qry "3106-3.1.0-unsigned.ipa" Payload
-          shasum -a 256 "3106-3.1.0-unsigned.ipa"
+          zip -qry "3106-3.1.1-unsigned.ipa" Payload
+          shasum -a 256 "3106-3.1.1-unsigned.ipa"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 3106-unsigned-ipa
-          path: "3106-3.1.0-unsigned.ipa"
+          path: "3106-3.1.1-unsigned.ipa"
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: "3106-3.1.0-unsigned.ipa"
+          files: "3106-3.1.1-unsigned.ipa"

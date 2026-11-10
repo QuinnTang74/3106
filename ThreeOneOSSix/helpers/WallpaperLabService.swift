@@ -16,6 +16,15 @@ enum WallpaperAccessProbe {
         requiredExtensionIdentifiers: Set<String>? = nil,
         fileManager: FileManager = .default
     ) throws -> WallpaperAccessReport {
+        // worse_query grants are path-scoped; the layout store and every
+        // descriptor directory must be granted before any mkdir/read.
+        let containerGrant = ContainerStore.grantContainerAccess(containerURL.path)
+        defer { SandboxAccess.release(containerGrant) }
+        var descriptorGrants: [Int64] = []
+        defer {
+            for grant in descriptorGrants { SandboxAccess.release(grant) }
+        }
+
         let layout = try WallpaperLayoutScanner.scan(
             containerURL: containerURL,
             rootValidator: rootValidator,
@@ -24,6 +33,8 @@ enum WallpaperAccessProbe {
         var descriptorCount = 0
         var customDescriptorCount = 0
         for descriptorDirectory in layout.extensionDescriptorDirectories.values {
+            let grant = ContainerStore.grantContainerAccess(descriptorDirectory.path)
+            if grant >= 0 { descriptorGrants.append(grant) }
             let children = (try? fileManager.contentsOfDirectory(
                 at: descriptorDirectory,
                 includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey]
@@ -59,11 +70,16 @@ enum WallpaperAccessProbe {
                 continue
             }
 
+            let grant = ContainerStore.grantContainerAccess(descriptorDirectory.path)
+            if grant >= 0 { descriptorGrants.append(grant) }
             let probeURL = descriptorDirectory.appendingPathComponent(
                 ".3106-wallpaper-probe-\(UUID().uuidString)",
                 isDirectory: true
             )
             let created = mkdir(probeURL.path, 0o700) == 0
+            if !created {
+                log("wallpaper: probe denied \(identifier) errno=\(errno) path=\(descriptorDirectory.path)")
+            }
             if created {
                 let descriptor = open(
                     probeURL.path,
@@ -116,16 +132,34 @@ enum WallpaperDeviceAccessService {
             )
         }
 #endif
-        guard let path = ContainerStore.resolveAppContainerPath(
+        var path = ContainerStore.resolveAppContainerPath(
             bundleID: "com.apple.PosterBoard"
-        ) else {
+        )
+        if path == nil {
+            let identifiers = worse_query_path_identifiers()
+            path = identifiers.first(where: { $0.value == "com.apple.PosterBoard" })?.key
+            let posterIDs = Set(
+                identifiers.values.filter { $0.localizedCaseInsensitiveContains("PosterBoard") }
+            )
+            log("wallpaper: PosterBoard container fallback ids=\(posterIDs.sorted())")
+        }
+        guard let path else {
+            log("wallpaper: PosterBoard container unavailable")
             throw WallpaperLabError.accessDenied
         }
-        return try WallpaperAccessProbe.probe(
-            containerURL: URL(fileURLWithPath: path, isDirectory: true),
-            rootValidator: { ContainerStore.isApplicationContainerPath($0.path) },
-            requiredExtensionIdentifiers: requiredExtensionIdentifiers
-        )
+        log("wallpaper: PosterBoard container=\(path)")
+        do {
+            let report = try WallpaperAccessProbe.probe(
+                containerURL: URL(fileURLWithPath: path, isDirectory: true),
+                rootValidator: { ContainerStore.isApplicationContainerPath($0.path) },
+                requiredExtensionIdentifiers: requiredExtensionIdentifiers
+            )
+            log("wallpaper: canInstall=\(report.canInstall) denied=\(report.deniedExtensionIdentifiers)")
+            return report
+        } catch {
+            log("wallpaper: probe failed error=\(error)")
+            throw error
+        }
     }
 
     static func install(

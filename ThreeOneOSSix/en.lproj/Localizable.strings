@@ -261,7 +261,7 @@
 "settings.current_version" = "Current version";
 "settings.verified_versions" = "Verified versions";
 "settings.tab_bar" = "Tab Bar";
-"settings.tab_bar_footer" = "%lld of %lld slots selected. Home is always shown.";
+"settings.tab_bar_footer" = "%lld of %lld slots selected. Home is always shown; turn one off before enabling another when full.";
 "settings.tab_bar_fixed" = "Always shown";
 "settings.github" = "GitHub";
 "settings.beta_build" = "Beta %lld · %@";

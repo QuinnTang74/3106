@@ -110,6 +110,11 @@ enum ContainerStore {
             log("patch: container index resolved \(bundleID)")
             return mapped
         }
+        if let reverse = worse_query_path_identifiers().first(where: { $0.value == bundleID })?.key,
+           isApplicationContainerPath(reverse) {
+            log("patch: reverse container index resolved \(bundleID)")
+            return reverse
+        }
 
         // Fallback for iOS builds where MCM refuses to hand out sandbox
         // tokens (e.g. iOS 18.1.x): scan the app-data root with the inode

@@ -107,6 +107,20 @@ enum LimitedCleanerService {
         let grant = ContainerStore.grantContainerAccess(root.path)
         defer { SandboxAccess.release(grant) }
 
+        // worse_query grants are path-scoped. Grant the two measured targets
+        // explicitly, mirroring WQ Files' wq_grant(dir) before measuring.
+        var targetGrants: [Int64] = []
+        defer {
+            for targetGrant in targetGrants { SandboxAccess.release(targetGrant) }
+        }
+        for relative in allowedRelativeDirectories {
+            let targetURL = relative.split(separator: "/").reduce(root) { url, part in
+                url.appendingPathComponent(String(part), isDirectory: true)
+            }
+            let targetGrant = ContainerStore.grantContainerAccess(targetURL.path)
+            if targetGrant >= 0 { targetGrants.append(targetGrant) }
+        }
+
         let descriptor = open(
             root.path,
             O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
@@ -124,6 +138,7 @@ enum LimitedCleanerService {
             components: components,
             relativeTo: rootDescriptor
         ) else {
+            log("cleaner: open failed \(components.joined(separator: "/")) errno=\(errno)")
             return .empty
         }
         defer { close(directoryDescriptor) }

@@ -98,6 +98,8 @@ enum WallpaperLayoutScanner {
               rootValidator(containerURL) else {
             throw WallpaperLabError.unsafeContainerRoot
         }
+        let accessGrant = ContainerStore.grantContainerAccess(containerURL.path)
+        defer { SandboxAccess.release(accessGrant) }
         try validateDirectory(containerURL, fileManager: fileManager)
 
         let storeURL = containerURL.appendingPathComponent(
