@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.1.12** (test build, not published) |
-| Current release | **v3.1.12 test build** (build 16, wallpaper import validation and scan fallback) |
+| Version | **3.1.12** (stable) |
+| Current release | **v3.1.12** (build 16, wallpaper import/scan, update prompt and tab-switch performance) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | Access backend | kernel / `bad_query` / `worse_query` |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -42,7 +42,7 @@
 
 | Version | Highlights |
 | --- | --- |
-| **3.1.12** | Test build: skip bad items in package validation instead of rejecting the whole `.tendies`; path-enumeration fallback after the tree; both real packages pass the standalone inspector |
+| **3.1.12** | Stable: wallpaper import/scan, update prompt, and Cleaner-to-Files stutter fixes; includes all 3.1.8–3.1.11 fixes |
 | **3.1.11** | Test build: collect descriptors from the same successful tree enumeration; add import stage logs and a launch version banner |
 | **3.1.10** | Test build: fix `isContained` `/var` vs `/private/var` after `.tendies` extraction; find device descriptors with an enumerator first |
 | **3.1.9** | Test build: force `/private/var` for wallpaper scans; ZIP GB18030 names, backslash paths, duplicate dirs and 768 MB video entries; reuse LS/filesystem caches and skip redundant MHA scanning |

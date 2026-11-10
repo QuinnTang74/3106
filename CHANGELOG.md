@@ -12,7 +12,8 @@ All notable user-facing changes are documented in this file.
 ### Changed
 
 - Includes 3.1.11's launch version banner and import stage logs.
-- Marketing version **3.1.12**; `CFBundleVersion` **16** (test build, not published).
+- This is the stable release that rolls up 3.1.8–3.1.11: update-prompt fix, cleaner tab-switch caches, wallpaper ZIP compatibility, `/var` path handling, tree-based descriptor discovery, and import stage logs.
+- Marketing version **3.1.12**; `CFBundleVersion` **16**.
 
 ## [3.1.11] - 2026-11-10
 
