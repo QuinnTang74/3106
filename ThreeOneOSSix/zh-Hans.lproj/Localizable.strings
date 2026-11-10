@@ -368,6 +368,10 @@
 "browser.unidentified_count" = "%lld 个未识别容器";
 "browser.unidentified_badge" = "未识别";
 "browser.unidentified_footer" = "无法解析应用身份。这些容器可以浏览，但写入操作已禁用。";
+"browser.favorite_add" = "添加到收藏夹";
+"browser.favorite_remove" = "从收藏夹移除";
+"browser.favorites" = "收藏夹";
+"browser.favorites_empty" = "暂无收藏。长按文件夹，然后选择添加到收藏夹。";
 "browser.mha_scanning" = "正在扫描 MHA-C2…";
 "browser.items_count" = "%lld 个项目";
 "browser.folder" = "文件夹";

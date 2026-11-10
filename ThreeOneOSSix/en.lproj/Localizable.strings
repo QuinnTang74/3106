@@ -368,6 +368,10 @@
 "browser.unidentified_count" = "%lld unidentified containers";
 "browser.unidentified_badge" = "Unidentified";
 "browser.unidentified_footer" = "The app identity could not be resolved. These containers are browsable, but write actions are disabled.";
+"browser.favorite_add" = "Add to Favorites";
+"browser.favorite_remove" = "Remove from Favorites";
+"browser.favorites" = "Favorites";
+"browser.favorites_empty" = "No favorites yet. Long-press a folder and tap Add to Favorites.";
 "browser.mha_scanning" = "Scanning MHA-C2…";
 "browser.items_count" = "%lld items";
 "browser.folder" = "Folder";

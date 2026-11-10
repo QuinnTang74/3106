@@ -4,6 +4,7 @@ struct FilesTabSwitcherView: View {
     @Environment(\.appLanguage) private var language
     @Environment(\.dismiss) private var dismiss
     @Binding var session: FilesTabSession
+    @ObservedObject private var favoritesStore = FileFavoritesStore.shared
     @State private var renameTargetID: UUID?
     @State private var renameText = ""
 
@@ -31,6 +32,31 @@ struct FilesTabSwitcherView: View {
                             Label(language.text("browser.rename_tab"), systemImage: "pencil")
                         }
                         .tint(AppTheme.accent)
+                    }
+                }
+                if !favoritesStore.favorites.isEmpty {
+                    Section {
+                        ForEach(favoritesStore.favorites) { favorite in
+                            Button {
+                                session.openTab(navigationPath: [favorite.destination])
+                                dismiss()
+                            } label: {
+                                FileFavoriteRow(favorite: favorite)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    favoritesStore.remove(path: favorite.path)
+                                } label: {
+                                    Label(
+                                        language.text("browser.favorite_remove"),
+                                        systemImage: "star.slash"
+                                    )
+                                }
+                            }
+                        }
+                    } header: {
+                        Text(language.text("browser.favorites"))
                     }
                 }
             }
@@ -128,5 +154,81 @@ struct FilesTabSwitcherView: View {
     private func beginRename(_ tab: FilesTabState) {
         renameText = tab.displayTitle(defaultTitle: language.text("browser.tabs_root"))
         renameTargetID = tab.id
+    }
+}
+
+struct FileFavoritesView: View {
+    @Environment(\.appLanguage) private var language
+    @ObservedObject private var store = FileFavoritesStore.shared
+
+    var body: some View {
+        List {
+            if store.favorites.isEmpty {
+                Text(language.text("browser.favorites_empty"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .listRowBackground(Color.clear)
+            } else {
+                ForEach(store.favorites) { favorite in
+                    NavigationLink(value: favorite.destination) {
+                        FileFavoriteRow(favorite: favorite)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            store.remove(path: favorite.path)
+                        } label: {
+                            Label(
+                                language.text("browser.favorite_remove"),
+                                systemImage: "star.slash"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(language.text("browser.favorites"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct FileFavoriteRow: View {
+    let favorite: FileFavorite
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "star.fill")
+                .foregroundStyle(AppTheme.accent)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(favorite.name)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text(favorite.path)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 3)
+    }
+}
+
+extension FileFavorite {
+    var destination: FileBrowserDestination {
+        let container = FileFavoriteContainerRoot.containerPath(for: path) ?? path
+        return FileBrowserDestination(
+            containerPath: container,
+            startPath: path,
+            title: name,
+            bundleID: nil
+        )
     }
 }

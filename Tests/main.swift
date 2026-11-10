@@ -168,6 +168,67 @@ expect(
     "app data container path is recognized"
 )
 
+// MARK: - Favorites store checks
+
+let favoritesSuite = "3106.favorites.tests.\(UUID().uuidString)"
+if let defaults = UserDefaults(suiteName: favoritesSuite) {
+    defaults.removePersistentDomain(forName: favoritesSuite)
+    let favorites = FileFavoritesStore(defaults: defaults)
+    favorites.add(
+        path: "/var/mobile/Containers/Data/Application/\(testUUID)/",
+        name: "Test Folder"
+    )
+    expect(favorites.favorites.count == 1, "favorites add stores one item")
+    expect(
+        favorites.contains(
+            path: "/private/var/mobile/Containers/Data/Application/\(testUUID)"
+        ),
+        "favorites normalize /var and /private/var"
+    )
+    expect(
+        favorites.contains(
+            path: "/var/mobile/Containers/Data/Application/\(testUUID)/"
+        ),
+        "favorites tolerate a trailing slash"
+    )
+
+    let reloadedFavorites = FileFavoritesStore(defaults: defaults)
+    expect(reloadedFavorites.favorites.count == 1, "favorites persist across relaunch")
+
+    reloadedFavorites.add(
+        path: "/var/mobile/Containers/Data/Application/\(testUUID)",
+        name: "Duplicate"
+    )
+    expect(reloadedFavorites.favorites.count == 1, "favorites dedupe the same path")
+
+    reloadedFavorites.remove(
+        path: "/var/mobile/Containers/Data/Application/\(testUUID)"
+    )
+    expect(reloadedFavorites.favorites.isEmpty, "favorites remove deletes the entry")
+    defaults.removePersistentDomain(forName: favoritesSuite)
+} else {
+    expect(false, "favorites test defaults unavailable")
+}
+
+expect(
+    FileFavoriteContainerRoot.containerPath(
+        for: "/private/var/mobile/Containers/Data/Application/\(testUUID)/Documents"
+    ) == "/private/var/mobile/Containers/Data/Application/\(testUUID)",
+    "favorite container root resolves an application folder"
+)
+expect(
+    FileFavoriteContainerRoot.containerPath(
+        for: "/private/var/mobile/Containers/Shared/AppGroup/\(testUUID)/Library"
+    ) == "/private/var/mobile/Containers/Shared/AppGroup/\(testUUID)",
+    "favorite container root resolves an app group folder"
+)
+expect(
+    FileFavoriteContainerRoot.containerPath(
+        for: "/private/var/mobile/Library/Preferences"
+    ) == nil,
+    "favorite container root ignores non-container paths"
+)
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

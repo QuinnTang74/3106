@@ -368,6 +368,10 @@
 "browser.unidentified_count" = "%lld vùng chứa chưa xác định";
 "browser.unidentified_badge" = "Chưa xác định";
 "browser.unidentified_footer" = "Không thể xác định danh tính ứng dụng. Có thể duyệt các vùng chứa này nhưng thao tác ghi đã bị tắt.";
+"browser.favorite_add" = "Thêm vào yêu thích";
+"browser.favorite_remove" = "Xóa khỏi yêu thích";
+"browser.favorites" = "Yêu thích";
+"browser.favorites_empty" = "Chưa có yêu thích. Giữ lâu một thư mục rồi chọn Thêm vào yêu thích.";
 "browser.mha_scanning" = "Đang quét MHA-C2…";
 "browser.items_count" = "%lld mục";
 "browser.folder" = "Thư mục";

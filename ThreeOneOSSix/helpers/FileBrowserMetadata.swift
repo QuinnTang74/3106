@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 enum FileBrowserSortOrder: String, CaseIterable, Identifiable {
     static let storageKey = "browser.sort.order"
@@ -143,5 +144,117 @@ enum FileBrowserMetadataScanner {
             byteCount: byteCount,
             childCount: childCount
         )
+    }
+}
+
+// MARK: - Favorites
+
+/// One favorited folder. The JSON shape (`id` / `path` / `name`) is
+/// intentionally identical to 3105 2.0's `fileBrowserFavorites`, so favorites
+/// survive an upgrade from the old app.
+struct FileFavorite: Codable, Identifiable, Hashable {
+    let id: UUID
+    let path: String
+    let name: String
+}
+
+final class FileFavoritesStore: ObservableObject {
+    static let shared = FileFavoritesStore()
+    static let storageKey = "fileBrowserFavorites"
+
+    @Published private(set) var favorites: [FileFavorite] = []
+
+    private let defaults: UserDefaults
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        load()
+    }
+
+    func load() {
+        guard let data = defaults.data(forKey: Self.storageKey) else {
+            favorites = []
+            return
+        }
+        let decoded = (try? decoder.decode([FileFavorite].self, from: data)) ?? []
+        var seen = Set<String>()
+        favorites = decoded.compactMap { favorite in
+            let path = Self.normalize(favorite.path)
+            guard !path.isEmpty, seen.insert(path).inserted else { return nil }
+            return FileFavorite(id: favorite.id, path: path, name: favorite.name)
+        }
+    }
+
+    func add(path: String, name: String) {
+        let normalized = Self.normalize(path)
+        guard !normalized.isEmpty, !contains(path: normalized) else { return }
+        let displayName = name.isEmpty
+            ? (normalized as NSString).lastPathComponent
+            : name
+        favorites.append(FileFavorite(id: UUID(), path: normalized, name: displayName))
+        save()
+    }
+
+    func remove(path: String) {
+        let normalized = Self.normalize(path)
+        favorites.removeAll { $0.path == normalized }
+        save()
+    }
+
+    func contains(path: String) -> Bool {
+        let normalized = Self.normalize(path)
+        return favorites.contains { $0.path == normalized }
+    }
+
+    private func save() {
+        guard let data = try? encoder.encode(favorites) else { return }
+        defaults.set(data, forKey: Self.storageKey)
+    }
+
+    /// `/var` and `/private/var` are the same location. Normalizing both keeps
+    /// a folder favorited once no matter which spelling the browser used.
+    static func normalize(_ path: String) -> String {
+        var normalized = (path as NSString).standardizingPath
+        while normalized.count > 1 && normalized.hasSuffix("/") {
+            normalized.removeLast()
+        }
+        if normalized == "/var" || normalized.hasPrefix("/var/") {
+            normalized = "/private" + normalized
+        }
+        return normalized
+    }
+}
+
+/// Resolves the container root that owns a favorited folder, so the file
+/// browser can open the favorite with the correct sandbox grant boundary.
+enum FileFavoriteContainerRoot {
+    private static let roots = [
+        "/var/mobile/Containers/Data/Application",
+        "/var/mobile/Containers/Data/PluginKitPlugin",
+        "/var/mobile/Containers/Data/InternalDaemon",
+        "/var/mobile/Containers/Data/System",
+        "/var/mobile/Containers/Shared/AppGroup",
+        "/var/containers/Shared/SystemGroup",
+    ]
+
+    static func containerPath(for rawPath: String) -> String? {
+        let normalized = FileFavoritesStore.normalize(rawPath)
+        let withoutPrivate = normalized.hasPrefix("/private/var/")
+            ? String(normalized.dropFirst("/private".count))
+            : normalized
+        for root in roots {
+            guard withoutPrivate == root || withoutPrivate.hasPrefix(root + "/") else {
+                continue
+            }
+            let remainder = withoutPrivate.dropFirst(root.count)
+            let component = remainder.split(separator: "/").first.map(String.init) ?? ""
+            let rootPath = normalized.hasPrefix("/private/")
+                ? "/private" + root
+                : root
+            return component.isEmpty ? rootPath : rootPath + "/" + component
+        }
+        return nil
     }
 }

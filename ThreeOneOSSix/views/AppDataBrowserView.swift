@@ -8,6 +8,7 @@ struct AppDataBrowserView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var apps: [InstalledApp] = []
     @State private var unidentifiedApps: [InstalledApp] = []
+    @ObservedObject private var favoritesStore = FileFavoritesStore.shared
     @State private var isLoading = false
     @State private var isResolving = false
     @State private var searchText = ""
@@ -229,6 +230,22 @@ struct AppDataBrowserView: View {
                     .textCase(nil)
                 } footer: {
                     Text(language.text("browser.unidentified_footer"))
+                }
+            }
+            Section {
+                NavigationLink {
+                    FileFavoritesView()
+                } label: {
+                    HStack(spacing: 10) {
+                        AppRowIcon(systemName: "star.fill")
+                        Text(language.text("browser.favorites"))
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Text("\(favoritesStore.favorites.count)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
                 }
             }
         }

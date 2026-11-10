@@ -36,6 +36,7 @@ struct FileBrowserView: View {
     @State private var transferSession: FileTransferSession?
     @State private var transferConflict: FileTransferConflict?
     @State private var deleteTargets: [FileEntry] = []
+    @ObservedObject private var favoritesStore = FileFavoritesStore.shared
     @AppStorage(FileBrowserSortOrder.storageKey)
     private var sortOrderRaw = FileBrowserSortOrder.nameAscending.rawValue
 
@@ -443,6 +444,22 @@ struct FileBrowserView: View {
                 openDirectoryInNewTab(entry)
             } label: {
                 Label(language.text("browser.open_new_tab"), systemImage: "square.on.square")
+            }
+            Divider()
+        }
+        if entry.isDirectory {
+            let isFavorite = favoritesStore.contains(path: entry.path)
+            Button {
+                if isFavorite {
+                    favoritesStore.remove(path: entry.path)
+                } else {
+                    favoritesStore.add(path: entry.path, name: entry.name)
+                }
+            } label: {
+                Label(
+                    language.text(isFavorite ? "browser.favorite_remove" : "browser.favorite_add"),
+                    systemImage: isFavorite ? "star.slash" : "star"
+                )
             }
             Divider()
         }

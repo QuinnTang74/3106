@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.1.5** (stable) |
-| Current release | **v3.1.5** (build 8, app data completeness fix) |
+| Version | **3.1.6** (stable) |
+| Current release | **v3.1.6** (build 9, folder favorites) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
 | Access backend | kernel / `bad_query` / `worse_query` |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -42,6 +42,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.1.6** | Folder favorites: long-press to favorite, favorite paths in the top-right file tab page and Files home, compatible with 3105 2.0 data |
 | **3.1.5** | App data browser shows every container again: MHA guard removed, LaunchServices `bdsl` parser, unidentified containers in a read-only section |
 | **3.1.4-r2** | Project URL moved to **QuinnTang74/3106**; in-app GitHub link, update checker, and README updated |
 | **3.1.4** | Cleaner deletion uses the scanned container path; `FileManager` removal refuses symlinks escaping the container |
