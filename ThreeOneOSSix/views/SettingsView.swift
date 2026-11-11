@@ -8,6 +8,9 @@ struct SettingsView: View {
     // Mirrors SoundEffects.isEnabled so the effect player reads one source of
     // truth (UserDefaults) while the toggle gets @AppStorage semantics.
     @AppStorage("sound.effects.enabled") private var soundEffectsEnabled = true
+    // Gates high-risk experimental flows (Siri AI experimental mode) behind
+    // an explicit opt-in; the flows stay hidden until this is on.
+    @AppStorage(FeatureVisibility.developerModeStorageKey) private var experimentalFeaturesEnabled = false
 
     var body: some View {
         NavigationStack {
@@ -71,6 +74,19 @@ struct SettingsView: View {
                     Text(language.text("settings.sound_effects"))
                 } footer: {
                     Text(language.text("settings.sound_effects_footer"))
+                }
+
+                Section {
+                    Toggle(isOn: $experimentalFeaturesEnabled) {
+                        Label(
+                            language.text("settings.experimental"),
+                            systemImage: "flask"
+                        )
+                    }
+                } header: {
+                    Text(language.text("settings.experimental_header"))
+                } footer: {
+                    Text(language.text("settings.experimental_footer"))
                 }
 
                 if WallpaperFeatureSupportPolicy.isSupported(

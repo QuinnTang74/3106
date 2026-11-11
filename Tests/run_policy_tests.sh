@@ -29,6 +29,10 @@ if [[ "$PLIST_BUILD" != "$PROJECT_BUILD" ]]; then
   exit 1
 fi
 
+# Localization keys must be identical across the three language bundles;
+# a missing key renders the raw key string in the UI.
+"$ROOT/Tests/check_strings_alignment.sh"
+
 swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/SupportPolicy.swift" \
   "$ROOT/ThreeOneOSSix/helpers/LaunchServicesStore.swift" \

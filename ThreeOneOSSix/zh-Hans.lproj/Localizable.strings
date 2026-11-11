@@ -1120,3 +1120,6 @@
 "fullbackup.error.empty" = "没有可备份的内容。";
 "fullbackup.error.invalid" = "全量备份包无效。";
 "fullbackup.error.no_manifest" = "全量备份缺少清单文件。";
+"settings.experimental" = "实验功能";
+"settings.experimental_header" = "实验功能";
+"settings.experimental_footer" = "显示高风险实验流程（如 Siri AI 实验模式）。这些流程未经真机完整验证，最坏情况可能需要恢复设备。";

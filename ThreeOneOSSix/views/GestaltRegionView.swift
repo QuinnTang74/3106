@@ -122,24 +122,34 @@ struct GestaltRegionView: View {
     }
 
     private var experimentalSection: some View {
-        Section {
-            let osMajor = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
-            if osMajor < 27 {
-                Text(language.text("gestalt.region.error.needs_ios27"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                Button(role: .destructive) {
-                    showExperimentalConfirmation = true
-                } label: {
-                    Label(language.text("gestalt.region.experimental_apply"), systemImage: "exclamationmark.triangle")
+        // Hidden entirely until the user opts in via Settings → 实验功能
+        // (feature.developer_mode.enabled). The YumEdit parity flows stay
+        // out of sight for regular users.
+        let experimentalEnabled = UserDefaults.standard.bool(
+            forKey: FeatureVisibility.developerModeStorageKey
+        )
+        return Group {
+            if experimentalEnabled {
+                Section {
+                    let osMajor = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+                    if osMajor < 27 {
+                        Text(language.text("gestalt.region.error.needs_ios27"))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button(role: .destructive) {
+                            showExperimentalConfirmation = true
+                        } label: {
+                            Label(language.text("gestalt.region.experimental_apply"), systemImage: "exclamationmark.triangle")
+                        }
+                        .disabled(isBusy || (snapshot?.machine.hasPrefix("iPad") == true && currentIPadModel == nil))
+                    }
+                } header: {
+                    Label(language.text("gestalt.region.experimental_header"), systemImage: "flask")
+                } footer: {
+                    Text(language.text("gestalt.region.experimental_footer"))
                 }
-                .disabled(isBusy || (snapshot?.machine.hasPrefix("iPad") == true && currentIPadModel == nil))
             }
-        } header: {
-            Label(language.text("gestalt.region.experimental_header"), systemImage: "flask")
-        } footer: {
-            Text(language.text("gestalt.region.experimental_footer"))
         }
     }
 
