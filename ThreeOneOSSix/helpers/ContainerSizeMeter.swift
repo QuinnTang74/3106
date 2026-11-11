@@ -23,11 +23,17 @@ enum ContainerSizeMeter {
 
     /// Measure one container's total bytes. Returns the memoized value when
     /// the container directory mtime is unchanged; nil when the walk hit the
-    /// budget (caller keeps the previous display value).
+    /// budget (caller keeps the previous display value). mtime is sampled
+    /// BEFORE the walk at full nanosecond precision, so a write that lands
+    /// mid-walk forces a memo miss on the next call instead of being bound
+    /// to bytes that never included it.
     static func measureTotal(containerPath: String) -> Int64? {
         var st = stat()
         guard lstat(containerPath, &st) == 0 else { return nil }
-        let mtime = Date(timeIntervalSince1970: TimeInterval(st.st_mtimespec.tv_sec))
+        let mtime = Date(
+            timeIntervalSince1970: TimeInterval(st.st_mtimespec.tv_sec)
+                + TimeInterval(st.st_mtimespec.tv_nsec) / 1_000_000_000.0
+        )
 
         lock.lock()
         if let hit = memo[containerPath], hit.directoryMTime == mtime {

@@ -43,20 +43,14 @@ struct GestaltPresetListView: View {
         .sheet(item: $pendingConfirmation) { preset in
             RiskConfirmationView(
                 titleKey: preset.titleKey,
-                riskKey: riskKey(for: preset),
+                riskKey: preset.riskKey,
+                fallbackRiskKey: "risk.gestalt.category.\(preset.category.rawValue)",
                 confirmActionKey: "common.confirm"
             ) {
                 apply(preset, enabled: true)
             }
         }
         .alert(item: $activeAlert, content: alertContent)
-    }
-
-    private func riskKey(for preset: GestaltPreset) -> String {
-        // RiskConfirmationView appends .consequence/.worst_case/.recovery;
-        // per-preset overrides win over category defaults because the
-        // localization loader resolves the first existing key chain.
-        preset.riskKey
     }
 
     @ViewBuilder
@@ -105,15 +99,15 @@ struct GestaltPresetListView: View {
     private func reload() {
         isBusy = true
         DispatchQueue.global(qos: .userInitiated).async {
-            var loadedStates: [String: Bool?] = [:]
-            var loadedApplicability: [String: Bool] = [:]
+            // One plist read serves all 31 presets (was 62 full parses).
+            let evaluation = GestaltPresetEngine.evaluateAll(GestaltPresets.all)
+            var optionalStates: [String: Bool?] = [:]
             for preset in GestaltPresets.all {
-                loadedApplicability[preset.id] = GestaltPresetEngine.isApplicable(preset)
-                loadedStates[preset.id] = try? GestaltPresetEngine.currentState(for: preset)
+                optionalStates[preset.id] = evaluation.states[preset.id]
             }
             DispatchQueue.main.async {
-                states = loadedStates
-                applicability = loadedApplicability
+                states = optionalStates
+                applicability = evaluation.applicability
                 isBusy = false
             }
         }
@@ -134,7 +128,7 @@ struct GestaltPresetListView: View {
                 DispatchQueue.main.async {
                     isBusy = false
                     SoundEffects.play(.failure)
-                    activeAlert = .message(error.localizedDescription)
+                    activeAlert = .message(language.errorText(error))
                     reload()
                 }
             }

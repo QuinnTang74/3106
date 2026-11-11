@@ -25,6 +25,10 @@ enum ScanDiagnostics {
     static func beginSession(backend: String) {
         lock.lock()
         defer { lock.unlock() }
+        // Cancel any leaked watchdog from an un-ended previous session and
+        // fence its handler off from the fresh state (it reads these statics).
+        watchPing?.cancel()
+        watchPing = nil
         if fd >= 0 { close(fd); fd = -1 }
         let path = logURL.path
         fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0o644)
@@ -32,14 +36,19 @@ enum ScanDiagnostics {
         stageStart = startedAt
         itemCount = 0
         currentStage = ""
-        writeLine("session begin backend=\(backend) ts=\(Date())")
+        writeLineUnlocked("session begin backend=\(backend) ts=\(Date())")
 
         // Watchdog: every 5s, write a heartbeat line. If scans hang, the log
-        // shows the last stage and the missing heartbeat window.
+        // shows the last stage and the missing heartbeat window. The handler
+        // takes the lock: it reads currentStage/itemCount and writes through
+        // writeLineUnlocked, all shared with the locked scan-thread writers.
         let source = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
         source.schedule(deadline: .now() + 5, repeating: 5.0)
         source.setEventHandler { [weak source] in
             guard let source, !source.isCancelled else { return }
+            lock.lock()
+            defer { lock.unlock() }
+            guard fd >= 0, watchPing === source else { return }
             let elapsed = CFAbsoluteTimeGetCurrent() - startedAt
             writeLineUnlocked(
                 String(format: "watchdog alive %.1fs stage=%@ items=%lld", elapsed, currentStage, itemCount)
@@ -93,10 +102,6 @@ enum ScanDiagnostics {
             close(fd)
             fd = -1
         }
-    }
-
-    private static func writeLine(_ line: String) {
-        writeLineUnlocked(line)
     }
 
     /// Must hold `lock`. Raw write(2): no Foundation buffering, so the line

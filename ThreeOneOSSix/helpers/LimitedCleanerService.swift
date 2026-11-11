@@ -98,6 +98,12 @@ enum LimitedCleanerService {
             let grant = ContainerStore.grantContainerAccess(url.path)
             if grant >= 0 { targetGrants.append(grant) }
 
+            // Sample the directory mtime BEFORE walking (ContainerSizeMeter
+            // parity): a store() that stats after the walk binds any file
+            // written mid-walk to an mtime its measured bytes never had,
+            // and the stale total then never re-measures.
+            let preWalkMTime = CleanerMeasureCache.directoryMTime(atPath: url.path)
+
             var bytes: Int64 = 0
             var files = 0
             var visited = 0
@@ -142,12 +148,13 @@ enum LimitedCleanerService {
                 files += 1
             }
             log("cleaner: measured \(url.path) bytes=\(bytes) files=\(files) exhausted=\(exhausted)")
-            if !exhausted {
+            if !exhausted, let preWalkMTime {
                 CleanerMeasureCache.store(
                     containerPath: root.path,
                     relativePath: relative,
                     bytes: bytes,
-                    files: files
+                    files: files,
+                    directoryMTime: preWalkMTime
                 )
             }
             return BudgetedMeasure(bytes: bytes, files: files, budgetExhausted: exhausted)
@@ -163,38 +170,6 @@ enum LimitedCleanerService {
             temporaryBytes: temporary.bytes,
             removableItemCount: cache.files + temporary.files
         )
-    }
-
-    /// Measure many containers concurrently (bounded worker pool, default 6).
-    /// Returns usage keyed by container path; failed containers are absent.
-    static func scanContainersParallel(
-        _ containerPaths: [String],
-        rootValidator: @escaping ContainerRootValidator,
-        maxConcurrent: Int = 6
-    ) -> [String: LimitedCleanerUsage] {
-        var results = [LimitedCleanerUsage?](
-            repeating: nil, count: containerPaths.count
-        )
-        let lock = NSLock()
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = max(1, maxConcurrent)
-        for (index, path) in containerPaths.enumerated() {
-            queue.addOperation {
-                let usage = try? scan(
-                    containerURL: URL(fileURLWithPath: path),
-                    rootValidator: rootValidator
-                )
-                lock.lock()
-                results[index] = usage
-                lock.unlock()
-            }
-        }
-        queue.waitUntilAllOperationsAreFinished()
-        var output: [String: LimitedCleanerUsage] = [:]
-        for (index, path) in containerPaths.enumerated() {
-            if let usage = results[index] { output[path] = usage }
-        }
-        return output
     }
 
     static func clean(

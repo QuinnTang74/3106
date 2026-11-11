@@ -106,13 +106,17 @@ enum AppSaveBackupService {
 
         try FileManager.default.createDirectory(at: backupsDirectory, withIntermediateDirectories: true)
 
-        let stamp = Int(Date().timeIntervalSince1970)
+        // Millisecond stamp: two backups of the same app within one second
+        // must not collide (the writer refuses pre-existing destinations).
+        let stamp = Int(Date().timeIntervalSince1970 * 1000)
         let safeName = app.bundleID.replacingOccurrences(of: "/", with: "_")
         let archiveURL = backupsDirectory
             .appendingPathComponent("\(safeName)-\(stamp).3106save")
 
-        // Manifest rides beside the payload inside one zip, so prepare it
-        // first and archive payload + manifest in a single pass.
+        // Manifest rides inside the zip under the canonical entry name
+        // "BackupManifest.plist" — readManifest and restore both look for
+        // exactly that name, so the staged file must carry it too. It lives
+        // in a staging subdir so concurrent backups never share a filename.
         let manifest = SaveBackupManifest(
             bundleID: app.bundleID,
             appName: app.displayName,
@@ -120,19 +124,13 @@ enum AppSaveBackupService {
             appVersion: app.version,
             includesPreferences: includePreferences
         )
-        let manifestURL = backupsDirectory.appendingPathComponent(".manifest-\(UUID().uuidString).plist")
-        let manifestData = try PropertyListSerialization.data(
-            fromPropertyList: [
-                "bundleID": manifest.bundleID,
-                "appName": manifest.appName,
-                "createdAt": manifest.createdAt,
-                "appVersion": manifest.appVersion,
-                "includesPreferences": manifest.includesPreferences,
-            ],
-            format: .xml, options: 0
-        )
+        let stagingDir = backupsDirectory
+            .appendingPathComponent(".stage-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: stagingDir) }
+        let manifestURL = stagingDir.appendingPathComponent("BackupManifest.plist")
+        let manifestData = try PropertyListEncoder().encode(manifest)
         try manifestData.write(to: manifestURL, options: .atomic)
-        defer { try? FileManager.default.removeItem(at: manifestURL) }
 
         // Write to a temp name, then swap in atomically (the writer refuses
         // pre-existing destinations, which also guards against clobbering).
@@ -142,6 +140,11 @@ enum AppSaveBackupService {
             to: tempURL
         )
         try FileManager.default.moveItem(at: tempURL, to: archiveURL)
+        // Sidecar manifest: listing reads this small file instead of fully
+        // extracting every archive (N saves = N full unzips per tab visit).
+        let sidecarURL = archiveURL.deletingLastPathComponent()
+            .appendingPathComponent(archiveURL.deletingPathExtension().lastPathComponent + ".manifest.plist")
+        try? manifestData.write(to: sidecarURL, options: .atomic)
         ActivityHistory.log(.backup, feature: "savebackup", app.bundleID)
 
         let size = (try? archiveURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
@@ -163,9 +166,9 @@ enum AppSaveBackupService {
             options: .skipsHiddenFiles
         )) ?? []
         return urls
-            .filter { $0.pathExtension == "3106save" }
+            .filter { $0.pathExtension.lowercased() == "3106save" }
             .compactMap { url -> BackupEntry? in
-                guard let manifest = readManifest(from: url) else { return nil }
+                guard let manifest = readManifestFast(from: url) else { return nil }
                 let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
                 return BackupEntry(
                     id: UUID(),
@@ -177,8 +180,23 @@ enum AppSaveBackupService {
             .sorted { $0.manifest.createdAt > $1.manifest.createdAt }
     }
 
+    /// Read the manifest from the sidecar file when present; fall back to a
+    /// full archive extract only for legacy archives without a sidecar.
+    private static func readManifestFast(from archiveURL: URL) -> SaveBackupManifest? {
+        let sidecarURL = archiveURL.deletingLastPathComponent()
+            .appendingPathComponent(archiveURL.deletingPathExtension().lastPathComponent + ".manifest.plist")
+        if let data = try? Data(contentsOf: sidecarURL),
+           let manifest = try? PropertyListDecoder().decode(SaveBackupManifest.self, from: data) {
+            return manifest
+        }
+        return readManifest(from: archiveURL)
+    }
+
     static func delete(_ entry: BackupEntry) {
         try? FileManager.default.removeItem(at: entry.fileURL)
+        let sidecarURL = entry.fileURL.deletingLastPathComponent()
+            .appendingPathComponent(entry.fileURL.deletingPathExtension().lastPathComponent + ".manifest.plist")
+        try? FileManager.default.removeItem(at: sidecarURL)
     }
 
     private static func readManifest(from archiveURL: URL) -> SaveBackupManifest? {
@@ -276,29 +294,33 @@ enum AppSaveBackupService {
         let targetPreferences = (containerPath as NSString)
             .appendingPathComponent("Library/Preferences")
 
-        // Safety backup of the current state (VerifiedFileWriter originals).
-        for target in [targetDocuments, targetPreferences] where fm.fileExists(atPath: target) {
-            _ = try? BackupCenter.shared.recordOriginalIfNeeded(
-                target: URL(fileURLWithPath: target),
-                feature: .file,
-                containerPath: containerPath,
-                bundleID: entry.manifest.bundleID,
-                reason: "save-restore-pre:\(entry.manifest.bundleID)"
-            )
+        // Restore with a REAL rollback path: directories are renamed aside
+        // (same-volume, kept as .pre-restore-*) instead of the old
+        // recordOriginalIfNeeded call that silently no-opped on directories
+        // and then removeItem destroyed the live data with no backup.
+        func restoreDirectory(source: URL, targetPath: String) throws {
+            var isDirectory: ObjCBool = false
+            if fm.fileExists(atPath: targetPath, isDirectory: &isDirectory) {
+                let targetURL = URL(fileURLWithPath: targetPath)
+                if isDirectory.boolValue {
+                    let asideURL = targetURL.deletingLastPathComponent()
+                        .appendingPathComponent(
+                            ".pre-restore-\(Int(Date().timeIntervalSince1970 * 1000))-\(targetURL.lastPathComponent)",
+                            isDirectory: true
+                        )
+                    try fm.moveItem(at: targetURL, to: asideURL)
+                } else {
+                    try fm.removeItem(at: targetURL)
+                }
+            }
+            try fm.copyItem(at: source, to: URL(fileURLWithPath: targetPath))
         }
 
-        // Replace: remove target, copy from scratch.
         if let documentsSource {
-            if fm.fileExists(atPath: targetDocuments) {
-                try fm.removeItem(atPath: targetDocuments)
-            }
-            try fm.copyItem(at: documentsSource, to: URL(fileURLWithPath: targetDocuments))
+            try restoreDirectory(source: documentsSource, targetPath: targetDocuments)
         }
         if let preferencesSource {
-            if fm.fileExists(atPath: targetPreferences) {
-                try fm.removeItem(atPath: targetPreferences)
-            }
-            try fm.copyItem(at: preferencesSource, to: URL(fileURLWithPath: targetPreferences))
+            try restoreDirectory(source: preferencesSource, targetPath: targetPreferences)
         }
         ActivityHistory.log(.restore, feature: "savebackup", entry.manifest.bundleID)
         SoundEffects.play(.success)

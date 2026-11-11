@@ -69,12 +69,17 @@ enum CleanerMeasureCache {
         try? data.write(to: fileURL, options: .atomic)
     }
 
-    /// Current mtime of a directory, nil when it does not exist.
+    /// Current mtime of a directory, nil when it does not exist. Uses full
+    /// nanosecond precision: truncating to whole seconds makes two distinct
+    /// directory states within the same wall-clock second indistinguishable
+    /// (a clean + immediate repopulation would serve stale 0 bytes).
     static func directoryMTime(atPath path: String) -> Date? {
         var st = stat()
         guard stat(path, &st) == 0 else { return nil }
-        var mtime = timespec(tv_sec: st.st_mtimespec.tv_sec, tv_nsec: st.st_mtimespec.tv_nsec)
-        return Date(timeIntervalSince1970: TimeInterval(mtime.tv_sec))
+        return Date(
+            timeIntervalSince1970: TimeInterval(st.st_mtimespec.tv_sec)
+                + TimeInterval(st.st_mtimespec.tv_nsec) / 1_000_000_000.0
+        )
     }
 
     /// Returns the cached usage when the directory mtime matches; nil on any
@@ -107,15 +112,15 @@ enum CleanerMeasureCache {
         containerPath: String,
         relativePath: String,
         bytes: Int64,
-        files: Int
+        files: Int,
+        directoryMTime preWalkMTime: Date?
     ) {
+        guard let preWalkMTime else { return }
         queue.sync {
             var store = loadStore()
-            let absolute = (containerPath as NSString).appendingPathComponent(relativePath)
-            guard let mtime = directoryMTime(atPath: absolute) else { return }
             var relatives = store[containerPath] ?? [:]
             relatives[relativePath] = Entry(
-                directoryMTime: mtime, bytes: bytes, files: files
+                directoryMTime: preWalkMTime, bytes: bytes, files: files
             )
             store[containerPath] = relatives
             cachedStore = store

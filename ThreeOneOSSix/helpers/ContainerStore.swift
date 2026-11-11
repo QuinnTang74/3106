@@ -241,15 +241,18 @@ enum ContainerStore {
 
     /// Activate class-2 containers for many bundle IDs concurrently. The MCM
     /// XPC round-trip (containermanagerd) is the dominant cost of a cold
-    /// scan; a bounded concurrent pool (default 6) cuts wall-clock roughly
-    /// 4-5x on a device with 150+ apps. Returns activation results keyed by
-    /// bundle ID; failures map to nil.
+    /// scan; a bounded concurrent pool (conservative cap 4 — the private
+    /// framework's reentrancy is unverified, so keep parallelism modest)
+    /// cuts wall-clock roughly 3-4x on a device with 150+ apps. Returns
+    /// activation results keyed by bundle ID (failures map to nil) plus the
+    /// containermanagerd error strings for the stage-2 failure logs.
     static func activateContainersParallel(
         _ identifiers: [String],
-        maxConcurrent: Int = 6
-    ) -> [String: String?] {
+        maxConcurrent: Int = 4
+    ) -> (paths: [String: String?], errors: [String: String]) {
         var results = [String: String?]()
-        guard !identifiers.isEmpty else { return results }
+        var errors = [String: String]()
+        guard !identifiers.isEmpty else { return (results, errors) }
         let lock = NSLock()
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = max(1, maxConcurrent)
@@ -259,11 +262,14 @@ enum ContainerStore {
                 let activatedPath = MCMActivateContainerPath(2, bundleID, false, &lookupError)
                 lock.lock()
                 results[bundleID] = activatedPath
+                if activatedPath == nil, let detail = lookupError as String?, !detail.isEmpty {
+                    errors[bundleID] = detail
+                }
                 lock.unlock()
             }
         }
         queue.waitUntilAllOperationsAreFinished()
-        return results
+        return (results, errors)
     }
 
     static func installedAppsFromMCM(
@@ -276,7 +282,8 @@ enum ContainerStore {
         // Stage 1 (parallel): activate every class-2 container. The XPC round
         // trips dominate; LSApplicationProxy lookups stay serial afterwards
         // because the private-framework query is not concurrency-safe.
-        let activations = activateContainersParallel(identifiers)
+        let activation = activateContainersParallel(identifiers)
+        let activations = activation.paths
 
         // Stage 2 (serial): validate paths and assemble app records.
         var apps: [InstalledApp] = []
@@ -287,8 +294,8 @@ enum ContainerStore {
             } ?? snapshot?.containerPath(forBundleID: bundleID)
             guard let containerPath,
                   isApplicationContainerPath(containerPath) else {
-                let lookupDetail = activatedPath == nil ? "no path" : "invalid path"
-                if index < 3 { log("mcm[\(index)]: \(bundleID) -> \(lookupDetail)") }
+                let detail = activation.errors[bundleID] ?? "no path"
+                if index < 3 { log("mcm[\(index)]: \(bundleID) -> \(detail)") }
                 continue
             }
             if index < 3 { log("mcm[\(index)]: \(bundleID) -> \(containerPath)") }
@@ -330,7 +337,8 @@ enum ContainerStore {
         // Two-stage pass (same rationale as installedAppsFromMCM): parallel
         // MCM activation, then serial metadata assembly. Progress callbacks
         // fire per batch of 8 resolved apps as before.
-        let activations = activateContainersParallel(identifiers)
+        let activation = activateContainersParallel(identifiers)
+        let activations = activation.paths
         var apps: [InstalledApp] = []
         for (index, bundleID) in identifiers.enumerated() {
             let activatedPath = activations[bundleID] ?? nil
@@ -340,7 +348,8 @@ enum ContainerStore {
             guard let containerPath,
                   isApplicationContainerPath(containerPath) else {
                 if index < 3 {
-                    let detail = activatedPath == nil ? "no path" : "invalid app-data path"
+                    let detail = activation.errors[bundleID]
+                        ?? (activatedPath == nil ? "no path" : "invalid app-data path")
                     log("mha-candidate[\(index)]: \(bundleID) -> \(detail)")
                 }
                 continue

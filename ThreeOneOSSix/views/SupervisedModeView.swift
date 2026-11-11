@@ -120,7 +120,7 @@ struct SupervisedModeView: View {
                 DispatchQueue.main.async {
                     isBusy = false
                     SoundEffects.play(.failure)
-                    activeAlert = .message(error.localizedDescription)
+                    activeAlert = .message(language.errorText(error))
                 }
             }
         }

@@ -62,8 +62,10 @@ enum FullBackupService {
             URL(fileURLWithPath: SupervisedModeService.plistPath)
         ))
 
-        // 3. Patch workspace (whole tree).
-        if let patchRoot = try? PatchWorkspaceService.documentsRootURL() {
+        // 3. Patch workspace (whole tree). Must be the Patches subtree, NOT
+        // the Documents root: staging lives under Documents, so archiving
+        // the root would self-nest (quadratic growth + archiveTooLarge).
+        if let patchRoot = try? PatchWorkspaceService.patchesRootURL() {
             scope.append(("PatchWorkspace", patchRoot))
         }
 
@@ -92,7 +94,7 @@ enum FullBackupService {
 
         try FileManager.default.createDirectory(at: backupsDirectory, withIntermediateDirectories: true)
 
-        let stamp = Int(Date().timeIntervalSince1970)
+        let stamp = Int(Date().timeIntervalSince1970 * 1000)
         let archiveURL = backupsDirectory.appendingPathComponent("full-\(stamp).3106fullbackup")
 
         // The manifest rides inside the archive: stage a manifest file and
@@ -159,7 +161,7 @@ enum FullBackupService {
             options: .skipsHiddenFiles
         )) ?? []
         return urls
-            .filter { $0.pathExtension == "3106fullbackup" }
+            .filter { $0.pathExtension.lowercased() == "3106fullbackup" }
             .map { url -> ArchivedBackup in
                 let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
                 return ArchivedBackup(
@@ -206,27 +208,52 @@ enum FullBackupService {
             guard FileManager.default.fileExists(atPath: source.path) else { continue }
             let target = restoreTarget(forArchivePath: entry)
             guard let target else { continue }
-
-            // Auto-backup the current target before overwrite.
-            if FileManager.default.fileExists(atPath: target) {
-                _ = try? BackupCenter.shared.recordOriginalIfNeeded(
-                    target: URL(fileURLWithPath: target),
-                    feature: .file,
-                    reason: "full-restore-pre:\(entry)"
-                )
-            }
-            let fm = FileManager.default
-            if fm.fileExists(atPath: target) {
-                try fm.removeItem(atPath: target)
-            }
-            let parent = (target as NSString).deletingLastPathComponent
-            try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
-            try fm.copyItem(at: source, to: URL(fileURLWithPath: target))
+            try restoreEntry(source: source, targetPath: target, label: entry)
         }
         SoundEffects.play(.success)
     }
 
-    /// Map an archive-relative path back to its live location.
+    /// Restore one entry with a REAL rollback path: directories are renamed
+    /// aside (same-volume, O(1), kept as `.pre-restore-*`) instead of the
+    /// removeItem-then-copy that used to destroy the live tree with no
+    /// safety copy — recordOriginalIfNeeded only accepts regular files and
+    /// silently no-opped on directories. Files keep the verified pipeline.
+    static func restoreEntry(source: URL, targetPath: String, label: String) throws {
+        let fm = FileManager.default
+        let targetURL = URL(fileURLWithPath: targetPath)
+        var isDirectory: ObjCBool = false
+        let targetExists = fm.fileExists(atPath: targetPath, isDirectory: &isDirectory)
+
+        if targetExists {
+            if isDirectory.boolValue {
+                // Same-volume rename keeps the live tree recoverable.
+                let asideURL = targetURL.deletingLastPathComponent()
+                    .appendingPathComponent(
+                        ".pre-restore-\(Int(Date().timeIntervalSince1970 * 1000))-\(targetURL.lastPathComponent)",
+                        isDirectory: true
+                    )
+                try fm.moveItem(at: targetURL, to: asideURL)
+                ActivityHistory.log(
+                    .backup, feature: "fullbackup",
+                    "pre-restore aside: \(label)"
+                )
+            } else {
+                _ = try? BackupCenter.shared.recordOriginalIfNeeded(
+                    target: targetURL,
+                    feature: .file,
+                    reason: "full-restore-pre:\(label)"
+                )
+                try fm.removeItem(at: targetURL)
+            }
+        }
+
+        let parent = (targetPath as NSString).deletingLastPathComponent
+        try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
+        try fm.copyItem(at: source, to: targetURL)
+    }
+
+    /// Map an archive-relative path back to its live location. Must mirror
+    /// collectScope: PatchWorkspace means the Patches subtree, not Documents.
     private static func restoreTarget(forArchivePath path: String) -> String? {
         switch path {
         case "MobileGestalt/com.apple.MobileGestalt.plist":
@@ -234,7 +261,7 @@ enum FullBackupService {
         case "ConfigurationProfiles/CloudConfigurationDetails.plist":
             return SupervisedModeService.plistPath
         case "PatchWorkspace":
-            return try? PatchWorkspaceService.documentsRootURL().path
+            return try? PatchWorkspaceService.patchesRootURL().path
         case "BackupCenter":
             return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("3106/Backups", isDirectory: true).path

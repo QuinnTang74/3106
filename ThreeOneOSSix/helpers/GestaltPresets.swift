@@ -139,6 +139,19 @@ enum GestaltPresetError: Error, Equatable {
     case unsupportedValueType(key: String)
 }
 
+extension GestaltPresetError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .unavailable: return "gestalt.error.unavailable"
+        case .unreadable: return "gestalt.error.unreadable"
+        case .invalidPlist: return "gestalt.error.invalid"
+        case .missingCacheExtra: return "gestalt.error.cache_extra"
+        case .keyNotInOriginalCache: return "gestalt.presets.not_applicable"
+        case .unsupportedValueType: return "gestalt.error.value"
+        }
+    }
+}
+
 /// Apply/revert engine for presets. Hard rule: a preset may only toggle keys
 /// that ALREADY exist in the device's CacheExtra (iOS 27 anti-bounce rule).
 /// Turning a key "on" that the device never had is refused with
@@ -146,8 +159,29 @@ enum GestaltPresetError: Error, Equatable {
 /// device" instead of a blind write.
 enum GestaltPresetEngine {
 
+    /// Single-read batch evaluation (one plist read for ALL presets instead
+    /// of 2N full 18MB parses per refresh).
+    static func evaluateAll(
+        _ presets: [GestaltPreset]
+    ) -> (states: [String: Bool], applicability: [String: Bool]) {
+        let cacheExtra = (try? readCacheExtra()) ?? [:]
+        var states: [String: Bool] = [:]
+        var applicability: [String: Bool] = [:]
+        for preset in presets {
+            applicability[preset.id] = preset.keys.allSatisfy { cacheExtra[$0] != nil }
+            states[preset.id] = currentState(preset, cacheExtra: cacheExtra)
+        }
+        return (states, applicability)
+    }
+
     static func currentState(for preset: GestaltPreset) throws -> Bool {
         let cacheExtra = try readCacheExtra()
+        return currentState(preset, cacheExtra: cacheExtra)
+    }
+
+    private static func currentState(
+        _ preset: GestaltPreset, cacheExtra: [String: Any]
+    ) -> Bool {
         guard let firstKey = preset.keys.first, let current = cacheExtra[firstKey] else {
             return false
         }
@@ -175,41 +209,45 @@ enum GestaltPresetEngine {
             throw GestaltPresetError.unavailable
         }
 
-        var root = try GestaltPlistIO.readRoot()
-        guard var cacheExtra = root["CacheExtra"] as? [String: Any] else {
-            throw GestaltPresetError.missingCacheExtra
-        }
-
-        for key in preset.keys {
-            // Anti-bounce guard: the key must already exist on this device.
-            guard cacheExtra[key] != nil else {
-                throw GestaltPresetError.keyNotInOriginalCache(key: key)
+        // Exclusive across read→mutate→write: two interleaved RMW sequences
+        // from different editors would silently drop the first writer's keys.
+        try GestaltPlistIO.withExclusiveAccess {
+            var root = try GestaltPlistIO.readRoot()
+            guard var cacheExtra = root["CacheExtra"] as? [String: Any] else {
+                throw GestaltPresetError.missingCacheExtra
             }
-            if enabled {
-                if let custom = preset.values, let desired = custom[key] {
-                    cacheExtra[key] = desired
-                } else {
-                    // Preserve the existing numeric type: if the original
-                    // value was a Real/Integer, keep that shape.
-                    if let original = cacheExtra[key] as? NSNumber,
-                       GestaltValueKind.detect(original) == .real {
-                        cacheExtra[key] = NSNumber(value: 1.0)
-                    } else {
-                        cacheExtra[key] = NSNumber(value: true)
-                    }
+
+            for key in preset.keys {
+                // Anti-bounce guard: the key must already exist on this device.
+                guard cacheExtra[key] != nil else {
+                    throw GestaltPresetError.keyNotInOriginalCache(key: key)
                 }
-            } else {
-                // Revert records the original value first, then restores it.
-                // For the off-state we restore the pre-enable value captured
-                // by BackupCenter during apply; direct off writes the
-                // conservative default (false/0-style) only when no backup
-                // exists, matching GestaltX's restore-field behavior.
-                cacheExtra[key] = NSNumber(value: false)
+                if enabled {
+                    if let custom = preset.values, let desired = custom[key] {
+                        cacheExtra[key] = desired
+                    } else {
+                        // Preserve the existing numeric type: if the original
+                        // value was a Real/Integer, keep that shape.
+                        if let original = cacheExtra[key] as? NSNumber,
+                           GestaltValueKind.detect(original) == .real {
+                            cacheExtra[key] = NSNumber(value: 1.0)
+                        } else {
+                            cacheExtra[key] = NSNumber(value: true)
+                        }
+                    }
+                } else {
+                    // Revert records the original value first, then restores it.
+                    // For the off-state we restore the pre-enable value captured
+                    // by BackupCenter during apply; direct off writes the
+                    // conservative default (false/0-style) only when no backup
+                    // exists, matching GestaltX's restore-field behavior.
+                    cacheExtra[key] = NSNumber(value: false)
+                }
             }
-        }
 
-        root["CacheExtra"] = cacheExtra
-        try GestaltPlistIO.writeRoot(root, reason: "preset:\(preset.id)")
+            root["CacheExtra"] = cacheExtra
+            try GestaltPlistIO.writeRoot(root, reason: "preset:\(preset.id)")
+        }
         ActivityHistory.log(
             enabled ? .write : .restore,
             feature: "gestalt",
@@ -238,7 +276,22 @@ enum GestaltPresetEngine {
 /// write through the verified pipeline (serialize in the original format,
 /// read the bytes back, then hand to VerifiedFileWriter for the automatic
 /// pre-write backup and in-place inode-preserving replacement).
+///
+/// All read-modify-write sequences against the single MobileGestalt cache
+/// MUST run inside `withExclusiveAccess`: preset engine, field editor and
+/// region service each RMW this file from independent userInitiated queues,
+/// and two interleaved sequences lose the first writer's keys silently.
+/// MobileGestaltService (the safe-subset editor) takes the same lock so all
+/// four pipelines serialize against each other.
 enum GestaltPlistIO {
+    private static let exclusiveLock = NSLock()
+
+    static func withExclusiveAccess<T>(_ body: () throws -> T) rethrows -> T {
+        exclusiveLock.lock()
+        defer { exclusiveLock.unlock() }
+        return try body()
+    }
+
     static func readRoot() throws -> [String: Any] {
         let path = GestaltKeys.gestaltPath
         let directory = (path as NSString).deletingLastPathComponent

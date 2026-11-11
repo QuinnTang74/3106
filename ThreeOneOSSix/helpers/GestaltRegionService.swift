@@ -109,21 +109,27 @@ enum GestaltRegionService {
             throw GestaltRegionError.unknownMachine
         }
 
-        var root = try GestaltPlistIO.readRoot()
-        guard var extra = root["CacheExtra"] as? [String: Any] else {
-            throw GestaltRegionError.missingCacheExtra
+        // Exclusive across read→mutate→write (shared with the preset engine
+        // and field editor, which RMW the same cache from other queues).
+        try GestaltPlistIO.withExclusiveAccess {
+            var root = try GestaltPlistIO.readRoot()
+            guard var extra = root["CacheExtra"] as? [String: Any] else {
+                throw GestaltRegionError.missingCacheExtra
+            }
+            extra[GestaltKeys.regionCode] = "LL"
+            extra[GestaltKeys.legacyRegionInfo] = "LL/A"
+            extra[GestaltKeys.modelNumber] = nativeModel.regulatory
+            root["CacheExtra"] = extra
+            try GestaltPlistIO.writeRoot(root, reason: "region:LLA:\(nativeModel.id)")
         }
-        extra[GestaltKeys.regionCode] = "LL"
-        extra[GestaltKeys.legacyRegionInfo] = "LL/A"
-        extra[GestaltKeys.modelNumber] = nativeModel.regulatory
-        root["CacheExtra"] = extra
-        try GestaltPlistIO.writeRoot(root, reason: "region:LLA:\(nativeModel.id)")
         SoundEffects.play(.confirm)
     }
 
     // MARK: - Siri AI native mode
 
-    /// Native Siri AI enablement: region triplet + AI capability flag only.
+    /// Native Siri AI enablement: region triplet + AI capability flag only,
+    /// in a SINGLE write (each writeRoot pass creates a backup snapshot, so
+    /// the old applyRegion-then-flag two-write shape doubled backup churn).
     /// No product/board/CPU spoofing, so Face ID and hardware identity stay
     /// untouched.
     static func applySiriAINative(nativeModel: GestaltSiriModel) throws {
@@ -131,17 +137,28 @@ enum GestaltRegionService {
         guard nativeModel.id == machine else {
             throw GestaltRegionError.unknownMachine
         }
-        try applyRegion(nativeModel: nativeModel)
-
-        var root = try GestaltPlistIO.readRoot()
-        guard var extra = root["CacheExtra"] as? [String: Any] else {
-            throw GestaltRegionError.missingCacheExtra
+        try GestaltPlistIO.withExclusiveAccess {
+            var root = try GestaltPlistIO.readRoot()
+            guard var extra = root["CacheExtra"] as? [String: Any] else {
+                throw GestaltRegionError.missingCacheExtra
+            }
+            guard
+                extra[GestaltKeys.regionCode] != nil,
+                extra[GestaltKeys.legacyRegionInfo] != nil,
+                extra[GestaltKeys.modelNumber] != nil
+            else {
+                throw GestaltRegionError.missingRegionFields
+            }
+            extra[GestaltKeys.regionCode] = "LL"
+            extra[GestaltKeys.legacyRegionInfo] = "LL/A"
+            extra[GestaltKeys.modelNumber] = nativeModel.regulatory
+            if extra[GestaltKeys.aiCapability] != nil {
+                extra[GestaltKeys.aiCapability] = NSNumber(value: true)
+            }
+            root["CacheExtra"] = extra
+            try GestaltPlistIO.writeRoot(root, reason: "siri-ai-native:\(nativeModel.id)")
         }
-        if extra[GestaltKeys.aiCapability] != nil {
-            extra[GestaltKeys.aiCapability] = NSNumber(value: true)
-        }
-        root["CacheExtra"] = extra
-        try GestaltPlistIO.writeRoot(root, reason: "siri-ai-native:\(nativeModel.id)")
+        SoundEffects.play(.confirm)
     }
 
     // MARK: - Siri AI experimental mode
@@ -181,28 +198,30 @@ enum GestaltRegionService {
             throw GestaltRegionError.unknownMachine
         }
 
-        var root = try GestaltPlistIO.readRoot()
-        guard var extra = root["CacheExtra"] as? [String: Any] else {
-            throw GestaltRegionError.missingCacheExtra
-        }
-        guard
-            extra[GestaltKeys.regionCode] != nil,
-            extra[GestaltKeys.legacyRegionInfo] != nil,
-            extra[GestaltKeys.modelNumber] != nil
-        else {
-            throw GestaltRegionError.missingRegionFields
-        }
+        try GestaltPlistIO.withExclusiveAccess {
+            var root = try GestaltPlistIO.readRoot()
+            guard var extra = root["CacheExtra"] as? [String: Any] else {
+                throw GestaltRegionError.missingCacheExtra
+            }
+            guard
+                extra[GestaltKeys.regionCode] != nil,
+                extra[GestaltKeys.legacyRegionInfo] != nil,
+                extra[GestaltKeys.modelNumber] != nil
+            else {
+                throw GestaltRegionError.missingRegionFields
+            }
 
-        extra[GestaltKeys.regionCode] = "LL"
-        extra[GestaltKeys.legacyRegionInfo] = "LL/A"
-        extra[GestaltKeys.modelNumber] = spoofModel.regulatory
-        extra[GestaltKeys.aiCapability] = NSNumber(value: true)
-        extra[GestaltKeys.productType] = spoofModel.id
-        extra[GestaltKeys.boardConfig] = spoofModel.board
-        extra[GestaltKeys.cpuType] = spoofModel.cpu
-        extra[GestaltKeys.siriMode] = NSNumber(value: 2)
-        root["CacheExtra"] = extra
-        try GestaltPlistIO.writeRoot(root, reason: "siri-ai-exp:\(spoofModel.id)")
+            extra[GestaltKeys.regionCode] = "LL"
+            extra[GestaltKeys.legacyRegionInfo] = "LL/A"
+            extra[GestaltKeys.modelNumber] = spoofModel.regulatory
+            extra[GestaltKeys.aiCapability] = NSNumber(value: true)
+            extra[GestaltKeys.productType] = spoofModel.id
+            extra[GestaltKeys.boardConfig] = spoofModel.board
+            extra[GestaltKeys.cpuType] = spoofModel.cpu
+            extra[GestaltKeys.siriMode] = NSNumber(value: 2)
+            root["CacheExtra"] = extra
+            try GestaltPlistIO.writeRoot(root, reason: "siri-ai-exp:\(spoofModel.id)")
+        }
         SoundEffects.play(.warning)
     }
 

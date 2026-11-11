@@ -38,6 +38,10 @@ struct ActivityEvent: Identifiable, Equatable {
 enum ActivityHistory {
     private static let maxEntries = 300
     private static let fileName = "activity-history.plist"
+    // record() is a file-level read-modify-write called from multiple
+    // concurrent userInitiated queues; without this lock two racers both
+    // load the same list and the second persist silently drops an event.
+    private static let recordLock = NSLock()
 
     private static var fileURL: URL {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -47,6 +51,12 @@ enum ActivityHistory {
     // MARK: - Persistence
 
     static func load() -> [ActivityEvent] {
+        recordLock.lock()
+        defer { recordLock.unlock() }
+        return loadLocked()
+    }
+
+    private static func loadLocked() -> [ActivityEvent] {
         guard
             let data = try? Data(contentsOf: fileURL),
             let plist = try? PropertyListSerialization.propertyList(
@@ -75,20 +85,24 @@ enum ActivityHistory {
 
     @discardableResult
     static func record(_ event: ActivityEvent) -> [ActivityEvent] {
-        var events = load()
+        recordLock.lock()
+        defer { recordLock.unlock() }
+        var events = loadLocked()
         events.insert(event, at: 0)
         if events.count > maxEntries {
             events.removeLast(events.count - maxEntries)
         }
-        persist(events)
+        persistLocked(events)
         return events
     }
 
     static func clear() {
+        recordLock.lock()
+        defer { recordLock.unlock() }
         try? FileManager.default.removeItem(at: fileURL)
     }
 
-    private static func persist(_ events: [ActivityEvent]) {
+    private static func persistLocked(_ events: [ActivityEvent]) {
         let plist = events.map { event -> [String: Any] in
             [
                 "id": event.id.uuidString,

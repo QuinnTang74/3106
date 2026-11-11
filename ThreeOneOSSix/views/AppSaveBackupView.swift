@@ -160,7 +160,7 @@ struct AppSaveBackupView: View {
                     isBusy = false
                     busyAppName = ""
                     SoundEffects.play(.failure)
-                    activeAlert = .message(error.localizedDescription)
+                    activeAlert = .message(language.errorText(error))
                 }
             }
         }
@@ -178,7 +178,7 @@ struct AppSaveBackupView: View {
             } catch {
                 DispatchQueue.main.async {
                     isBusy = false
-                    activeAlert = .message(error.localizedDescription)
+                    activeAlert = .message(language.errorText(error))
                 }
             }
         }
@@ -186,10 +186,16 @@ struct AppSaveBackupView: View {
 
     private func share(_ url: URL) {
         let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }
-            .first?
-            .present(activity, animated: true)
+        // iPad requires a popover source or presentation crashes.
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let root = scene.keyWindow?.rootViewController {
+            activity.popoverPresentationController?.sourceView = root.view
+            activity.popoverPresentationController?.sourceRect = CGRect(
+                x: root.view.bounds.midX, y: root.view.bounds.maxY - 8,
+                width: 1, height: 1
+            )
+            root.present(activity, animated: true)
+        }
     }
 
     private func alertContent(for alert: SaveBackupAlert) -> Alert {

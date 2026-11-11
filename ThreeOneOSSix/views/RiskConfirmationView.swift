@@ -12,19 +12,36 @@ struct RiskConfirmationView: View {
     /// Structured risk profile keys, resolved to the current language:
     /// "xxx.consequence" / "xxx.worst_case" / "xxx.recovery".
     let riskKey: String
+    /// Fallback key chain (e.g. the preset's category keys): each section
+    /// uses the first key whose translation exists, then falls back to
+    /// `riskKey`. Preset risk copy ships as category-level strings, so the
+    /// per-preset chain alone renders raw keys for presets without their own.
+    var fallbackRiskKey: String?
     let confirmActionKey: String
     let onConfirm: () -> Void
 
     init(
         titleKey: String,
         riskKey: String,
+        fallbackRiskKey: String? = nil,
         confirmActionKey: String,
         onConfirm: @escaping () -> Void
     ) {
         self.titleKey = titleKey
         self.riskKey = riskKey
+        self.fallbackRiskKey = fallbackRiskKey
         self.confirmActionKey = confirmActionKey
         self.onConfirm = onConfirm
+    }
+
+    private func bodyKey(_ suffix: String) -> String {
+        let primary = "\(riskKey).\(suffix)"
+        if language.hasText(primary) { return primary }
+        if let fallbackRiskKey {
+            let fallback = "\(fallbackRiskKey).\(suffix)"
+            if language.hasText(fallback) { return fallback }
+        }
+        return primary
     }
 
     @State private var holdProgress: Double = 0
@@ -45,17 +62,17 @@ struct RiskConfirmationView: View {
                     riskSection(
                         icon: "info.circle",
                         titleKey: "risk.what_happens",
-                        bodyKey: "\(riskKey).consequence"
+                        bodyKey: bodyKey("consequence")
                     )
                     riskSection(
                         icon: "exclamationmark.octagon",
                         titleKey: "risk.worst_case",
-                        bodyKey: "\(riskKey).worst_case"
+                        bodyKey: bodyKey("worst_case")
                     )
                     riskSection(
                         icon: "arrow.uturn.backward.circle",
                         titleKey: "risk.recovery",
-                        bodyKey: "\(riskKey).recovery"
+                        bodyKey: bodyKey("recovery")
                     )
                 }
                 .padding(.horizontal, 20)

@@ -13,6 +13,9 @@ struct GestaltRegionView: View {
     @State private var showExperimentalConfirmation = false
     @State private var activeAlert: RegionAlert?
     @State private var hasLoaded = false
+    // Observable via SwiftUI: a plain UserDefaults read inside body would
+    // never re-render when the Settings toggle flips.
+    @AppStorage(FeatureVisibility.developerModeStorageKey) private var experimentalEnabled = false
 
     private var currentNativeModel: GestaltSiriModel? {
         guard let machine = snapshot?.machine else { return nil }
@@ -122,13 +125,10 @@ struct GestaltRegionView: View {
     }
 
     private var experimentalSection: some View {
-        // Hidden entirely until the user opts in via Settings → 实验功能
-        // (feature.developer_mode.enabled). The YumEdit parity flows stay
-        // out of sight for regular users.
-        let experimentalEnabled = UserDefaults.standard.bool(
-            forKey: FeatureVisibility.developerModeStorageKey
-        )
-        return Group {
+        // Hidden entirely until the user opts in via Settings → 实验功能.
+        // @AppStorage drives invalidation: flipping the toggle updates the
+        // section immediately.
+        Group {
             if experimentalEnabled {
                 Section {
                     let osMajor = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
@@ -182,7 +182,7 @@ struct GestaltRegionView: View {
                 DispatchQueue.main.async {
                     isBusy = false
                     SoundEffects.play(.failure)
-                    activeAlert = .message(error.localizedDescription)
+                    activeAlert = .message(language.errorText(error))
                 }
             }
         }
@@ -211,7 +211,7 @@ struct GestaltRegionView: View {
             } catch {
                 DispatchQueue.main.async {
                     isBusy = false
-                    activeAlert = .message(error.localizedDescription)
+                    activeAlert = .message(language.errorText(error))
                 }
             }
         }
@@ -229,11 +229,10 @@ struct GestaltRegionView: View {
 enum RegionAlert: Identifiable {
     case message(String)
 
-    var text: String {
-        if case .message(let message) = self { return message }
+    var message: String {
+        if case .message(let value) = self { return value }
         return ""
     }
 
-    var message: String { text }
-    var id: String { "region-\(text)" }
+    var id: String { "region-\(message)" }
 }

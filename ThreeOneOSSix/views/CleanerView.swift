@@ -16,7 +16,7 @@ struct CleanerView: View {
     @State private var activeAlert: CleanerAlert?
     @State private var crashSummary: CrashLogSummary?
     @State private var isCrashBusy = false
-    @State private var cleanerHistory: [CleanerHistoryEntry] = CleanerHistory.loadEntries()
+    @State private var cleanerHistory: [CleanerHistoryEntry] = []
     let confirmationGate = CleanerSafetyPolicy.ConfirmationGate()
     let onOpenSettings: () -> Void
 
@@ -94,6 +94,9 @@ struct CleanerView: View {
                 hasLoaded = true
                 reload()
                 loadCrashLogs()
+                // History is a small plist; load once per tab entry, not on
+                // every struct init (search typing re-inits the view).
+                cleanerHistory = CleanerHistory.loadEntries()
             }
         }
     }

@@ -17,6 +17,7 @@ struct AppDataBrowserView: View {
     @State private var workspaceURL: URL?
     @State private var catalogCreatedAt: Date?
     @State private var sortByName = true
+    @State private var containerSizes: [String: Int64] = [:]
     @AppStorage("browser.containerSizes") private var containerSizesJSON: String = "{}"
     @Binding private var tabSession: FilesTabSession
     let onOpenSettings: () -> Void
@@ -47,7 +48,7 @@ struct AppDataBrowserView: View {
                 $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
             }
         }
-        let sizes = decodedContainerSizes
+        let sizes = containerSizes
         return base.sorted { left, right in
             let leftSize = sizes[left.bundleID] ?? -1
             let rightSize = sizes[right.bundleID] ?? -1
@@ -128,6 +129,11 @@ struct AppDataBrowserView: View {
                 )
             }
             .onAppear {
+                // Decode the persisted size map once per view instance, not
+                // per row render (rows used to JSON-decode it every body).
+                if containerSizes.isEmpty {
+                    containerSizes = decodedContainerSizes
+                }
                 if workspaceURL == nil {
                     workspaceURL = try? PatchWorkspaceService.documentsRootURL()
                     _ = try? PatchWorkspaceService.patchesRootURL()
@@ -359,8 +365,7 @@ struct AppDataBrowserView: View {
 
     private func containerSizeText(for app: InstalledApp) -> String {
         guard !app.containerPath.isEmpty else { return "·" }
-        let sizes = decodedContainerSizes
-        guard let bytes = sizes[app.bundleID], bytes > 0 else { return "·" }
+        guard let bytes = containerSizes[app.bundleID], bytes > 0 else { return "·" }
         return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 
@@ -390,24 +395,33 @@ struct AppDataBrowserView: View {
     }
 
     /// Kick off a background pass measuring every identified container so the
-    /// size column and size-sort fill in progressively (WQ deferred-measure
-    /// parity). Results merge into `containerSizesJSON` as they arrive.
+    /// size column and size-sort fill in (WQ deferred-measure parity).
+    /// Results accumulate on the measuring queue and commit ONCE at
+    /// completion — per-app commits used to decode+encode the whole JSON map
+    /// and scan the app list O(n) per event on the main thread.
     private func scheduleContainerSizeMeasurement() {
         let targets = apps.filter { !$0.containerPath.isEmpty }
         guard !targets.isEmpty else { return }
+        let pathToBundleID = Dictionary(
+            targets.map { ($0.containerPath, $0.bundleID) },
+            uniquingKeysWith: { first, _ in first }
+        )
         DispatchQueue.global(qos: .utility).async {
-            let paths = targets.map(\.containerPath)
-            ContainerSizeMeter.measureBatch(paths) { _, path, bytes in
-                guard let bytes, bytes > 0 else { return }
+            var collected: [String: Int64] = [:]
+            let collectLock = NSLock()
+            ContainerSizeMeter.measureBatch(targets.map(\.containerPath)) { _, path, bytes in
+                guard let bytes, bytes > 0, let bundleID = pathToBundleID[path] else { return }
+                collectLock.lock()
+                collected[bundleID] = bytes
+                collectLock.unlock()
+            } completion: {
                 DispatchQueue.main.async {
-                    var sizes = decodedContainerSizes
-                    // Keyed by bundleID via the app list; resolve lazily.
-                    if let app = apps.first(where: { $0.containerPath == path }) {
-                        sizes[app.bundleID] = bytes
-                        containerSizesJSON = encodeSizes(sizes)
+                    for (bundleID, bytes) in collected {
+                        containerSizes[bundleID] = bytes
                     }
+                    containerSizesJSON = encodeSizes(containerSizes)
                 }
-            } completion: {}
+            }
         }
     }
 

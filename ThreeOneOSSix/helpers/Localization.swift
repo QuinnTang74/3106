@@ -26,6 +26,25 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         String(format: text(key), locale: locale, arguments: arguments)
     }
 
+    /// True when the current bundle defines `key`. text() falls back to the
+    /// key itself, so absence is detected by comparing against it (a real
+    /// translation equal to the key is not a case that occurs).
+    func hasText(_ key: String) -> Bool {
+        localizedBundle.localizedString(forKey: key, value: "", table: nil) != ""
+    }
+
+    /// Resolve a LocalizedError whose errorDescription carries a localization
+    /// KEY (the services return keys so alerts translate per language).
+    /// Falls back to the raw description when it is not a known key.
+    func errorText(_ error: Error) -> String {
+        let description = error.localizedDescription
+        if hasText(description) {
+            return text(description)
+        }
+        // Non-key descriptions (Foundation's generic text) pass through.
+        return description
+    }
+
     private var localizedBundle: Bundle {
         guard let path = Bundle.main.path(forResource: rawValue, ofType: "lproj"),
               let bundle = Bundle(path: path) else {
