@@ -59,12 +59,14 @@ struct AppSaveBackupView: View {
                     } label: {
                         Label(language.text("common.delete"), systemImage: "trash")
                     }
+                    .disabled(isBusy)
                     Button {
                         restore(entry)
                     } label: {
                         Label(language.text("savebackup.restore"), systemImage: "arrow.uturn.backward.circle")
                     }
                     .tint(AppTheme.accent)
+                    .disabled(isBusy)
                 }
                 .contextMenu {
                     Button {
@@ -72,11 +74,13 @@ struct AppSaveBackupView: View {
                     } label: {
                         Label(language.text("savebackup.restore"), systemImage: "arrow.uturn.backward.circle")
                     }
+                    .disabled(isBusy)
                     Button {
                         share(entry.fileURL)
                     } label: {
                         Label(language.text("savebackup.share"), systemImage: "square.and.arrow.up")
                     }
+                    .disabled(isBusy)
                 }
             }
         } header: {
@@ -167,6 +171,9 @@ struct AppSaveBackupView: View {
     }
 
     private func restore(_ entry: AppSaveBackupService.BackupEntry) {
+        // Concurrent restores against the same container interleave the
+        // rename-aside/rollback/copy steps — serialize at the entry point.
+        guard !isBusy else { return }
         isBusy = true
         DispatchQueue.global(qos: .userInitiated).async {
             do {

@@ -226,22 +226,41 @@ enum GestaltPresetEngine {
                     if let custom = preset.values, let desired = custom[key] {
                         cacheExtra[key] = desired
                     } else {
-                        // Preserve the existing numeric type: if the original
-                        // value was a Real/Integer, keep that shape.
-                        if let original = cacheExtra[key] as? NSNumber,
-                           GestaltValueKind.detect(original) == .real {
-                            cacheExtra[key] = NSNumber(value: 1.0)
+                        // Type-preserving enable: keep the ORIGINAL value's
+                        // CF type. A CFNumber→CFBoolean mutation (Integer 1 →
+                        // true, Real 1.0 → true without keeping <real>) is a
+                        // CacheExtra shape change MobileGestalt may reject.
+                        if let original = cacheExtra[key] as? NSNumber {
+                            switch GestaltValueKind.detect(original) {
+                            case .real:
+                                cacheExtra[key] = NSNumber(value: 1.0)
+                            case .integer:
+                                cacheExtra[key] = NSNumber(value: 1)
+                            default:
+                                cacheExtra[key] = NSNumber(value: true)
+                            }
                         } else {
                             cacheExtra[key] = NSNumber(value: true)
                         }
                     }
                 } else {
-                    // Revert records the original value first, then restores it.
-                    // For the off-state we restore the pre-enable value captured
-                    // by BackupCenter during apply; direct off writes the
-                    // conservative default (false/0-style) only when no backup
-                    // exists, matching GestaltX's restore-field behavior.
-                    cacheExtra[key] = NSNumber(value: false)
+                    // Type-preserving disable: mirror the enable shape. The
+                    // pre-enable original lives in the automatic BackupCenter
+                    // snapshot (one tap restores it exactly); the direct off
+                    // write only picks a same-typed falsy value so the cache
+                    // shape never changes underneath MobileGestalt.
+                    if let original = cacheExtra[key] as? NSNumber {
+                        switch GestaltValueKind.detect(original) {
+                        case .real:
+                            cacheExtra[key] = NSNumber(value: 0.0)
+                        case .integer:
+                            cacheExtra[key] = NSNumber(value: 0)
+                        default:
+                            cacheExtra[key] = NSNumber(value: false)
+                        }
+                    } else {
+                        cacheExtra[key] = NSNumber(value: false)
+                    }
                 }
             }
 

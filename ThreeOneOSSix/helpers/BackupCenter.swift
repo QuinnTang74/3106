@@ -183,6 +183,17 @@ final class BackupCenter {
 
     // MARK: Queries
 
+    /// Re-read the manifest from disk. Full-backup restore overwrites
+    /// manifest.json behind this instance's back; without this call the
+    /// stale in-memory manifest would be persisted over the restored one
+    /// by the next verified write, silently dropping every reinstalled
+    /// record.
+    func reloadFromDisk() {
+        lock.lock()
+        defer { lock.unlock() }
+        loadManifest()
+    }
+
     func records(feature: BackupFeature? = nil) -> [BackupRecord] {
         lock.lock()
         defer { lock.unlock() }

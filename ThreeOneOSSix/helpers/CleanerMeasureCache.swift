@@ -124,10 +124,13 @@ enum CleanerMeasureCache {
             )
             store[containerPath] = relatives
             cachedStore = store
-            // Persist a captured snapshot off the hot path; re-reading the
-            // store here would race with `cachedStore` without the lock.
+            // Deferred persist re-reads the LATEST in-memory store at fire
+            // time (all mutations run on this same queue, so this block
+            // serializes with them). Persisting the snapshot captured at
+            // enqueue time used to resurrect entries that removeAll/
+            // clearAll deleted inside the 2-second window.
             queue.asyncAfter(deadline: .now() + 2.0) {
-                persist(store)
+                persist(cachedStore ?? [:])
             }
         }
     }

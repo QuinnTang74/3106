@@ -211,6 +211,23 @@ enum GestaltRegionService {
                 throw GestaltRegionError.missingRegionFields
             }
 
+            // Anti-bounce rule (module header): only overwrite keys the
+            // device ALREADY has. The identity cluster (productType/board/
+            // cpu/SiriMode/AI flag) is checked inside the same locked
+            // read-modify-write — a check outside the lock races with any
+            // editor that removes a key between check and write, and
+            // re-injecting a key the device never had trips the iOS 27
+            // boot-time cache rebuild.
+            for identityKey in [
+                GestaltKeys.aiCapability,
+                GestaltKeys.productType,
+                GestaltKeys.boardConfig,
+                GestaltKeys.cpuType,
+                GestaltKeys.siriMode,
+            ] where extra[identityKey] == nil {
+                throw GestaltRegionError.missingRegionFields
+            }
+
             extra[GestaltKeys.regionCode] = "LL"
             extra[GestaltKeys.legacyRegionInfo] = "LL/A"
             extra[GestaltKeys.modelNumber] = spoofModel.regulatory

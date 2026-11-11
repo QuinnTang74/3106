@@ -93,9 +93,8 @@ enum MobileGestaltService {
 
         // Same exclusive lock as GestaltPlistIO users: this editor and the
         // preset/field/region editors RMW one shared cache file.
-        var written = false
         try GestaltPlistIO.withExclusiveAccess {
-        var root = try readRoot()
+            var root = try readRoot()
         guard var cacheExtra = root[cacheExtraKey] as? [String: Any] else {
             throw MobileGestaltError.missingCacheExtra
         }
@@ -142,15 +141,13 @@ enum MobileGestaltService {
             throw MobileGestaltError.invalidPlist
         }
 
-        try VerifiedFileWriter.write(
-            data,
-            to: URL(fileURLWithPath: path),
-            feature: .gestalt,
-            reason: "MobileGestalt safe subset"
-        )
-        written = true
+            try VerifiedFileWriter.write(
+                data,
+                to: URL(fileURLWithPath: path),
+                feature: .gestalt,
+                reason: "MobileGestalt safe subset"
+            )
         }
-        _ = written
     }
 
     static func restoreOriginal() throws {

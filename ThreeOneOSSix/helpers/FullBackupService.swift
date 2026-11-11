@@ -46,21 +46,40 @@ enum FullBackupService {
     // MARK: - Scope
 
     /// Collect the full-backup scope. Entries that do not exist right now
-    /// are skipped (recorded in the manifest only if present).
+    /// are skipped (recorded in the manifest only if present). Device-side
+    /// entries are probed UNDER a sandbox grant — on the worse_query backend
+    /// an ungranted fileExists silently fails and the scope would lose the
+    /// Gestalt and supervision entries without any error.
     static func collectScope() -> [(archivePath: String, sourceURL: URL)] {
         var scope: [(String, URL)] = []
 
+        func grantedExists(_ path: String, grantDirectory: String?) -> Bool {
+            let handle = grantDirectory.flatMap { ContainerStore.grantContainerAccess($0) }
+            defer {
+                if let handle, handle >= 0 { SandboxAccess.release(handle) }
+            }
+            return FileManager.default.fileExists(atPath: path)
+        }
+
         // 1. MobileGestalt cache.
-        scope.append((
-            "MobileGestalt/com.apple.MobileGestalt.plist",
-            URL(fileURLWithPath: GestaltKeys.gestaltPath)
-        ))
+        let gestaltDir = (GestaltKeys.gestaltPath as NSString).deletingLastPathComponent
+        if grantedExists(GestaltKeys.gestaltPath, grantDirectory: gestaltDir) {
+            scope.append((
+                "MobileGestalt/com.apple.MobileGestalt.plist",
+                URL(fileURLWithPath: GestaltKeys.gestaltPath)
+            ))
+        }
 
         // 2. ConfigurationProfiles supervision plist.
-        scope.append((
-            "ConfigurationProfiles/CloudConfigurationDetails.plist",
-            URL(fileURLWithPath: SupervisedModeService.plistPath)
-        ))
+        if grantedExists(
+            SupervisedModeService.plistPath,
+            grantDirectory: SupervisedModeService.containerPath
+        ) {
+            scope.append((
+                "ConfigurationProfiles/CloudConfigurationDetails.plist",
+                URL(fileURLWithPath: SupervisedModeService.plistPath)
+            ))
+        }
 
         // 3. Patch workspace (whole tree). Must be the Patches subtree, NOT
         // the Documents root: staging lives under Documents, so archiving
@@ -69,9 +88,10 @@ enum FullBackupService {
             scope.append(("PatchWorkspace", patchRoot))
         }
 
-        // 4. BackupCenter's own index (snapshots live under its root).
-        let backupRoot = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("3106/Backups", isDirectory: true)
+        // 4. BackupCenter's own index — the LIVE root is
+        // Application Support/3106/Backups (BackupCenter.rootURL), not the
+        // Documents path this used to point at.
+        let backupRoot = BackupCenter.shared.rootURL
         if FileManager.default.fileExists(atPath: backupRoot.path) {
             scope.append(("BackupCenter", backupRoot))
         }
@@ -126,6 +146,21 @@ enum FullBackupService {
 
         var items: [URL] = []
         for (archivePath, sourceURL) in scope {
+            // Device-side entries need a sandbox grant for the copy on the
+            // worse_query backend (same rule as the scope probe above).
+            let grantDirectory: String?
+            switch archivePath {
+            case "MobileGestalt/com.apple.MobileGestalt.plist":
+                grantDirectory = (GestaltKeys.gestaltPath as NSString).deletingLastPathComponent
+            case "ConfigurationProfiles/CloudConfigurationDetails.plist":
+                grantDirectory = SupervisedModeService.containerPath
+            default:
+                grantDirectory = nil
+            }
+            let handle = grantDirectory.flatMap { ContainerStore.grantContainerAccess($0) }
+            defer {
+                if let handle, handle >= 0 { SandboxAccess.release(handle) }
+            }
             let destination = staging.appendingPathComponent(archivePath)
             try FileManager.default.createDirectory(
                 at: destination.deletingLastPathComponent(),
@@ -182,8 +217,10 @@ enum FullBackupService {
     // MARK: - Restore
 
     /// Restore a full backup: extract, verify the manifest, then write each
-    /// archived tree back over the live paths through the verified pipeline
-    /// (each target is auto-backed-up before overwrite).
+    /// archived tree back over the live paths. Device-side targets run under
+    /// sandbox grants (worse_query per-operation tokens), files go through
+    /// the verified pipeline, the Gestalt plist RMW holds the shared
+    /// exclusive lock, directories use the rename-aside rollback primitive.
     static func restore(_ backup: ArchivedBackup) throws {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("3106-full-restore-\(UUID().uuidString)", isDirectory: true)
@@ -191,9 +228,13 @@ enum FullBackupService {
 
         _ = try ZIPArchiveExtractor.extract(archiveURL: backup.fileURL, into: scratch)
 
-        // Verify the manifest exists and parse it.
-        let manifestURLs = findFiles(named: "BackupManifest.plist", under: scratch)
-        guard let manifestURL = manifestURLs.first,
+        // Verify the manifest: the staged top-level copy wins over any
+        // same-named file nested inside PatchWorkspace content.
+        let topLevelManifest = scratch.appendingPathComponent("BackupManifest.plist")
+        let manifestCandidates = FileManager.default.fileExists(atPath: topLevelManifest.path)
+            ? [topLevelManifest]
+            : findFiles(named: "BackupManifest.plist", under: scratch)
+        guard let manifestURL = manifestCandidates.first,
               let data = try? Data(contentsOf: manifestURL),
               let plist = try? PropertyListSerialization.propertyList(
                   from: data, options: [], format: nil
@@ -203,73 +244,165 @@ enum FullBackupService {
         }
         let manifestDir = manifestURL.deletingLastPathComponent()
 
-        // Asides accumulate under Documents/3106 — prune before adding more.
-        let docsRoot = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        AppSaveBackupService.pruneRestoreAsides(near: docsRoot.appendingPathComponent("3106", isDirectory: true))
-        AppSaveBackupService.pruneRestoreAsides(near: docsRoot.appendingPathComponent("3106/Patches", isDirectory: true))
+        var restoredBackupCenter = false
+        // Track aside parents so each gets pruned (asides live next to their
+        // target: system Caches dirs, container roots, Documents/3106).
+        var asideParents = Set<String>()
 
         for entry in entries {
             let source = manifestDir.appendingPathComponent(entry)
             guard FileManager.default.fileExists(atPath: source.path) else { continue }
-            let target = restoreTarget(forArchivePath: entry)
-            guard let target else { continue }
-            try restoreEntry(source: source, targetPath: target, label: entry)
+            guard let target = restoreTarget(forArchivePath: entry) else { continue }
+
+            let grantHandle = target.grantDirectory.flatMap {
+                ContainerStore.grantContainerAccess($0)
+            }
+            defer {
+                if let grantHandle, grantHandle >= 0 { SandboxAccess.release(grantHandle) }
+            }
+
+            if target.isBackupCenterIndex { restoredBackupCenter = true }
+            try restoreEntry(
+                source: source,
+                targetPath: target.path,
+                grantDirectory: target.grantDirectory,
+                gestaltExclusive: target.isGestaltPlist,
+                label: entry,
+                asideParents: &asideParents
+            )
+        }
+
+        for parent in asideParents {
+            AppSaveBackupService.pruneRestoreAsides(near: URL(fileURLWithPath: parent))
+        }
+        // The restore overwrote manifest.json behind the shared center's
+        // back; reload or the next verified write persists the stale
+        // in-memory manifest over the freshly restored records.
+        if restoredBackupCenter {
+            BackupCenter.shared.reloadFromDisk()
         }
         SoundEffects.play(.success)
     }
 
-    /// Restore one entry with a REAL rollback path: directories are renamed
-    /// aside (same-volume, O(1), kept as `.pre-restore-*`) instead of the
-    /// removeItem-then-copy that used to destroy the live tree with no
-    /// safety copy — recordOriginalIfNeeded only accepts regular files and
-    /// silently no-opped on directories. Files keep the verified pipeline.
-    static func restoreEntry(source: URL, targetPath: String, label: String) throws {
+    /// Restore one entry with a REAL rollback path. Directories are renamed
+    /// aside (same-volume, O(1)); if the copy fails the aside is renamed
+    /// BACK — the live path is never left missing. Regular files go through
+    /// VerifiedFileWriter (auto-backup, in-place, read-back verified); the
+    /// Gestalt plist additionally holds the shared exclusive lock so a
+    /// concurrent editor's RMW cannot interleave with the restore.
+    static func restoreEntry(
+        source: URL,
+        targetPath: String,
+        grantDirectory: String?,
+        gestaltExclusive: Bool,
+        label: String,
+        asideParents: inout Set<String>
+    ) throws {
         let fm = FileManager.default
         let targetURL = URL(fileURLWithPath: targetPath)
         var isDirectory: ObjCBool = false
         let targetExists = fm.fileExists(atPath: targetPath, isDirectory: &isDirectory)
 
-        if targetExists {
-            if isDirectory.boolValue {
-                // Same-volume rename keeps the live tree recoverable.
-                let asideURL = targetURL.deletingLastPathComponent()
-                    .appendingPathComponent(
-                        ".pre-restore-\(Int(Date().timeIntervalSince1970 * 1000))-\(targetURL.lastPathComponent)",
-                        isDirectory: true
-                    )
-                try fm.moveItem(at: targetURL, to: asideURL)
-                ActivityHistory.log(
-                    .backup, feature: "fullbackup",
-                    "pre-restore aside: \(label)"
+        var asideURL: URL?
+        if targetExists && isDirectory.boolValue {
+            // Same-volume rename keeps the live tree recoverable.
+            let candidate = targetURL.deletingLastPathComponent()
+                .appendingPathComponent(
+                    ".pre-restore-\(Int(Date().timeIntervalSince1970 * 1000))-\(targetURL.lastPathComponent)",
+                    isDirectory: true
                 )
-            } else {
-                _ = try? BackupCenter.shared.recordOriginalIfNeeded(
-                    target: targetURL,
-                    feature: .file,
-                    reason: "full-restore-pre:\(label)"
-                )
-                try fm.removeItem(at: targetURL)
-            }
+            try fm.moveItem(at: targetURL, to: candidate)
+            asideURL = candidate
+            asideParents.insert(targetURL.deletingLastPathComponent().path)
+            ActivityHistory.log(
+                .backup, feature: "fullbackup",
+                "pre-restore aside: \(label)"
+            )
         }
 
-        let parent = (targetPath as NSString).deletingLastPathComponent
-        try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
-        try fm.copyItem(at: source, to: targetURL)
+        do {
+            let parent = (targetPath as NSString).deletingLastPathComponent
+            try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
+
+            if isDirectory.boolValue || !targetExists && isTree(source) {
+                // Directory tree: rename-aside already handled the live one.
+                try fm.copyItem(at: source, to: targetURL)
+            } else {
+                // Regular file: verified pipeline (auto-backup + read-back).
+                let payload = try Data(contentsOf: source)
+                try writeVerified(
+                    payload,
+                    to: targetURL,
+                    gestaltExclusive: gestaltExclusive,
+                    label: label
+                )
+            }
+        } catch {
+            // Roll the rename back so the live path is never left missing.
+            if let asideURL {
+                try? fm.moveItem(at: asideURL, to: targetURL)
+            }
+            throw error
+        }
+        // Copy succeeded; the aside is superseded but kept for manual
+        // recovery (pruned to the newest 4 per parent).
+    }
+
+    private static func isTree(_ url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+            && isDirectory.boolValue
+    }
+
+    /// Verified write with optional Gestalt exclusive locking.
+    private static func writeVerified(
+        _ data: Data,
+        to target: URL,
+        gestaltExclusive: Bool,
+        label: String
+    ) throws {
+        let perform = {
+            _ = try VerifiedFileWriter.write(
+                data,
+                to: target,
+                feature: .gestalt,
+                reason: "full-restore:\(label)"
+            )
+        }
+        if gestaltExclusive {
+            try GestaltPlistIO.withExclusiveAccess(perform)
+        } else {
+            try perform()
+        }
     }
 
     /// Map an archive-relative path back to its live location. Must mirror
     /// collectScope: PatchWorkspace means the Patches subtree, not Documents.
-    private static func restoreTarget(forArchivePath path: String) -> String? {
+    /// Device-side targets carry the sandbox-grant directory their access
+    /// requires on the worse_query backend.
+    private static func restoreTarget(
+        forArchivePath path: String
+    ) -> (path: String, grantDirectory: String?, isGestaltPlist: Bool, isBackupCenterIndex: Bool)? {
         switch path {
         case "MobileGestalt/com.apple.MobileGestalt.plist":
-            return GestaltKeys.gestaltPath
+            return (
+                GestaltKeys.gestaltPath,
+                (GestaltKeys.gestaltPath as NSString).deletingLastPathComponent,
+                true, false
+            )
         case "ConfigurationProfiles/CloudConfigurationDetails.plist":
-            return SupervisedModeService.plistPath
+            return (
+                SupervisedModeService.plistPath,
+                SupervisedModeService.containerPath,
+                false, false
+            )
         case "PatchWorkspace":
-            return try? PatchWorkspaceService.patchesRootURL().path
+            guard let patchPath = try? PatchWorkspaceService.patchesRootURL().path else {
+                return nil
+            }
+            return (patchPath, nil, false, false)
         case "BackupCenter":
-            return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("3106/Backups", isDirectory: true).path
+            return (BackupCenter.shared.rootURL.path, nil, false, true)
         default:
             return nil
         }

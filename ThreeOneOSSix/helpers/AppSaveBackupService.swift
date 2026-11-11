@@ -273,8 +273,15 @@ enum AppSaveBackupService {
         defer { try? FileManager.default.removeItem(at: scratch) }
         _ = try ZIPArchiveExtractor.extract(archiveURL: entry.fileURL, into: scratch)
 
-        // Locate the manifest and verify it belongs to this archive.
-        guard let manifestURL = findFile(named: "BackupManifest.plist", under: scratch),
+        // Locate the manifest: the archive-TOP-LEVEL copy first (the writer
+        // stages it there), then a deep search. An unordered deep search can
+        // hit a file of the same name inside the backed-up app's own data
+        // and kill a legitimate restore with .manifestMissing.
+        let topLevelManifest = scratch.appendingPathComponent("BackupManifest.plist")
+        let manifestCandidate = FileManager.default.fileExists(atPath: topLevelManifest.path)
+            ? topLevelManifest
+            : findFile(named: "BackupManifest.plist", under: scratch)
+        guard let manifestURL = manifestCandidate,
               let data = try? Data(contentsOf: manifestURL),
               let plist = try? PropertyListSerialization.propertyList(
                   from: data, options: [], format: nil

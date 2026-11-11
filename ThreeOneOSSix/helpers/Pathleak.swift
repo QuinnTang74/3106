@@ -64,17 +64,22 @@ enum Pathleak {
             return ceiling
         }
 
-        // Fine pass: walk back up to at most one coarse step to find the
-        // highest existing inode at 256 granularity.
-        let fineStart = min(ceiling, probe + coarseStep)
+        // Fine pass: probe upward from the coarse hit one inode at a time
+        // (bounded by one coarse step) so the returned watermark is the TRUE
+        // highest allocated inode. A 256-grid sampling used to under-estimate
+        // by up to 255 and silently cut containers off the sweep.
+        let fineCeiling = min(ceiling, probe &+ coarseStep)
         var fine = probe
-        var cursor = fineStart
-        while cursor > probe {
+        var cursor = probe &+ 1
+        while cursor <= fineCeiling {
             if exists(cursor) {
-                fine = max(fine, cursor)
+                fine = cursor
+            } else if cursor &- fine > 4096 {
+                // 4096 consecutive misses after the last hit: the watermark
+                // is almost certainly `fine`; stop to keep the probe cheap.
                 break
             }
-            cursor &-= 256
+            cursor &+= 1
         }
         return fine
     }
