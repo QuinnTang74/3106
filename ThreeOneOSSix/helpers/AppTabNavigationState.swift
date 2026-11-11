@@ -9,6 +9,7 @@ enum AppSection: Int, CaseIterable, Identifiable {
     case search
     case cleaner
     case wallpapers
+    case backup
 
     var id: Int { rawValue }
 }
@@ -24,6 +25,7 @@ extension AppSection {
         case .search: return "tab.search"
         case .cleaner: return "tab.cleaner"
         case .wallpapers: return "tab.wallpapers"
+        case .backup: return "tab.backup"
         }
     }
 
@@ -37,6 +39,7 @@ extension AppSection {
         case .search: return "magnifyingglass"
         case .cleaner: return "sparkles"
         case .wallpapers: return "photo.on.rectangle.angled"
+        case .backup: return "externaldrive.badge.timemachine"
         }
     }
 }
@@ -44,8 +47,8 @@ extension AppSection {
 enum TabBarSelection {
     static let storageKey = "tabbar.selection"
     static let maxSections = 5
-    /// home(0), new(1), installed(3), files(4), cleaner(6)
-    static let defaultRaw = "0,1,3,4,6"
+    /// home(0), files(4), search(5), cleaner(6), backup(8)
+    static let defaultRaw = "0,4,5,6,8"
     static let legacyDefaultRaw = "0,1,2,3,4"
 
     static func sections(from raw: String) -> [AppSection] {
@@ -104,11 +107,10 @@ struct FeatureVisibility: Equatable {
     }
 
     var visibleSections: [AppSection] {
-        // Fixed product shape: 功能 / 文件 / 搜索 / 清理 / 壁纸. Repository and
-        // patch entry points live inside the feature hub instead of the tab bar.
-        var sections: [AppSection] = [.home, .files, .search, .cleaner]
-        if wallpapersSupported { sections.append(.wallpapers) }
-        return sections
+        // Fixed product shape: 功能 / 文件 / 搜索 / 清理 / 备份. Wallpapers,
+        // repository and patch entry points live inside the feature hub
+        // instead of the tab bar.
+        [.home, .files, .search, .cleaner, .backup]
     }
 
     func isVisible(_ section: AppSection) -> Bool {

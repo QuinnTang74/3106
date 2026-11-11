@@ -15,6 +15,9 @@ struct AppDataBrowserView: View {
     @State private var errorMessage: String?
     @State private var hasLoaded = false
     @State private var workspaceURL: URL?
+    @State private var catalogCreatedAt: Date?
+    @State private var sortByName = true
+    @AppStorage("browser.containerSizes") private var containerSizesJSON: String = "{}"
     @Binding private var tabSession: FilesTabSession
     let onOpenSettings: () -> Void
     let onOpenLogs: () -> Void
@@ -30,11 +33,43 @@ struct AppDataBrowserView: View {
     }
 
     private var filteredApps: [InstalledApp] {
-        guard !searchText.isEmpty else { return apps }
-        let q = searchText.lowercased()
-        return apps.filter {
-            $0.name.lowercased().contains(q) || $0.bundleID.lowercased().contains(q)
+        let base: [InstalledApp]
+        if searchText.isEmpty {
+            base = apps
+        } else {
+            let q = searchText.lowercased()
+            base = apps.filter {
+                $0.name.lowercased().contains(q) || $0.bundleID.lowercased().contains(q)
+            }
         }
+        if sortByName {
+            return base.sorted {
+                $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+            }
+        }
+        let sizes = decodedContainerSizes
+        return base.sorted { left, right in
+            let leftSize = sizes[left.bundleID] ?? -1
+            let rightSize = sizes[right.bundleID] ?? -1
+            if leftSize != rightSize { return leftSize > rightSize }
+            return left.displayName.localizedCaseInsensitiveCompare(right.displayName) == .orderedAscending
+        }
+    }
+
+    private var decodedContainerSizes: [String: Int64] {
+        guard let data = containerSizesJSON.data(using: .utf8),
+              let dict = try? JSONDecoder().decode([String: Int64].self, from: data)
+        else { return [:] }
+        return dict
+    }
+
+    private var catalogAgeText: String? {
+        guard let catalogCreatedAt else { return nil }
+        let minutes = max(0, Int(Date().timeIntervalSince(catalogCreatedAt) / 60))
+        if minutes < 1 {
+            return language.text("browser.index_just_now")
+        }
+        return language.text("browser.index_age", minutes)
     }
 
     private var filteredUnidentifiedApps: [InstalledApp] {
@@ -71,6 +106,9 @@ struct AppDataBrowserView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     FilesTabToolbarButton(session: $tabSession)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    sortMenu
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { reload(refreshLaunchServices: true) } label: {
@@ -192,6 +230,10 @@ struct AppDataBrowserView: View {
             } header: {
                 HStack(spacing: 8) {
                     Text(language.text("browser.apps_count", Int64(filteredApps.count)))
+                    if let catalogAgeText {
+                        Text("·")
+                        Text(catalogAgeText)
+                    }
                     Spacer()
                     if isResolving {
                         ProgressView()
@@ -304,9 +346,74 @@ struct AppDataBrowserView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
+
+            // Container size (incremental cache; "·" until measured).
+            Text(containerSizeText(for: app))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
         .padding(.vertical, 2)
         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 12))
+    }
+
+    private func containerSizeText(for app: InstalledApp) -> String {
+        guard !app.containerPath.isEmpty else { return "·" }
+        let sizes = decodedContainerSizes
+        guard let bytes = sizes[app.bundleID], bytes > 0 else { return "·" }
+        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            Button {
+                sortByName = true
+            } label: {
+                Label(
+                    language.text("browser.sort_by_name"),
+                    systemImage: sortByName ? "checkmark" : "textformat.abc"
+                )
+            }
+            Button {
+                sortByName = false
+                scheduleContainerSizeMeasurement()
+            } label: {
+                Label(
+                    language.text("browser.sort_by_size"),
+                    systemImage: sortByName ? "arrow.up.arrow.down" : "checkmark"
+                )
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+        }
+        .accessibilityLabel(language.text("cleaner.sort"))
+    }
+
+    /// Kick off a background pass measuring every identified container so the
+    /// size column and size-sort fill in progressively (WQ deferred-measure
+    /// parity). Results merge into `containerSizesJSON` as they arrive.
+    private func scheduleContainerSizeMeasurement() {
+        let targets = apps.filter { !$0.containerPath.isEmpty }
+        guard !targets.isEmpty else { return }
+        DispatchQueue.global(qos: .utility).async {
+            let paths = targets.map(\.containerPath)
+            ContainerSizeMeter.measureBatch(paths) { _, path, bytes in
+                guard let bytes, bytes > 0 else { return }
+                DispatchQueue.main.async {
+                    var sizes = decodedContainerSizes
+                    // Keyed by bundleID via the app list; resolve lazily.
+                    if let app = apps.first(where: { $0.containerPath == path }) {
+                        sizes[app.bundleID] = bytes
+                        containerSizesJSON = encodeSizes(sizes)
+                    }
+                }
+            } completion: {}
+        }
+    }
+
+    private func encodeSizes(_ sizes: [String: Int64]) -> String {
+        guard let data = try? JSONEncoder().encode(sizes) else { return "{}" }
+        return String(data: data, encoding: .utf8) ?? "{}"
     }
 
     private func openInNewTabButton(_ destination: FileBrowserDestination) -> some View {
@@ -362,6 +469,8 @@ struct AppDataBrowserView: View {
         // Phase A: publish the LaunchServices catalog immediately. This is the
         // WQ Files 0.8 fast path: no filesystem scan, no 18 MB parse on the
         // main thread, no waiting for MCM.
+        let cachedCatalogSnapshot = ContainerStore.cachedLaunchServicesCatalog()
+        catalogCreatedAt = cachedCatalogSnapshot?.createdAt
         let cachedCatalogApps = ContainerStore.installedAppsFromCachedCatalog()
         if !cachedCatalogApps.isEmpty {
             let sortedCatalog = cachedCatalogApps.sorted {

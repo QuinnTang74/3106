@@ -903,3 +903,22 @@
 "cleaner.crash.result" = "Đã xóa %lld, thất bại %lld, giải phóng %@.";
 
 "gestalt.title" = "MobileGestalt";
+"tab.backup" = "Sao lưu";
+"backup.tab.title" = "Trung tâm sao lưu";
+"backup.tab.auto_header" = "Tự động sao lưu";
+"backup.tab.auto_note" = "Mọi tệp sửa đổi đều được sao lưu trước";
+"backup.tab.auto_footer" = "Tất cả thao tác ghi (chỉnh sửa Gestalt, bản vá, chủ đề, chỉnh sửa tệp) đều tạo một bản chụp riêng trước khi thay đổi. Nhấn để khôi phục bất cứ lúc nào.";
+"backup.tab.snapshots_header" = "Bản chụp";
+"backup.tab.snapshot_count" = "Số lượng bản chụp";
+"backup.tab.storage_usage" = "Dung lượng sử dụng";
+"risk.what_happens" = "Chuyện gì sẽ xảy ra";
+"risk.worst_case" = "Trường hợp xấu nhất";
+"risk.recovery" = "Cách khôi phục";
+"risk.hold_to_confirm" = "Giữ 1,2 giây để xác nhận";
+"risk.release_to_confirm" = "Thả để thực hiện";
+"settings.sound_effects" = "Âm thanh thao tác";
+"settings.sound_effects_footer" = "Phát âm thanh tổng hợp cho nhấn, xác nhận, cảnh báo, thành công và thất bại.";
+"browser.index_just_now" = "chỉ mục · vừa cập nhật";
+"browser.index_age" = "chỉ mục · cập nhật %lld phút trước";
+"browser.sort_by_name" = "Sắp xếp theo tên";
+"browser.sort_by_size" = "Sắp xếp theo dung lượng";

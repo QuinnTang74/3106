@@ -903,3 +903,22 @@
 "cleaner.crash.result" = "Removed %lld, failed %lld, freed %@.";
 
 "gestalt.title" = "MobileGestalt";
+"tab.backup" = "Backup";
+"backup.tab.title" = "Backup Center";
+"backup.tab.auto_header" = "Automatic Backup";
+"backup.tab.auto_note" = "Every file modification is backed up first";
+"backup.tab.auto_footer" = "All write operations (Gestalt edits, patches, themes, file edits) create a separate snapshot before changing anything. Tap to restore at any time.";
+"backup.tab.snapshots_header" = "Snapshots";
+"backup.tab.snapshot_count" = "Snapshot count";
+"backup.tab.storage_usage" = "Storage used";
+"risk.what_happens" = "What happens";
+"risk.worst_case" = "Worst case";
+"risk.recovery" = "How to recover";
+"risk.hold_to_confirm" = "Hold 1.2s to confirm";
+"risk.release_to_confirm" = "Release to run";
+"settings.sound_effects" = "Interaction sounds";
+"settings.sound_effects_footer" = "Plays synthesized tones for tap, confirm, warning, success and failure.";
+"browser.index_just_now" = "index · just updated";
+"browser.index_age" = "index · updated %lld min ago";
+"browser.sort_by_name" = "Sort by name";
+"browser.sort_by_size" = "Sort by size";

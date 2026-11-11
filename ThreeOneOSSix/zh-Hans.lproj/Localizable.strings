@@ -903,3 +903,22 @@
 "cleaner.crash.result" = "已删除 %lld 个，失败 %lld 个，释放 %@。";
 
 "gestalt.title" = "MobileGestalt";
+"tab.backup" = "备份";
+"backup.tab.title" = "备份中心";
+"backup.tab.auto_header" = "自动备份";
+"backup.tab.auto_note" = "每次修改文件前自动备份一次";
+"backup.tab.auto_footer" = "所有写入操作（Gestalt 修改、补丁、主题、文件编辑）都会在改动前生成独立快照，可随时点击恢复。";
+"backup.tab.snapshots_header" = "快照";
+"backup.tab.snapshot_count" = "快照数量";
+"backup.tab.storage_usage" = "占用空间";
+"risk.what_happens" = "会发生什么";
+"risk.worst_case" = "最坏情况";
+"risk.recovery" = "怎么恢复";
+"risk.hold_to_confirm" = "长按 1.2 秒确认执行";
+"risk.release_to_confirm" = "松手执行";
+"settings.sound_effects" = "操作音效";
+"settings.sound_effects_footer" = "点击、确认、警告、成功、失败时播放合成提示音。";
+"browser.index_just_now" = "索引 · 刚刚更新";
+"browser.index_age" = "索引 · %lld 分钟前更新";
+"browser.sort_by_name" = "按名称排序";
+"browser.sort_by_size" = "按体积排序";

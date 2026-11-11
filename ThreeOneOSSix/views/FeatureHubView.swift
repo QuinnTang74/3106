@@ -6,6 +6,10 @@ import SwiftUI
 /// fixed destinations.
 struct FeatureHubView: View {
     @Environment(\.appLanguage) private var language
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // Page-level single entrance: the whole card list fades/slides in once.
+    // Per-row @State animations would replay when List recycles rows.
+    @State private var entranceShown = false
     let onSelectTab: (AppSection) -> Void
     let onOpenSettings: () -> Void
     let onOpenLogs: () -> Void
@@ -55,8 +59,11 @@ struct FeatureHubView: View {
                         )
                     }
 
-                    Button {
-                        onSelectTab(.wallpapers)
+                    NavigationLink {
+                        WallpaperLabView(
+                            onOpenSettings: onOpenSettings,
+                            onOpenLogs: onOpenLogs
+                        )
                     } label: {
                         card(
                             "home.card.wallpapers",
@@ -64,7 +71,6 @@ struct FeatureHubView: View {
                             icon: "photo.on.rectangle.angled"
                         )
                     }
-                    .buttonStyle(.plain)
                 } header: {
                     Text(language.text("home.section.device"))
                 }
@@ -197,6 +203,17 @@ struct FeatureHubView: View {
             .listStyle(.insetGrouped)
             .navigationTitle(language.text("tab.features"))
             .navigationBarTitleDisplayMode(.inline)
+            .opacity(entranceShown ? 1 : 0)
+            .offset(y: entranceShown ? 0 : 10)
+            .onAppear {
+                guard !entranceShown, !reduceMotion else {
+                    entranceShown = true
+                    return
+                }
+                withAnimation(.easeOut(duration: 0.3)) {
+                    entranceShown = true
+                }
+            }
             .toolbar {
                 AppUtilityToolbar(
                     language: language,

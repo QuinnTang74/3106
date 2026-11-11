@@ -5,6 +5,9 @@ struct SettingsView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var appState: AppState
     @AppStorage(AppLanguage.storageKey) private var languageCode = AppLanguage.english.rawValue
+    // Mirrors SoundEffects.isEnabled so the effect player reads one source of
+    // truth (UserDefaults) while the toggle gets @AppStorage semantics.
+    @AppStorage("sound.effects.enabled") private var soundEffectsEnabled = true
 
     var body: some View {
         NavigationStack {
@@ -55,6 +58,19 @@ struct SettingsView: View {
                     RespringButton()
                 } header: {
                     Text(language.text("settings.backup"))
+                }
+
+                Section {
+                    Toggle(isOn: $soundEffectsEnabled) {
+                        Label(
+                            language.text("settings.sound_effects"),
+                            systemImage: "speaker.wave.2"
+                        )
+                    }
+                } header: {
+                    Text(language.text("settings.sound_effects"))
+                } footer: {
+                    Text(language.text("settings.sound_effects_footer"))
                 }
 
                 if WallpaperFeatureSupportPolicy.isSupported(
