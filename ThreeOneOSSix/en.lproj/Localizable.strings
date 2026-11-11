@@ -287,7 +287,6 @@
 "settings.app_group" = "App Group";
 "settings.app_group_missing" = "Missing — worse_query needs an App Group signature";
 
-"gestalt.title" = "Gestalt Editor";
 "gestalt.apply_changes" = "Apply Changes";
 "gestalt.applying" = "Applying…";
 "gestalt.apply_hint" = "Writes the selected capabilities to the MobileGestalt file";
@@ -312,8 +311,6 @@
 "gestalt.name" = "Name";
 "gestalt.device_artwork_footer" = "Custom name changes the displayed device model name. To undo RDAR, turn its switch off and tap Apply Changes.";
 "gestalt.hardware" = "Hardware";
-"gestalt.boot_chime" = "Boot Chime";
-"gestalt.charge_limit" = "Charge Limit";
 "gestalt.tap_to_wake" = "Tap to Wake";
 "gestalt.camera_button" = "Camera Button";
 "gestalt.action_button" = "Action Button";
@@ -321,7 +318,6 @@
 "gestalt.display" = "Display";
 "gestalt.stage_manager" = "Stage Manager";
 "gestalt.always_on_display" = "Always On Display";
-"gestalt.aod_vibrancy" = "AOD Vibrancy";
 "gestalt.system" = "System";
 "gestalt.install_ipad_apps" = "Install iPad Apps";
 "gestalt.disable_region_lock" = "Disable Region Lock";
@@ -342,9 +338,6 @@
 "gestalt.recovery_warning" = "Incorrect capability changes can prevent the device from booting. Keep a verified backup.";
 "gestalt.no_access" = "No Access";
 "gestalt.grant_first" = "Grant sandbox access first.";
-"gestalt.applied_title" = "Done!";
-"gestalt.applied_message" = "Applied %lld bytes.";
-"gestalt.restored_message" = "Restored original. Tap REBOOT.";
 
 "logs.title" = "Session Logs";
 "logs.clear" = "Clear";
@@ -780,7 +773,6 @@
 "home.card.gestalt_detail" = "Safe device identity and feature toggles";
 "home.card.keypad" = "Keypad Theme";
 "home.card.keypad_detail" = "Replace Phone keypad images";
-"gestalt.title" = "MobileGestalt";
 "gestalt.safety" = "Changes write the system MobileGestalt cache. A backup is created automatically; keep a way to restore it and respring after applying.";
 "gestalt.loading" = "Reading MobileGestalt…";
 "gestalt.section.device" = "Device";
@@ -881,3 +873,32 @@
 "plist.error_title" = "Plist operation failed";
 "plist.value" = "Value";
 "plist.type" = "Type";
+"common.yes" = "Yes";
+"browser.file_info" = "File Info";
+"fileinfo.title" = "File Info";
+"fileinfo.loading" = "Reading file info…";
+"fileinfo.section.general" = "General";
+"fileinfo.name" = "Name";
+"fileinfo.path" = "Path";
+"fileinfo.type" = "Type";
+"fileinfo.size" = "Size";
+"fileinfo.modified" = "Modified";
+"fileinfo.created" = "Created";
+"fileinfo.permissions" = "Permissions";
+"fileinfo.owner" = "Owner";
+"fileinfo.group" = "Group";
+"fileinfo.symlink" = "Symbolic link";
+"fileinfo.type.folder" = "Folder";
+"fileinfo.type.file" = "File";
+"cleaner.crash.section" = "Crash Logs";
+"cleaner.crash.title" = "Crash & diagnostic logs";
+"cleaner.crash.summary" = "%lld files · %@";
+"cleaner.crash.loading" = "Measuring crash logs…";
+"cleaner.crash.clean" = "Clean Crash Logs";
+"cleaner.crash.footer" = "Only .ips/.crash/.panic/.log files under CrashReporter are removed; nothing else is touched.";
+"cleaner.crash.confirm_title" = "Clean crash logs?";
+"cleaner.crash.confirm_message" = "Crash and diagnostic log files will be deleted permanently.";
+"cleaner.crash.result_title" = "Crash log cleanup complete";
+"cleaner.crash.result" = "Removed %lld, failed %lld, freed %@.";
+
+"gestalt.title" = "MobileGestalt";

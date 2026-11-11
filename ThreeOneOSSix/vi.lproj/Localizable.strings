@@ -287,7 +287,6 @@
 "settings.app_group" = "App Group";
 "settings.app_group_missing" = "Thiếu — worse_query cần chữ ký có App Group";
 
-"gestalt.title" = "Trình chỉnh sửa Gestalt";
 "gestalt.apply_changes" = "Áp dụng thay đổi";
 "gestalt.applying" = "Đang áp dụng…";
 "gestalt.apply_hint" = "Ghi các tính năng đã chọn vào tệp MobileGestalt";
@@ -312,8 +311,6 @@
 "gestalt.name" = "Tên";
 "gestalt.device_artwork_footer" = "Tên tùy chỉnh sẽ đổi tên model thiết bị hiển thị. Để hoàn tác RDAR, hãy tắt công tắc rồi nhấn Áp dụng thay đổi.";
 "gestalt.hardware" = "Phần cứng";
-"gestalt.boot_chime" = "Âm thanh khởi động";
-"gestalt.charge_limit" = "Giới hạn sạc";
 "gestalt.tap_to_wake" = "Chạm để bật";
 "gestalt.camera_button" = "Nút Camera";
 "gestalt.action_button" = "Nút Tác vụ";
@@ -321,7 +318,6 @@
 "gestalt.display" = "Màn hình";
 "gestalt.stage_manager" = "Stage Manager";
 "gestalt.always_on_display" = "Màn hình luôn bật";
-"gestalt.aod_vibrancy" = "Độ rực AOD";
 "gestalt.system" = "Hệ thống";
 "gestalt.install_ipad_apps" = "Cài ứng dụng iPad";
 "gestalt.disable_region_lock" = "Tắt khóa khu vực";
@@ -342,9 +338,6 @@
 "gestalt.recovery_warning" = "Thay đổi tính năng sai có thể khiến thiết bị không khởi động được. Hãy giữ một bản sao lưu đã xác minh.";
 "gestalt.no_access" = "Không có quyền";
 "gestalt.grant_first" = "Hãy cấp quyền sandbox trước.";
-"gestalt.applied_title" = "Hoàn tất!";
-"gestalt.applied_message" = "Đã áp dụng %lld byte.";
-"gestalt.restored_message" = "Đã khôi phục bản gốc. Nhấn KHỞI ĐỘNG LẠI.";
 
 "logs.title" = "Nhật ký phiên";
 "logs.clear" = "Xóa";
@@ -780,7 +773,6 @@
 "home.card.gestalt_detail" = "Nhận dạng thiết bị và tính năng an toàn";
 "home.card.keypad" = "Chủ đề bàn phím";
 "home.card.keypad_detail" = "Thay hình các phím quay số";
-"gestalt.title" = "MobileGestalt";
 "gestalt.safety" = "Thay đổi sẽ ghi vào bộ nhớ đệm MobileGestalt của hệ thống. Bản sao lưu được tạo tự động; hãy giữ cách khôi phục và khởi động lại SpringBoard sau khi áp dụng.";
 "gestalt.loading" = "Đang đọc MobileGestalt…";
 "gestalt.section.device" = "Thiết bị";
@@ -881,3 +873,32 @@
 "plist.error_title" = "Thao tác Plist thất bại";
 "plist.value" = "Giá trị";
 "plist.type" = "Loại";
+"common.yes" = "Có";
+"browser.file_info" = "Thông tin tệp";
+"fileinfo.title" = "Thông tin tệp";
+"fileinfo.loading" = "Đang đọc thông tin tệp…";
+"fileinfo.section.general" = "Chung";
+"fileinfo.name" = "Tên";
+"fileinfo.path" = "Đường dẫn";
+"fileinfo.type" = "Loại";
+"fileinfo.size" = "Kích thước";
+"fileinfo.modified" = "Sửa đổi";
+"fileinfo.created" = "Tạo lúc";
+"fileinfo.permissions" = "Quyền";
+"fileinfo.owner" = "Chủ sở hữu";
+"fileinfo.group" = "Nhóm";
+"fileinfo.symlink" = "Liên kết tượng trưng";
+"fileinfo.type.folder" = "Thư mục";
+"fileinfo.type.file" = "Tệp";
+"cleaner.crash.section" = "Nhật ký sự cố";
+"cleaner.crash.title" = "Nhật ký sự cố và chẩn đoán";
+"cleaner.crash.summary" = "%lld tệp · %@";
+"cleaner.crash.loading" = "Đang đo nhật ký sự cố…";
+"cleaner.crash.clean" = "Dọn nhật ký sự cố";
+"cleaner.crash.footer" = "Chỉ xóa tệp .ips/.crash/.panic/.log trong CrashReporter; không chạm dữ liệu khác.";
+"cleaner.crash.confirm_title" = "Dọn nhật ký sự cố?";
+"cleaner.crash.confirm_message" = "Nhật ký sự cố và chẩn đoán sẽ bị xóa vĩnh viễn.";
+"cleaner.crash.result_title" = "Đã dọn nhật ký sự cố";
+"cleaner.crash.result" = "Đã xóa %lld, thất bại %lld, giải phóng %@.";
+
+"gestalt.title" = "MobileGestalt";

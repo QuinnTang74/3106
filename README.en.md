@@ -18,9 +18,9 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.1.12** (stable) |
-| Current release | **v3.1.12** (build 16, wallpaper import/scan, update prompt and tab-switch performance) |
-| Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
+| Version | **3.1.13** (test build, not device-verified) |
+| Current release | **v3.1.13** (build 17, feature hub, fast catalog, backup center, device customization and file tools) |
+| Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.2.1 · 27.3 beta 1 (experimental) |
 | Access backend | kernel / `bad_query` / `worse_query` |
 | UI languages | Simplified Chinese · English · Vietnamese |
 | Signing | iOS 26.7+ / 27.x requires an App Group entitlement |
@@ -33,15 +33,23 @@
 | --- | --- |
 | App data browser | App containers, App Groups, extension data, internal daemons; iOS 27 can list System Data and some System Groups |
 | Patch manager | Exports `.3106`, imports legacy `.3105`; multi-target, user inputs, optional password, rollback |
-| Cleaner | Per-app `Library/Caches` and `tmp` cleanup, including safe deletion through symlinked Caches inside the container |
-| Wallpapers and themes | `.tendies` PosterBoard wallpapers and `.3105pass` dialer themes |
-| Configurable tab bar | Toggle tab items in Settings, up to five slots, Home fixed; Developer Mode on by default |
+| Cleaner | Per-app `Library/Caches` and `tmp` cleanup, plus crash/diagnostic log cleanup |
+| Backup center | Immutable originals, per-write versions, manual backups, restore and unfinished-transaction recovery |
+| Fast catalog | App Data and Cleaner read lsd's database directly with a persisted compact cache; filesystem scan only as fallback |
+| Scan control | Progress, ETA, hide/stop and background time; `pathleak` fallback enumeration |
+| Maintenance | App Group launch alert, acknowledgements/license page, WebKit respring |
+| Device customization | Safe MobileGestalt subset with original/version backups; keypad theme with backup/restore |
+| File tools | Read-only SQLite viewer, hex viewer/overwrite, structured plist editor, file info and swipe-to-delete |
+| Wallpapers and themes | `.tendies` PosterBoard wallpapers; keypad themes live under Device Customization |
+| Feature hub | Local home page with patches, market, app data, cleaner, wallpapers, backups and logs |
+| Fixed tab bar | Features / Files / Search / Cleaner / Wallpapers |
 | Localization | Simplified Chinese, English, Vietnamese |
 
 ## Recent changes
 
 | Version | Highlights |
 | --- | --- |
+| **3.1.13** | Test build: feature hub + fixed five tabs; LaunchServices fast catalog; backup center and verified writes; scan progress/stop; App Group alert, acknowledgements, respring; safe MobileGestalt subset, keypad theme; SQLite/hex/plist tools; per-target patch grants |
 | **3.1.12** | Stable: wallpaper import/scan, update prompt, and Cleaner-to-Files stutter fixes; includes all 3.1.8–3.1.11 fixes |
 | **3.1.11** | Test build: collect descriptors from the same successful tree enumeration; add import stage logs and a launch version banner |
 | **3.1.10** | Test build: fix `isContained` `/var` vs `/private/var` after `.tendies` extraction; find device descriptors with an enumerator first |
@@ -89,7 +97,7 @@ With a certificate and provisioning profile, the profile must be an explicit App
 | --- | --- |
 | Unsigned build | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | Policy tests | `bash Tests/run_policy_tests.sh` |
-| Output | `dist/`, this release is `3106-3.1.12-unsigned.ipa` |
+| Output | `dist/`, this release is `3106-3.1.13-unsigned.ipa` |
 
 ## Download
 
@@ -99,7 +107,7 @@ Stable releases are published on GitHub Releases:
 
 The release asset is an unsigned IPA; sign it with one of the methods above before installing.
 
-Current asset: `3106-3.1.12-unsigned.ipa` (SHA256 `788fafd2814aaa626d474f07e1dc3369ff3e2320eaf95a3368d274f03f9a56cf`).
+Current asset: `3106-3.1.13-unsigned.ipa` (SHA256 `82fe31d532f4aeb442303a3e33e7eefb088e3e0ff60213ffe9cf7266c42cbd50`).
 
 ## License and commercial use
 

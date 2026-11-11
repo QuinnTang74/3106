@@ -287,7 +287,6 @@
 "settings.app_group" = "App Group";
 "settings.app_group_missing" = "缺失 —— worse_query 需要带 App Group 的签名";
 
-"gestalt.title" = "Gestalt 编辑器";
 "gestalt.apply_changes" = "应用更改";
 "gestalt.applying" = "正在应用…";
 "gestalt.apply_hint" = "将所选功能写入 MobileGestalt 文件";
@@ -312,8 +311,6 @@
 "gestalt.name" = "名称";
 "gestalt.device_artwork_footer" = "自定义名称会更改显示的设备型号名称。要撤销 RDAR，请关闭其开关并轻点“应用更改”。";
 "gestalt.hardware" = "硬件";
-"gestalt.boot_chime" = "开机提示音";
-"gestalt.charge_limit" = "充电上限";
 "gestalt.tap_to_wake" = "轻点唤醒";
 "gestalt.camera_button" = "相机按钮";
 "gestalt.action_button" = "操作按钮";
@@ -321,7 +318,6 @@
 "gestalt.display" = "显示";
 "gestalt.stage_manager" = "台前调度";
 "gestalt.always_on_display" = "全天候显示";
-"gestalt.aod_vibrancy" = "AOD 鲜艳度";
 "gestalt.system" = "系统";
 "gestalt.install_ipad_apps" = "安装 iPad 应用";
 "gestalt.disable_region_lock" = "停用地区限制";
@@ -342,9 +338,6 @@
 "gestalt.recovery_warning" = "错误的功能更改可能导致设备无法启动。请保留已验证的备份。";
 "gestalt.no_access" = "没有权限";
 "gestalt.grant_first" = "请先授予沙盒权限。";
-"gestalt.applied_title" = "完成！";
-"gestalt.applied_message" = "已应用 %lld 字节。";
-"gestalt.restored_message" = "已恢复原始文件。请轻点“重新启动”。";
 
 "logs.title" = "会话日志";
 "logs.clear" = "清除";
@@ -780,7 +773,6 @@
 "home.card.gestalt_detail" = "安全的设备身份与功能开关";
 "home.card.keypad" = "拨号键主题";
 "home.card.keypad_detail" = "替换电话拨号键图片";
-"gestalt.title" = "MobileGestalt";
 "gestalt.safety" = "修改会写入系统 MobileGestalt 缓存。应用前会自动备份；请保留恢复手段，并在应用后注销。";
 "gestalt.loading" = "正在读取 MobileGestalt…";
 "gestalt.section.device" = "设备";
@@ -881,3 +873,32 @@
 "plist.error_title" = "Plist 操作失败";
 "plist.value" = "值";
 "plist.type" = "类型";
+"common.yes" = "是";
+"browser.file_info" = "文件信息";
+"fileinfo.title" = "文件信息";
+"fileinfo.loading" = "正在读取文件信息…";
+"fileinfo.section.general" = "常规";
+"fileinfo.name" = "名称";
+"fileinfo.path" = "路径";
+"fileinfo.type" = "类型";
+"fileinfo.size" = "大小";
+"fileinfo.modified" = "修改时间";
+"fileinfo.created" = "创建时间";
+"fileinfo.permissions" = "权限";
+"fileinfo.owner" = "所有者";
+"fileinfo.group" = "用户组";
+"fileinfo.symlink" = "符号链接";
+"fileinfo.type.folder" = "文件夹";
+"fileinfo.type.file" = "文件";
+"cleaner.crash.section" = "崩溃日志";
+"cleaner.crash.title" = "崩溃与诊断日志";
+"cleaner.crash.summary" = "%lld 个文件 · %@";
+"cleaner.crash.loading" = "正在统计崩溃日志…";
+"cleaner.crash.clean" = "清理崩溃日志";
+"cleaner.crash.footer" = "只删除 CrashReporter 下的 .ips/.crash/.panic/.log 文件，不触碰其他数据。";
+"cleaner.crash.confirm_title" = "清理崩溃日志？";
+"cleaner.crash.confirm_message" = "崩溃与诊断日志文件将被永久删除。";
+"cleaner.crash.result_title" = "崩溃日志清理完成";
+"cleaner.crash.result" = "已删除 %lld 个，失败 %lld 个，释放 %@。";
+
+"gestalt.title" = "MobileGestalt";

@@ -18,9 +18,9 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 当前版本 | **3.1.12**（正式版） |
-| 当前发布 | **v3.1.12**（build 16，壁纸导入/扫描、更新提示与切页性能修复） |
-| 支持系统 | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.3 beta 1 |
+| 当前版本 | **3.1.13**（测试构建，未真机验证） |
+| 当前发布 | **v3.1.13**（build 17，功能主页、快速目录、备份中心、设备定制与文件工具） |
+| 支持系统 | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.2.1 · 27.3 beta 1（实验性） |
 | 访问后端 | kernel / `bad_query` / `worse_query` |
 | 界面语言 | 简体中文 · English · Tiếng Việt |
 | 签名要求 | iOS 26.7+ / 27.x 需要 App Group entitlement |
@@ -40,8 +40,9 @@
 | 扫描控制 | 长扫描显示进度/剩余时间，可隐藏或停止并转入后台；回退枚举使用 `pathleak` |
 | 维护 | App Group 启动提示、致谢与许可页、WebKit Respring |
 | 设备定制 | MobileGestalt 安全子集（含原始/版本备份与恢复）、拨号键主题（含备份/恢复） |
-| 文件工具 | SQLite 只读查看器、Hex 查看/覆写、结构化 Plist 编辑，写入前自动备份 |
-| 壁纸与主题 | 安装 `.tendies` PosterBoard 壁纸与 `.3105pass` 拨号主题 |
+| 文件工具 | SQLite 只读查看器、Hex 查看/覆写、结构化 Plist 编辑，写入前自动备份；文件信息与左滑删除 |
+| 清理增强 | 应用缓存/临时文件之外，新增崩溃与诊断日志统计、清理 |
+| 壁纸与主题 | 安装 `.tendies` PosterBoard 壁纸；拨号键主题在“设备定制”中管理 |
 | 功能主页 | 本地“功能”聚合页：补丁、仓库、应用数据、清理、壁纸、备份与日志入口 |
 | 固定底栏 | 功能 / 文件 / 搜索 / 清理 / 壁纸 五项固定；仓库与补丁入口收进功能页 |
 | 三语言界面 | 简体中文、English、Tiếng Việt |
@@ -50,6 +51,7 @@
 
 | 版本 | 主要内容 |
 | --- | --- |
+| **3.1.13** | 测试构建：功能主页 + 固定 5 项底栏；LaunchServices 快速目录；备份中心与安全写入；扫描进度/停止；App Group 提示、致谢、Respring；MobileGestalt 安全子集、拨号键主题；SQLite/Hex/Plist 文件工具；补丁逐目标授权 |
 | **3.1.12** | 正式版：修复壁纸导入/扫描、已安装最新版仍提示更新、清理切文件页卡顿；包含 3.1.8–3.1.11 的全部修复 |
 | **3.1.11** | 测试构建：直接用已成功的 tree 枚举收集 descriptors，避免早期枚举被沙箱挡住；导入增加 extracting/extracted/inspected 阶段日志；启动日志显示版本号 |
 | **3.1.10** | 测试构建：修复 `.tendies` 解包后 `isContained` 的 `/var` 与 `/private/var` 误判；设备端 descriptor 改用枚举器优先，解决“树里有目录、扫描说没有” |
@@ -97,7 +99,7 @@
 | --- | --- |
 | 无签名构建 | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | 策略测试 | `bash Tests/run_policy_tests.sh` |
-| 产物目录 | `dist/`，本次文件名 `3106-3.1.12-unsigned.ipa` |
+| 产物目录 | `dist/`，本次文件名 `3106-3.1.13-unsigned.ipa` |
 
 ## 下载
 
@@ -107,7 +109,7 @@
 
 发布资产为未签名 IPA，需要按上面的签名方式自行签名后安装。
 
-当前版本：`3106-3.1.12-unsigned.ipa`（SHA256 `788fafd2814aaa626d474f07e1dc3369ff3e2320eaf95a3368d274f03f9a56cf`）。
+当前版本：`3106-3.1.13-unsigned.ipa`（SHA256 `82fe31d532f4aeb442303a3e33e7eefb088e3e0ff60213ffe9cf7266c42cbd50`）。
 
 ## 开源协议与商用说明
 

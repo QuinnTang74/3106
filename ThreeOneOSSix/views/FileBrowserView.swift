@@ -7,12 +7,14 @@ private enum FileViewerRequest: Identifiable {
     case sqlite(String)
     case hex(String, Bool)
     case plist(String)
+    case info(String)
 
     var id: String {
         switch self {
         case .sqlite(let path): return "sqlite:\(path)"
         case .hex(let path, _): return "hex:\(path)"
         case .plist(let path): return "plist:\(path)"
+        case .info(let path): return "info:\(path)"
         }
     }
 }
@@ -293,6 +295,8 @@ struct FileBrowserView: View {
                     HexViewerView(path: path, readOnly: readOnly)
                 case .plist(let path):
                     PlistEditorView(path: path)
+                case .info(let path):
+                    FileInfoView(path: path)
                 }
             }
             .environment(\.appLanguage, language)
@@ -452,6 +456,15 @@ struct FileBrowserView: View {
                 FileEntryRow(entry: entry, language: language, selectionState: nil)
             }
             .contextMenu { fileActions(for: entry) }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                if !readOnly {
+                    Button(role: .destructive) {
+                        deleteSingle(entry)
+                    } label: {
+                        Label(language.text("browser.delete"), systemImage: "trash")
+                    }
+                }
+            }
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 12))
         } else {
             NavigationLink {
@@ -460,6 +473,15 @@ struct FileBrowserView: View {
                 FileEntryRow(entry: entry, language: language, selectionState: nil)
             }
             .contextMenu { fileActions(for: entry) }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                if !readOnly {
+                    Button(role: .destructive) {
+                        deleteSingle(entry)
+                    } label: {
+                        Label(language.text("browser.delete"), systemImage: "trash")
+                    }
+                }
+            }
             .accessibilityHint(language.text("browser.file_actions_hint"))
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 12))
         }
@@ -514,6 +536,11 @@ struct FileBrowserView: View {
                 viewerRequest = .hex(entry.path, readOnly)
             } label: {
                 Label(language.text("browser.hex_view"), systemImage: "number.square")
+            }
+            Button {
+                viewerRequest = .info(entry.path)
+            } label: {
+                Label(language.text("browser.file_info"), systemImage: "info.circle")
             }
             Button {
                 createManualBackup(for: entry)
@@ -866,6 +893,11 @@ struct FileBrowserView: View {
         isSelecting = false
         selectedEntryIDs.removeAll()
         deleteTargets = items
+    }
+
+    private func deleteSingle(_ entry: FileEntry) {
+        selectedEntryIDs = [entry.id]
+        prepareBulkDelete()
     }
 
     private func beginPaste(_ payload: FileOperationPayload) {

@@ -14,6 +14,8 @@ struct CleanerView: View {
     @State private var hasLoaded = false
     @State private var scanID = UUID()
     @State private var activeAlert: CleanerAlert?
+    @State private var crashSummary: CrashLogSummary?
+    @State private var isCrashBusy = false
     let onOpenSettings: () -> Void
 
     init(onOpenSettings: @escaping () -> Void = {}) {
@@ -89,6 +91,7 @@ struct CleanerView: View {
                 guard !hasLoaded else { return }
                 hasLoaded = true
                 reload()
+                loadCrashLogs()
             }
         }
     }
@@ -97,6 +100,7 @@ struct CleanerView: View {
     private var cleanerList: some View {
         if records.isEmpty {
             List {
+                crashLogSection
                 if isScanning {
                     loadingSection
                 } else {
@@ -106,11 +110,45 @@ struct CleanerView: View {
         } else {
             List {
                 summarySection
+                crashLogSection
                 applicationsSection
                 if isScanning {
                     loadingSection
                 }
             }
+        }
+    }
+
+    private var crashLogSection: some View {
+        Section {
+            if let crashSummary {
+                LabeledContent(language.text("cleaner.crash.title")) {
+                    Text(language.text(
+                        "cleaner.crash.summary",
+                        Int64(crashSummary.fileCount),
+                        sizeText(crashSummary.bytes)
+                    ))
+                    .monospacedDigit()
+                }
+                Button(role: .destructive) {
+                    activeAlert = .crashConfirmation
+                } label: {
+                    Label(language.text("cleaner.crash.clean"), systemImage: "trash")
+                }
+                .disabled(crashSummary.fileCount == 0 || isCrashBusy)
+            } else {
+                HStack {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text(language.text("cleaner.crash.loading"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Label(language.text("cleaner.crash.section"), systemImage: "exclamationmark.triangle")
+        } footer: {
+            Text(language.text("cleaner.crash.footer"))
         }
     }
 
@@ -415,6 +453,48 @@ struct CleanerView: View {
                 message: Text(message),
                 dismissButton: .default(Text(language.text("common.done")))
             )
+        case .crashConfirmation:
+            return Alert(
+                title: Text(language.text("cleaner.crash.confirm_title")),
+                message: Text(language.text("cleaner.crash.confirm_message")),
+                primaryButton: .destructive(Text(language.text("cleaner.crash.clean"))) {
+                    cleanCrashLogs()
+                },
+                secondaryButton: .cancel(Text(language.text("common.cancel")))
+            )
+        case .crashResult(let message):
+            return Alert(
+                title: Text(language.text("cleaner.crash.result_title")),
+                message: Text(message),
+                dismissButton: .default(Text(language.text("common.done")))
+            )
+        }
+    }
+
+    private func loadCrashLogs() {
+        DispatchQueue.global(qos: .utility).async {
+            let summary = CrashLogCleaner.scan()
+            DispatchQueue.main.async {
+                crashSummary = summary
+            }
+        }
+    }
+
+    private func cleanCrashLogs() {
+        isCrashBusy = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = CrashLogCleaner.clean()
+            let summary = CrashLogCleaner.scan()
+            DispatchQueue.main.async {
+                isCrashBusy = false
+                crashSummary = summary
+                activeAlert = .crashResult(message: language.text(
+                    "cleaner.crash.result",
+                    Int64(result.removed),
+                    Int64(result.failed),
+                    sizeText(result.freedBytes)
+                ))
+            }
         }
     }
 
@@ -771,11 +851,15 @@ private struct CleanerAppRecord: Identifiable {
 private enum CleanerAlert: Identifiable {
     case confirmation
     case result(message: String)
+    case crashConfirmation
+    case crashResult(message: String)
 
     var id: String {
         switch self {
         case .confirmation: return "confirmation"
+        case .crashConfirmation: return "crashConfirmation"
         case .result(let message): return "result-\(message)"
+        case .crashResult(let message): return "crashResult-\(message)"
         }
     }
 }

@@ -2,7 +2,7 @@
 
 All notable user-facing changes are documented in this file.
 
-## [Unreleased]
+## [3.1.13] - 2026-11-11
 
 ### Added
 
@@ -27,6 +27,8 @@ All notable user-facing changes are documented in this file.
 - 新增拨号键主题：12 键图片替换、逐文件备份、恢复原始键图。
 - 文件浏览器新增 SQLite 只读查看器、Hex 查看/覆写、结构化 Plist 编辑；写入统一走 `VerifiedFileWriter`。
 - 利用层加固：补丁写入逐目标目录授权；worse_query 按设备学习并记住可用的 query flags。
+- 文件浏览器新增文件信息页与左滑删除；清理器新增崩溃/诊断日志统计与清理。
+- 支持矩阵补充 iOS 27.2.1 明示并加入策略测试（76 项）。
 
 ## [3.1.12] - 2026-11-10
 
