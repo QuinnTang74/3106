@@ -18,7 +18,7 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.1.13** (test build, not device-verified) |
+| Version | **3.1.13** (stable) |
 | Current release | **v3.1.13** (build 17, feature hub, fast catalog, backup center, device customization and file tools) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.7.2 · 27.0–27.2.1 · 27.3 beta 1 (experimental) |
 | Access backend | kernel / `bad_query` / `worse_query` |
@@ -49,7 +49,7 @@
 
 | Version | Highlights |
 | --- | --- |
-| **3.1.13** | Test build: feature hub + fixed five tabs; LaunchServices fast catalog; backup center and verified writes; scan progress/stop; App Group alert, acknowledgements, respring; safe MobileGestalt subset, keypad theme; SQLite/hex/plist tools; per-target patch grants |
+| **3.1.13** | Stable: feature hub + fixed five tabs; LaunchServices fast catalog; backup center and verified writes; scan progress/stop; App Group alert, acknowledgements, respring; safe MobileGestalt subset, keypad theme; SQLite/hex/plist tools; per-target patch grants |
 | **3.1.12** | Stable: wallpaper import/scan, update prompt, and Cleaner-to-Files stutter fixes; includes all 3.1.8–3.1.11 fixes |
 | **3.1.11** | Test build: collect descriptors from the same successful tree enumeration; add import stage logs and a launch version banner |
 | **3.1.10** | Test build: fix `isContained` `/var` vs `/private/var` after `.tendies` extraction; find device descriptors with an enumerator first |
@@ -67,6 +67,73 @@
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
+## 3.1.13 in detail
+
+### Home and navigation
+
+- The home page is now a local feature hub; it never loads the remote repository feed on launch.
+- The bottom bar is fixed to **Features / Files / Search / Cleaner / Wallpapers**.
+- Market, sources, patch projects, backup center, acknowledgements and respring live inside the hub.
+
+### Loading and scanning
+
+- App Data and the Cleaner build their lists directly from lsd's LaunchServices database instead of a 6–13 second inode scan.
+- The store path and a compact catalog are persisted; later launches read the cache and rebuild only when the store changes.
+- First-run catalog discovery runs in parallel with API/MCM enrichment; MHA candidates are skipped when the catalog is complete.
+- Long scans show progress, ETA, hide and stop, and request background time.
+- The filesystem fallback uses `pathleak` (fsgetpath), reports progress every 4096 inodes and responds to cancellation.
+
+### Backup and safe writes
+
+- Backup Center keeps immutable originals, per-write versions and manual restore points.
+- A journal is written before mutation; unfinished transactions are offered for recovery on launch; a failed backup aborts the write.
+- `VerifiedFileWriter` writes in place, keeps the inode/xattrs, verifies SHA-256 on read-back and rolls back on failure.
+- Patches, file delete/replace, plist/hex saves, MobileGestalt and keypad themes all use it.
+- Backup data is excluded from system backup and the cleaner; originals cannot be deleted; versions default to 20 per target / 30 days.
+- The cleaner can also measure and remove crash/diagnostic logs under CrashReporter.
+
+### Device customization
+
+- Safe MobileGestalt subset: device name, Device Subtype, Dynamic Island, AOD/AOD Vibrancy, 80% charge limit and boot chime.
+- Read-only load, original/version backups, read-back verification, automatic rollback and one-tap restore.
+- Keypad theme: 12 key images, per-file backup and restore-original.
+- Both features only touch files explicitly selected by the user.
+
+### File tools
+
+- Read-only SQLite viewer: tables/views, row counts, rows, read-only SQL and CSV, on a private copy including `-wal`.
+- Hex viewer/overwrite: paging, offset jump, hex/text search, same-length overwrite; edits limited to 64 MB.
+- Structured plist editor: root dictionary, container navigation, typed leaf editing and add/delete.
+- File info, swipe-to-delete and Open As (Plist/SQLite/Hex).
+- Every save goes through `VerifiedFileWriter` and is backed up first.
+
+### Maintenance and compliance
+
+- App Group launch alert: an explicit App ID with App Groups is required; wildcard profiles do not work.
+- Acknowledgements/license page for WQ Files, Erosion, worse_query and 3105.
+- WebKit respring, with an automatic fallback dismissal if the method is unavailable.
+- All new strings are localized in Simplified Chinese, English and Vietnamese.
+
+### Exploit hardening and compatibility
+
+- Each patch target's own folder is granted before writing, not just the container root.
+- worse_query remembers the working query flags per device and retries the other set when a token does not open the target.
+- iOS 27.2.1 is explicitly covered; 27.3 beta 1 remains experimental.
+- Policy/unit tests: 76 checks covering the version matrix, catalog cache, backup/restore and journals.
+
+### Upgrade and asset
+
+- Install over the previous version; favorites, patches, wallpapers and backups are preserved.
+- The first log line should read `3106 3.1.13 (17) launching`.
+- Asset: `dist/3106-3.1.13-unsigned.ipa` (SHA256 `00ea0503fc27c0a98d7d6c6e045c275143acc8b739ccb15c4932b4a52aaecd15`).
+
+### Known limitations
+
+- A–Z index, app sorting by size, whole-app backup, Supervision/Config tweaks are not implemented.
+- `pathleak` start-inode persistence and the pre-scan “file count + estimate” confirmation are not implemented.
+- Plist nested-container additions currently create empty string leaves only; hex editing is limited to 64 MB.
+- MobileGestalt, keypad themes, SQLite runtime loading and respring should be validated on a test device first.
+
 ## Compatibility
 
 | System | Verified range | Backend |
@@ -75,7 +142,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 | iOS 18 | 18.0–18.7.1 | kernel chain |
 | iOS 26 | 26.0–26.6.1 | `bad_query` |
 | iOS 26 | 26.7–26.7.2 | `worse_query` |
-| iOS 27 | 27.0–27.2 | `worse_query` |
+| iOS 27 | 27.0–27.2.1 | `worse_query` |
 | iOS 27 | 27.3 beta 1 (`24C5037i`) | `worse_query` (experimental) |
 
 > iOS 17/18 still uses the manual kernel chain; iOS 26/27 does not use a kernel exploit. System Data is listing-only on iOS 27.
