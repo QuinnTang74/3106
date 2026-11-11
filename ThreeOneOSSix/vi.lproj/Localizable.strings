@@ -1123,3 +1123,5 @@
 "settings.experimental" = "Tính năng thử nghiệm";
 "settings.experimental_header" = "Tính năng thử nghiệm";
 "settings.experimental_footer" = "Hiện các luồng thử nghiệm rủi ro cao (ví dụ chế độ Siri AI thử nghiệm). Các luồng này chưa được xác minh đầy đủ trên máy thật; trường hợp xấu nhất có thể cần khôi phục máy.";
+"gestalt.presets.factory_protected" = "Năng lực này tắt sẵn tại nhà máy (Erosion-CN v0.8.5, đã xác minh trên máy): bật ép sẽ làm gãy kiểm tra pipeline mô hình tạo sinh và tính năng Clean Up chất lượng cao của Ảnh báo lỗi. Đã khóa.";
+"gestalt.region.error.factory_baseline" = "Cờ khả năng AI tắt sẵn tại nhà máy; việc ghi bị từ chối theo quy tắc baseline nhà máy (Clean Up chất lượng cao của Ảnh sẽ lỗi).";

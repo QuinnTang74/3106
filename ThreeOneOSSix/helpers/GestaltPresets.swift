@@ -54,6 +54,11 @@ struct GestaltPreset: Identifiable {
     /// Identity presets (device/region spoofing) need the full-screen risk
     /// confirmation before any write.
     var requiresRiskConfirmation: Bool = false
+    /// Erosion-CN v0.8.5 baseline rule: some slots ship FALSE at the factory
+    /// and enabling them breaks other system pipelines (Audio Intelligence
+    /// → photos high-quality Clean Up). These presets are OFF by default and
+    /// the engine refuses to enable them unless the value already exists.
+    var factoryBaselineProtected: Bool = false
 
     var riskKey: String {
         // Per-preset overrides live at "risk.gestalt.<id>.*"; category-level
@@ -106,7 +111,11 @@ enum GestaltPresets {
         // Intelligence
         .init(id: "ai", category: .intelligence, titleKey: "gestalt.preset.ai.title", detailKey: "gestalt.preset.ai.detail", keys: ["A62OafQ85EJAiiqKn4agtg"], riskLevel: .medium),
         .init(id: "siriOnDevice", category: .intelligence, titleKey: "gestalt.preset.siriOnDevice.title", detailKey: "gestalt.preset.siriOnDevice.detail", keys: ["K/R1GfGfCkXvEhaPS2Vrng"], riskLevel: .medium),
-        .init(id: "audioIntelligence", category: .intelligence, titleKey: "gestalt.preset.audioIntelligence.title", detailKey: "gestalt.preset.audioIntelligence.detail", keys: ["rb2tKZxlj0Gm2tBmUQSLqQ"], riskLevel: .medium),
+        // Erosion-CN v0.8.5 finding (iPhone 18 Pro Max verified): Audio
+        // Intelligence ships FALSE on every iPhone/iPad; enabling this slot
+        // breaks the generative-model pipeline check and photos' high-quality
+        // Clean Up errors out. Default-off with a factory-baseline guard.
+        .init(id: "audioIntelligence", category: .intelligence, titleKey: "gestalt.preset.audioIntelligence.title", detailKey: "gestalt.preset.audioIntelligence.detail", keys: ["rb2tKZxlj0Gm2tBmUQSLqQ"], riskLevel: .high, requiresRiskConfirmation: true, factoryBaselineProtected: true),
         .init(id: "personalTranslator", category: .intelligence, titleKey: "gestalt.preset.personalTranslator.title", detailKey: "gestalt.preset.personalTranslator.detail", keys: ["M1n2sAqf33NAOgZRGxQYBA"], riskLevel: .medium),
         .init(id: "photosCleanUp", category: .intelligence, titleKey: "gestalt.preset.photosCleanUp.title", detailKey: "gestalt.preset.photosCleanUp.detail", keys: ["XNCjqOupLM/S8fNyxRNQTA"], riskLevel: .medium),
         .init(id: "handwritingSynthesis", category: .intelligence, titleKey: "gestalt.preset.handwritingSynthesis.title", detailKey: "gestalt.preset.handwritingSynthesis.detail", keys: ["YgYIIViDt1kgzyIsIV61vA"], riskLevel: .medium),
@@ -137,6 +146,7 @@ enum GestaltPresetError: Error, Equatable {
     case missingCacheExtra
     case keyNotInOriginalCache(key: String)
     case unsupportedValueType(key: String)
+    case factoryBaselineProtected(key: String)
 }
 
 extension GestaltPresetError: LocalizedError {
@@ -147,6 +157,7 @@ extension GestaltPresetError: LocalizedError {
         case .invalidPlist: return "gestalt.error.invalid"
         case .missingCacheExtra: return "gestalt.error.cache_extra"
         case .keyNotInOriginalCache: return "gestalt.presets.not_applicable"
+        case .factoryBaselineProtected: return "gestalt.presets.factory_protected"
         case .unsupportedValueType: return "gestalt.error.value"
         }
     }
@@ -223,6 +234,15 @@ enum GestaltPresetEngine {
                     throw GestaltPresetError.keyNotInOriginalCache(key: key)
                 }
                 if enabled {
+                    // Erosion-CN v0.8.5: slots that ship FALSE at the factory
+                    // must not be force-enabled — the generative-model
+                    // pipeline validation treats them as non-native and
+                    // breaks sibling features (photos Clean Up).
+                    if preset.factoryBaselineProtected,
+                       let original = cacheExtra[key] as? NSNumber,
+                       original.boolValue == false {
+                        throw GestaltPresetError.factoryBaselineProtected(key: key)
+                    }
                     if let custom = preset.values, let desired = custom[key] {
                         cacheExtra[key] = desired
                     } else {

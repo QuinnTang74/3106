@@ -29,6 +29,7 @@ enum GestaltRegionError: Error, Equatable {
     case experimentalRequiresIOS27
     case experimentalNotEligible
     case unknownPreset
+    case factoryBaselineConflict
 }
 
 struct GestaltSiriModel: Identifiable, Equatable {
@@ -227,6 +228,13 @@ enum GestaltRegionService {
             ] where extra[identityKey] == nil {
                 throw GestaltRegionError.missingRegionFields
             }
+            // Erosion-CN v0.8.5: Audio Intelligence ships FALSE everywhere;
+            // setting a factory-false AI slot to true breaks the photos
+            // high-quality Clean Up pipeline even in experimental mode.
+            if let aiFlag = extra[GestaltKeys.aiCapability] as? NSNumber,
+               aiFlag.boolValue == false {
+                throw GestaltRegionError.factoryBaselineConflict
+            }
 
             extra[GestaltKeys.regionCode] = "LL"
             extra[GestaltKeys.legacyRegionInfo] = "LL/A"
@@ -271,6 +279,7 @@ extension GestaltRegionError: LocalizedError {
         case .unknownMachine: return "gestalt.region.error.unknown_machine"
         case .experimentalRequiresIOS27: return "gestalt.region.error.needs_ios27"
         case .experimentalNotEligible: return "gestalt.region.error.not_eligible"
+        case .factoryBaselineConflict: return "gestalt.region.error.factory_baseline"
         case .unknownPreset: return "gestalt.error.value"
         }
     }

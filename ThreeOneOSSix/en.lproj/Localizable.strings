@@ -1123,3 +1123,5 @@
 "settings.experimental" = "Experimental features";
 "settings.experimental_header" = "Experimental features";
 "settings.experimental_footer" = "Shows high-risk experimental flows (e.g. Siri AI experimental mode). These flows are not fully verified on hardware; the worst case may require a device restore.";
+"gestalt.presets.factory_protected" = "This capability ships OFF at the factory (Erosion-CN v0.8.5, device-verified): force-enabling it breaks the generative-model pipeline check and photos' high-quality Clean Up errors out. Locked.";
+"gestalt.region.error.factory_baseline" = "The AI capability flag ships OFF at the factory; the write is refused under the factory-baseline rule (photos high-quality Clean Up would break).";
