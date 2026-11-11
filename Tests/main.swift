@@ -453,6 +453,141 @@ do {
     expect(false, "backup center test failed: \(error)")
 }
 
+// Cleaner safety policy: protected-path blacklist with component prefixes.
+do {
+    // Core blacklist entries are always protected.
+    for protected in [
+        "/var/db", "/private/var/db", "/var/db/uuidtext",
+        "/var/mobile/Library/Caches", "/var/mobile/Library/Safari",
+        "/private/var/containers/Data/System",
+        "/private/var/containers/Shared/SystemGroup",
+        "/private/var/mobile/Containers/Data/InternalDaemon",
+    ] {
+        expect(CleanerSafetyPolicy.isProtectedSystemPath(protected), "protected: \(protected)")
+    }
+
+    // Component-prefix matching must not over-match sibling names.
+    expectFalse(CleanerSafetyPolicy.isProtectedSystemPath("/var/database"),
+                "sibling /var/database is not /var/db")
+    expectFalse(CleanerSafetyPolicy.isProtectedSystemPath("/var/db2/x"),
+                "sibling /var/db2/x is not /var/db")
+
+    // Anything inside a protected tree is protected too.
+    expect(CleanerSafetyPolicy.isProtectedSystemPath("/var/db/uuidtext/deep/file"),
+           "descendant of /var/db/uuidtext is protected")
+
+    // App containers are fair game for the cleaner.
+    expectFalse(CleanerSafetyPolicy.isProtectedSystemPath(
+        "/var/mobile/Containers/Data/Application/ABC123/Library/Caches"),
+        "app container caches are cleanable")
+
+    // Relative paths, "/" and traversal components are rejected outright.
+    expect(CleanerSafetyPolicy.isProtectedSystemPath("relative/path"),
+           "relative path treated as protected (refused)")
+    expect(CleanerSafetyPolicy.isProtectedSystemPath("/"), "root refused")
+    expect(CleanerSafetyPolicy.isProtectedSystemPath("/var/mobile/Containers/../db"),
+           "traversal component refused")
+}
+
+// Cleaner safety policy: planned target construction.
+do {
+    let root = "/var/mobile/Containers/Data/Application/ABC123"
+    let ok = CleanerSafetyPolicy.PlannedTarget.build(
+        containerRoot: root, relativePath: "Library/Caches"
+    )
+    expect(ok != nil, "planned target builds for allowlist path")
+    expect(ok?.absolutePath == root + "/Library/Caches", "planned target path join")
+
+    expect(CleanerSafetyPolicy.PlannedTarget.build(
+        containerRoot: root, relativePath: "../../etc") == nil,
+        "traversal relative path refused")
+    expect(CleanerSafetyPolicy.PlannedTarget.build(
+        containerRoot: root, relativePath: "") == nil,
+        "empty relative path refused")
+}
+
+// Cleaner safety policy: identity snapshots (TOCTOU protection).
+do {
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent("3106-policy-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let file = dir.appendingPathComponent("probe.txt")
+    try Data("v1".utf8).write(to: file)
+
+    let snapshot = CleanerSafetyPolicy.FileIdentitySnapshot.capture(atPath: file.path)
+    expect(snapshot.existed, "snapshot captures existing file")
+    expect(snapshot.matchesCurrentPath(file.path), "unchanged file keeps identity")
+
+    // Rewriting via a delete+recreate cycle changes the inode.
+    try FileManager.default.removeItem(at: file)
+    try Data("v2".utf8).write(to: file)
+    expectFalse(snapshot.matchesCurrentPath(file.path),
+                "recreated file has a new identity")
+
+    // A snapshot of a missing path refuses an appearing file.
+    let ghost = CleanerSafetyPolicy.FileIdentitySnapshot.capture(
+        atPath: dir.appendingPathComponent("ghost.txt").path
+    )
+    expectFalse(ghost.existed, "missing file snapshot")
+    try Data("x".utf8).write(to: dir.appendingPathComponent("ghost.txt"))
+    expectFalse(ghost.matchesCurrentPath(dir.appendingPathComponent("ghost.txt").path),
+                "file that appeared after snapshot is treated as changed")
+
+    try? FileManager.default.removeItem(at: dir)
+} catch {
+    expect(false, "identity snapshot test failed: \(error)")
+}
+
+// Cleaner safety policy: three-stage confirmation gate ordering.
+do {
+    let gate = CleanerSafetyPolicy.ConfirmationGate()
+
+    // Authorizing without the earlier stages must fail.
+    expectFalse(gate.authorize(operationID: "op-1"), "authorize before begin fails")
+    expectFalse(gate.acknowledgeScope(operationID: "op-1"), "ack before begin fails")
+
+    expect(gate.begin(operationID: "op-1"), "begin accepts first operation")
+    expectFalse(gate.begin(operationID: "op-2"), "begin rejects concurrent operation")
+
+    // Cross-operation ids are refused at every stage.
+    expectFalse(gate.acknowledgeScope(operationID: "op-2"), "ack with wrong id fails")
+    expect(gate.acknowledgeScope(operationID: "op-1"), "ack with right id passes")
+    expectFalse(gate.authorize(operationID: "op-2"), "authorize with wrong id fails")
+    expect(gate.authorize(operationID: "op-1"), "authorize in order passes")
+
+    gate.finish(operationID: "op-1")
+    expect(gate.begin(operationID: "op-2"), "gate returns to idle after finish")
+
+    gate.cancel()
+    expect(gate.begin(operationID: "op-3"), "gate returns to idle after cancel")
+}
+
+// Cleaner history: persistence round-trip and aggregates.
+do {
+    CleanerHistory.clear()
+    let empty = CleanerHistory.loadEntries()
+    expect(empty.isEmpty, "history starts empty after clear")
+
+    CleanerHistory.record(CleanerHistoryEntry(
+        cleanedAppCount: 3, failedItemCount: 0, freedBytes: 1024
+    ))
+    CleanerHistory.record(CleanerHistoryEntry(
+        cleanedAppCount: 1, failedItemCount: 2, freedBytes: 2048,
+        crashLogsRemoved: 5, crashLogBytes: 512
+    ))
+    let entries = CleanerHistory.loadEntries()
+    expect(entries.count == 2, "history persists both entries")
+    expect(entries[0].freedBytes == 2048, "history is newest-first")
+    expect(entries[0].totalFreedBytes == 2048 + 512, "crash-log bytes aggregate into totals")
+    expect(CleanerHistory.totalFreedBytes(in: entries) == 1024 + 2048 + 512,
+           "total freed bytes sums all entries")
+    expect(CleanerHistory.totalCleanedApps(in: entries) == 4,
+           "total cleaned apps sums all entries")
+
+    CleanerHistory.clear()
+    expect(CleanerHistory.loadEntries().isEmpty, "clear empties history")
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

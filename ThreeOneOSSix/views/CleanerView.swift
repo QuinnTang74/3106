@@ -16,6 +16,8 @@ struct CleanerView: View {
     @State private var activeAlert: CleanerAlert?
     @State private var crashSummary: CrashLogSummary?
     @State private var isCrashBusy = false
+    @State private var cleanerHistory: [CleanerHistoryEntry] = CleanerHistory.loadEntries()
+    let confirmationGate = CleanerSafetyPolicy.ConfirmationGate()
     let onOpenSettings: () -> Void
 
     init(onOpenSettings: @escaping () -> Void = {}) {
@@ -180,12 +182,23 @@ struct CleanerView: View {
                 Text(language.text("cleaner.selected_summary", Int64(selectedBundleIDs.count), sizeText(selectedBytes)))
                     .monospacedDigit()
             }
+            if totalFreedBytes > 0 {
+                LabeledContent(language.text("cleaner.history_total")) {
+                    Text(sizeText(totalFreedBytes))
+                        .monospacedDigit()
+                        .foregroundStyle(AppTheme.accent)
+                }
+            }
             cleanAction
         } header: {
             Label(language.text("cleaner.limited_mode"), systemImage: "checkmark.shield")
         } footer: {
             Text(language.text("cleaner.scope_footer"))
         }
+    }
+
+    private var totalFreedBytes: Int64 {
+        CleanerHistory.totalFreedBytes(in: cleanerHistory)
     }
 
     private var applicationsSection: some View {
@@ -443,9 +456,22 @@ struct CleanerView: View {
                     )
                 ),
                 primaryButton: .destructive(Text(language.text("cleaner.confirm_action"))) {
+                    // Three-stage gate (WQManager parity): the alert tap only
+                    // acknowledges the scope; the actual run must still pass
+                    // authorize() bound to the same operation id.
+                    let operationID = UUID().uuidString
+                    guard confirmationGate.begin(operationID: operationID),
+                          confirmationGate.acknowledgeScope(operationID: operationID),
+                          confirmationGate.authorize(operationID: operationID) else {
+                        confirmationGate.cancel()
+                        return
+                    }
+                    defer { confirmationGate.finish(operationID: operationID) }
                     cleanSelectedApps()
                 },
-                secondaryButton: .cancel(Text(language.text("common.cancel")))
+                secondaryButton: .cancel(Text(language.text("common.cancel"))) {
+                    confirmationGate.cancel()
+                }
             )
         case .result(let message):
             return Alert(
@@ -820,6 +846,12 @@ struct CleanerView: View {
                 Int64(removedItems),
                 Int64(failedItems + unavailableApps)
             )
+            let cleanedCount = selectedRecords.count - unavailableApps
+            let historyEntry = CleanerHistoryEntry(
+                cleanedAppCount: max(0, cleanedCount),
+                failedItemCount: failedItems + unavailableApps,
+                freedBytes: freedBytes
+            )
             DispatchQueue.main.async {
                 records = records.compactMap { record in
                     guard let usage = updatedUsage[record.id] else { return record }
@@ -827,6 +859,7 @@ struct CleanerView: View {
                     return CleanerAppRecord(app: record.app, usage: usage)
                 }
                 selectedBundleIDs.removeAll()
+                cleanerHistory = CleanerHistory.record(historyEntry)
                 isCleaning = false
                 activeAlert = .result(message: resultMessage)
             }

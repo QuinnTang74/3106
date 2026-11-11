@@ -87,6 +87,7 @@
 "cleaner.available" = "Có thể giải phóng";
 "cleaner.selected" = "Đã chọn";
 "cleaner.selected_summary" = "%lld ứng dụng · %@";
+"cleaner.history_total" = "Tổng đã giải phóng";
 "cleaner.scope_footer" = "Chỉ xóa Library/Caches và tmp. Documents, tùy chọn và Keychain được giữ nguyên.";
 "cleaner.apps_with_cache" = "%lld ứng dụng có dữ liệu tạm";
 "cleaner.apps_footer" = "Chỉ hiện ứng dụng có dữ liệu tạm có thể xóa.";

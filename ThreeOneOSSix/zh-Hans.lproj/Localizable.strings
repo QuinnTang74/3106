@@ -87,6 +87,7 @@
 "cleaner.available" = "可清理";
 "cleaner.selected" = "已选择";
 "cleaner.selected_summary" = "%lld 个应用 · %@";
+"cleaner.history_total" = "累计已释放";
 "cleaner.scope_footer" = "只清理 Library/Caches 和 tmp。Documents、偏好设置和钥匙串保持不变。";
 "cleaner.apps_with_cache" = "%lld 个应用有临时数据";
 "cleaner.apps_footer" = "仅显示存在可清理临时数据的应用。";

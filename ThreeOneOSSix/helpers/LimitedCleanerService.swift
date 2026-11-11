@@ -39,6 +39,21 @@ enum LimitedCleanerService {
     /// paths here: this cleaner is intentionally limited to per-app disposable data.
     static let allowedRelativeDirectories = ["Library/Caches", "tmp"]
 
+    /// Budgeted-walk limits (WQManager parity): a single relative directory
+    /// walk stops after this many entries or this many seconds, whichever
+    /// comes first, and reports what it measured so far. Oversized apps get a
+    /// partial (understated) size on first pass; the mtime-keyed incremental
+    /// cache finishes catching up on later passes without blocking the list.
+    static let measureBudgetEntries = 12_000
+    static let measureBudgetSeconds: TimeInterval = 0.25
+
+    /// Result of a budgeted walk: totals plus whether the budget ran out.
+    struct BudgetedMeasure {
+        let bytes: Int64
+        let files: Int
+        let budgetExhausted: Bool
+    }
+
     static func scan(
         containerURL: URL,
         rootValidator: ContainerRootValidator
@@ -61,7 +76,22 @@ enum LimitedCleanerService {
             .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey, .isDirectoryKey
         ]
 
-        func measure(_ relative: String) -> (bytes: Int64, files: Int) {
+        // Budgeted walk (WQManager parity): stop after the entry or time
+        // budget so one huge app cannot stall the whole list. The result is
+        // cached keyed by directory mtime; a changed directory re-walks.
+        func measure(_ relative: String) -> BudgetedMeasure {
+            if let cached = CleanerMeasureCache.cachedUsage(
+                containerPath: root.path,
+                relativePath: relative
+            ) {
+                let bytes = relative == "Library/Caches"
+                    ? cached.cacheBytes : cached.temporaryBytes
+                return BudgetedMeasure(
+                    bytes: bytes, files: cached.removableItemCount,
+                    budgetExhausted: false
+                )
+            }
+
             let url = relative.split(separator: "/").reduce(root) { current, part in
                 current.appendingPathComponent(String(part), isDirectory: true)
             }
@@ -70,6 +100,9 @@ enum LimitedCleanerService {
 
             var bytes: Int64 = 0
             var files = 0
+            var visited = 0
+            var exhausted = false
+            let startedAt = Date()
             guard FileManager.default.fileExists(atPath: url.path),
                   let enumerator = FileManager.default.enumerator(
                     at: url,
@@ -83,10 +116,22 @@ enum LimitedCleanerService {
                         return true
                     }
                   ) else {
-                return (0, 0)
+                return BudgetedMeasure(bytes: 0, files: 0, budgetExhausted: false)
             }
 
             for case let item as URL in enumerator {
+                visited += 1
+                if visited % 256 == 0 {
+                    if visited >= measureBudgetEntries
+                        || Date().timeIntervalSince(startedAt) >= measureBudgetSeconds {
+                        exhausted = true
+                        log(
+                            "cleaner: measure budget hit \(url.path) " +
+                                "entries=\(visited) bytes=\(bytes)"
+                        )
+                        break
+                    }
+                }
                 let values = try? item.resourceValues(forKeys: Set(keys))
                 if values?.isSymbolicLink == true {
                     enumerator.skipDescendants()
@@ -96,8 +141,16 @@ enum LimitedCleanerService {
                 bytes += max(0, Int64(values?.fileSize ?? 0))
                 files += 1
             }
-            log("cleaner: measured \(url.path) bytes=\(bytes) files=\(files)")
-            return (bytes, files)
+            log("cleaner: measured \(url.path) bytes=\(bytes) files=\(files) exhausted=\(exhausted)")
+            if !exhausted {
+                CleanerMeasureCache.store(
+                    containerPath: root.path,
+                    relativePath: relative,
+                    bytes: bytes,
+                    files: files
+                )
+            }
+            return BudgetedMeasure(bytes: bytes, files: files, budgetExhausted: exhausted)
         }
 
         // Use FileManager enumeration instead of openat(O_NOFOLLOW): apps
@@ -110,6 +163,38 @@ enum LimitedCleanerService {
             temporaryBytes: temporary.bytes,
             removableItemCount: cache.files + temporary.files
         )
+    }
+
+    /// Measure many containers concurrently (bounded worker pool, default 6).
+    /// Returns usage keyed by container path; failed containers are absent.
+    static func scanContainersParallel(
+        _ containerPaths: [String],
+        rootValidator: @escaping ContainerRootValidator,
+        maxConcurrent: Int = 6
+    ) -> [String: LimitedCleanerUsage] {
+        var results = [LimitedCleanerUsage?](
+            repeating: nil, count: containerPaths.count
+        )
+        let lock = NSLock()
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = max(1, maxConcurrent)
+        for (index, path) in containerPaths.enumerated() {
+            queue.addOperation {
+                let usage = try? scan(
+                    containerURL: URL(fileURLWithPath: path),
+                    rootValidator: rootValidator
+                )
+                lock.lock()
+                results[index] = usage
+                lock.unlock()
+            }
+        }
+        queue.waitUntilAllOperationsAreFinished()
+        var output: [String: LimitedCleanerUsage] = [:]
+        for (index, path) in containerPaths.enumerated() {
+            if let usage = results[index] { output[path] = usage }
+        }
+        return output
     }
 
     static func clean(
@@ -134,6 +219,30 @@ enum LimitedCleanerService {
         let resolvedRoot = root.resolvingSymlinksInPath().standardizedFileURL
         var removed = 0
         var failed = 0
+
+        // Safety policy pre-flight (CleanerSafetyPolicy): the container root
+        // and both planned targets must pass the protected-path blacklist and
+        // component-level symlink checks before anything is deleted.
+        for relative in allowedRelativeDirectories {
+            guard let planned = CleanerSafetyPolicy.PlannedTarget.build(
+                containerRoot: root.path,
+                relativePath: relative
+            ) else {
+                failed += 1
+                log("cleaner: policy rejected malformed target \(relative) in \(root.path)")
+                continue
+            }
+            switch CleanerSafetyPolicy.checkTarget(planned, snapshot: nil) {
+            case .allowed:
+                continue
+            case .rejected(let reason):
+                failed += 1
+                log("cleaner: policy rejected \(planned.absolutePath) reason=\(reason)")
+            }
+        }
+        guard failed == 0 else {
+            throw LimitedCleanerError.unsafeContainerRoot
+        }
 
         for relative in allowedRelativeDirectories {
             let target = relative.split(separator: "/").reduce(root) { current, part in
@@ -163,6 +272,20 @@ enum LimitedCleanerService {
                 options: []
             )) ?? []
             for child in children {
+                // TOCTOU guard: re-verify the child still resolves inside the
+                // container immediately before deletion (a symlink swapped in
+                // between listing and removal is refused here).
+                let resolvedChild = child.resolvingSymlinksInPath().standardizedFileURL
+                let childInside = resolvedChild.path == resolvedRoot.path ||
+                    resolvedChild.path.hasPrefix(resolvedRoot.path + "/")
+                guard childInside else {
+                    failed += 1
+                    log(
+                        "cleaner: refusing child outside container " +
+                            "\(child.path) -> \(resolvedChild.path)"
+                    )
+                    continue
+                }
                 do {
                     try FileManager.default.removeItem(at: child)
                     removed += 1

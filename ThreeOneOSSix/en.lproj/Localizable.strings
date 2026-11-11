@@ -87,6 +87,7 @@
 "cleaner.available" = "Available to clean";
 "cleaner.selected" = "Selected";
 "cleaner.selected_summary" = "%lld apps · %@";
+"cleaner.history_total" = "Total freed";
 "cleaner.scope_footer" = "Only Library/Caches and tmp are removed. Documents, preferences and Keychain stay unchanged.";
 "cleaner.apps_with_cache" = "%lld apps with temporary data";
 "cleaner.apps_footer" = "Only apps with removable temporary data are shown.";
