@@ -60,6 +60,16 @@ struct FeatureHubView: View {
                     }
 
                     NavigationLink {
+                        SupervisedModeView()
+                    } label: {
+                        card(
+                            "home.card.supervised",
+                            detail: "home.card.supervised_detail",
+                            icon: "checkmark.shield"
+                        )
+                    }
+
+                    NavigationLink {
                         WallpaperLabView(
                             onOpenSettings: onOpenSettings,
                             onOpenLogs: onOpenLogs
@@ -159,6 +169,16 @@ struct FeatureHubView: View {
                             "home.card.backups",
                             detail: "home.card.backups_detail",
                             icon: "externaldrive.fill"
+                        )
+                    }
+
+                    NavigationLink {
+                        AppSaveBackupView()
+                    } label: {
+                        card(
+                            "home.card.savebackups",
+                            detail: "home.card.savebackups_detail",
+                            icon: "arrow.down.doc.fill"
                         )
                     }
                 } header: {

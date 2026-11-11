@@ -66,6 +66,10 @@
 		3105E20E /* GestaltFieldEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10E; };
 		3105E20F /* GestaltPresetListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10F; };
 		3105E210 /* GestaltRegionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E110; };
+		3105E211 /* SupervisedModeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E111; };
+		3105E212 /* AppSaveBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E112; };
+		3105E213 /* SupervisedModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E113; };
+		3105E214 /* AppSaveBackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E114; };
 		3105E207 /* AppCardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E107; };
 		3105F200 /* wallpaper_zip.c in Sources */ = {isa = PBXBuildFile; fileRef = 3105F100; };
 		3105F201 /* WallpaperLabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105F102; };
@@ -190,6 +194,10 @@
 		3105E10E /* GestaltFieldEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltFieldEditorView.swift; sourceTree = "<group>"; };
 		3105E10F /* GestaltPresetListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltPresetListView.swift; sourceTree = "<group>"; };
 		3105E110 /* GestaltRegionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltRegionView.swift; sourceTree = "<group>"; };
+		3105E111 /* SupervisedModeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisedModeService.swift; sourceTree = "<group>"; };
+		3105E112 /* AppSaveBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSaveBackupService.swift; sourceTree = "<group>"; };
+		3105E113 /* SupervisedModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisedModeView.swift; sourceTree = "<group>"; };
+		3105E114 /* AppSaveBackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSaveBackupView.swift; sourceTree = "<group>"; };
 		3105E107 /* AppCardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCardList.swift; sourceTree = "<group>"; };
 		3105F100 /* wallpaper_zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = wallpaper_zip.c; sourceTree = "<group>"; };
 		3105F101 /* wallpaper_zip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wallpaper_zip.h; sourceTree = "<group>"; };
@@ -314,6 +322,8 @@
 				3105E10E /* GestaltFieldEditorView.swift */,
 				3105E10F /* GestaltPresetListView.swift */,
 				3105E110 /* GestaltRegionView.swift */,
+				3105E113 /* SupervisedModeView.swift */,
+				3105E114 /* AppSaveBackupView.swift */,
 				3105E107 /* AppCardList.swift */,
 				3105F108 /* OnboardingView.swift */,
 				3105L102 /* RepositoryMarketplaceView.swift */,
@@ -369,6 +379,8 @@
 				3105E10B /* GestaltKeys.swift */,
 				3105E10C /* GestaltPresets.swift */,
 				3105E10D /* GestaltRegionService.swift */,
+				3105E111 /* SupervisedModeService.swift */,
+				3105E112 /* AppSaveBackupService.swift */,
 				3105E103 /* CleanerSafetyPolicy.swift */,
 				3105E104 /* CleanerHistory.swift */,
 				3105E105 /* CleanerMeasureCache.swift */,
@@ -535,6 +547,10 @@
 				3105E20E,
 				3105E20F,
 				3105E210,
+				3105E211,
+				3105E212,
+				3105E213,
+				3105E214,
 				3105E207,
 				3105F200,
 				3105F201,
