@@ -588,6 +588,32 @@ do {
     expect(CleanerHistory.loadEntries().isEmpty, "clear empties history")
 }
 
+// Activity history: persistence round-trip, ordering and cap.
+do {
+    ActivityHistory.clear()
+    expect(ActivityHistory.load().isEmpty, "activity starts empty after clear")
+
+    ActivityHistory.log(.backup, feature: "savebackup", "com.a")
+    ActivityHistory.log(.restore, feature: "savebackup", "com.a")
+    ActivityHistory.log(.clean, feature: "cleaner", "apps=3 freed=1024")
+    ActivityHistory.log(.write, feature: "gestalt", "preset:aod")
+
+    let events = ActivityHistory.load()
+    expect(events.count == 4, "activity persists all four events")
+    expect(events[0].kind == .write, "activity is newest-first")
+    expect(events.map(\.kind) == [.write, .clean, .restore, .backup],
+           "activity kinds ordered newest-first")
+
+    // The 300-entry cap keeps the newest slice.
+    for index in 0..<310 {
+        ActivityHistory.log(.write, feature: "stress", "entry-\(index)")
+    }
+    expect(ActivityHistory.load().count == 300, "activity caps at 300 entries")
+
+    ActivityHistory.clear()
+    expect(ActivityHistory.load().isEmpty, "clear empties activity")
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)
