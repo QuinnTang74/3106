@@ -59,6 +59,7 @@
 		3105E206 /* BackupTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E106; };
 		3105E208 /* RiskConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E108; };
 		3105E209 /* ContainerSizeMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E109; };
+		3105E20A /* ScanDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10A; };
 		3105E207 /* AppCardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E107; };
 		3105F200 /* wallpaper_zip.c in Sources */ = {isa = PBXBuildFile; fileRef = 3105F100; };
 		3105F201 /* WallpaperLabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105F102; };
@@ -176,6 +177,7 @@
 		3105E106 /* BackupTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupTabView.swift; sourceTree = "<group>"; };
 		3105E108 /* RiskConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskConfirmationView.swift; sourceTree = "<group>"; };
 		3105E109 /* ContainerSizeMeter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContainerSizeMeter.swift; sourceTree = "<group>"; };
+		3105E10A /* ScanDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanDiagnostics.swift; sourceTree = "<group>"; };
 		3105E107 /* AppCardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCardList.swift; sourceTree = "<group>"; };
 		3105F100 /* wallpaper_zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = wallpaper_zip.c; sourceTree = "<group>"; };
 		3105F101 /* wallpaper_zip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wallpaper_zip.h; sourceTree = "<group>"; };
@@ -348,6 +350,7 @@
 				3105E100 /* LimitedCleanerService.swift */,
 				3105E102 /* CleanerCatalog.swift */,
 				3105E109 /* ContainerSizeMeter.swift */,
+				3105E10A /* ScanDiagnostics.swift */,
 				3105E103 /* CleanerSafetyPolicy.swift */,
 				3105E104 /* CleanerHistory.swift */,
 				3105E105 /* CleanerMeasureCache.swift */,
@@ -507,6 +510,7 @@
 				3105E206,
 				3105E208,
 				3105E209,
+				3105E20A,
 				3105E207,
 				3105F200,
 				3105F201,

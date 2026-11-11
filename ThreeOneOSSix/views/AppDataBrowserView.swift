@@ -466,6 +466,10 @@ struct AppDataBrowserView: View {
         let reloadStarted = CFAbsoluteTimeGetCurrent()
         let emptyMessage = language.text("browser.empty")
 
+        // Dedicated-thread diagnostics for this scan (WQ watchdog parity).
+        ScanDiagnostics.beginSession(backend: SandboxAccess.backend.rawValue)
+        ScanDiagnostics.stage("enumerate")
+
         // Phase A: publish the LaunchServices catalog immediately. This is the
         // WQ Files 0.8 fast path: no filesystem scan, no 18 MB parse on the
         // main thread, no waiting for MCM.
@@ -709,6 +713,10 @@ struct AppDataBrowserView: View {
                 }
                 log(
                     "browser: app data ready apps=\(identified.count + unidentified.count) " +
+                        "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - reloadStarted))s"
+                )
+                ScanDiagnostics.endSession(
+                    summary: "apps=\(identified.count + unidentified.count) " +
                         "elapsed=\(String(format: "%.3f", CFAbsoluteTimeGetCurrent() - reloadStarted))s"
                 )
             }
