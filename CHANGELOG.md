@@ -20,6 +20,8 @@ All notable user-facing changes are documented in this file.
 - 扫描提速：MCM 容器激活并行化（并发 6）、lsd 守护容器目录并行探测、pathleak 动态 inode 上界（按实际分配水位收窄 200 万固定爆破区间）、扫描诊断日志（专用线程 `write(2)` + 5 秒 watchdog 心跳，`Documents/scan-diag-latest.log`）。
 - 结构化 Plist 编辑器类型保真修复：Integer/Real 分型，浮点值（如相机变焦）不再被写回整数。
 - 风险说明体系：每个新功能附带"会发生什么 / 最坏情况 / 怎么恢复"三段说明（功能页 + 风险确认页 + `docs/RISKS.md` 汇总）。
+- 出厂基线保护（同步 Erosion-CN v0.8.5 真机发现）：Audio Intelligence 出厂全为 false，强行开启会断路照片"高质量"消除的云端管线——该预设锁定并说明；Siri AI 实验模式对出厂 false 的 AI 旗标拒绝写入。
+- 体验修复：预设开关从 4-6 次全量 plist 解析降到 1-2 次；文件浏览器目录体积加预算（12k 项/0.5s，超大目录显示截断标记）；清理过程显示逐应用进度（清理中 N/M · 已释放 · 当前应用）；QuickLook 预览加 200MB 上限（原为无限拷贝，大视频假死 30 秒）。
 - 本地化对齐门禁：`Tests/check_strings_alignment.sh` 校验三语键集一致（1108 键 × 3）；全部新功能文案三语补齐。
 - 真机验收清单：`docs/releases/device-checklist-3.2.md`。
 
