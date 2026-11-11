@@ -109,7 +109,7 @@
 
 发布资产为未签名 IPA，需要按上面的签名方式自行签名后安装。
 
-当前版本：`3106-3.1.13-unsigned.ipa`（SHA256 `82fe31d532f4aeb442303a3e33e7eefb088e3e0ff60213ffe9cf7266c42cbd50`）。
+当前版本：`3106-3.1.13-unsigned.ipa`（SHA256 `00ea0503fc27c0a98d7d6c6e045c275143acc8b739ccb15c4932b4a52aaecd15`）。
 
 ## 开源协议与商用说明
 

@@ -161,7 +161,7 @@ enum KeypadThemeService {
         }
 
         let applied = Set(UserDefaults.standard.stringArray(forKey: appliedTargetsKey) ?? [])
-        guard !applied.isEmpty || !originals.isEmpty else {
+        guard !applied.isEmpty || !restoredPaths.isEmpty else {
             throw KeypadThemeError.noBackup
         }
         for path in applied where !restoredPaths.contains(path) {

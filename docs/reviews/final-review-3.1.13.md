@@ -19,7 +19,7 @@
 - 策略/单元测试：`bash Tests/run_policy_tests.sh` → **PASS: 76 checks**。
 - 本地化：491 个字面 key 在 en / zh-Hans / vi **全部存在**。
 - 工程文件：`plutil -lint project.pbxproj` → OK。
-- 产物：`dist/3106-3.1.13-unsigned.ipa`，4.2 MB，SHA-256 `82fe31d532f4aeb442303a3e33e7eefb088e3e0ff60213ffe9cf7266c42cbd50`。
+- 产物：`dist/3106-3.1.13-unsigned.ipa`，4.2 MB，SHA-256 `00ea0503fc27c0a98d7d6c6e045c275143acc8b739ccb15c4932b4a52aaecd15`。
 
 ## 功能矩阵
 

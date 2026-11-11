@@ -107,7 +107,7 @@ Stable releases are published on GitHub Releases:
 
 The release asset is an unsigned IPA; sign it with one of the methods above before installing.
 
-Current asset: `3106-3.1.13-unsigned.ipa` (SHA256 `82fe31d532f4aeb442303a3e33e7eefb088e3e0ff60213ffe9cf7266c42cbd50`).
+Current asset: `3106-3.1.13-unsigned.ipa` (SHA256 `00ea0503fc27c0a98d7d6c6e045c275143acc8b739ccb15c4932b4a52aaecd15`).
 
 ## License and commercial use
 

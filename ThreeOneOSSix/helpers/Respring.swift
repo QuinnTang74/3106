@@ -71,6 +71,17 @@ struct RespringButton: View {
             RespringHTMLView()
                 .ignoresSafeArea()
                 .opacity(0.02)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isActive = false
+                }
+                .onAppear {
+                    // If the WebKit method is unsupported, never leave the user
+                    // on an invisible full-screen cover.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                        isActive = false
+                    }
+                }
         }
     }
 }
