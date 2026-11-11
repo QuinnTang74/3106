@@ -564,6 +564,15 @@ do {
 
 // Cleaner history: persistence round-trip and aggregates.
 do {
+    let historyRoot = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent("3106-history-tests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: historyRoot, withIntermediateDirectories: true)
+    CleanerHistory.setRootForTesting(historyRoot)
+    defer {
+        CleanerHistory.clear()
+        CleanerHistory.setRootForTesting(nil)
+        try? FileManager.default.removeItem(at: historyRoot)
+    }
     CleanerHistory.clear()
     let empty = CleanerHistory.loadEntries()
     expect(empty.isEmpty, "history starts empty after clear")
@@ -590,6 +599,15 @@ do {
 
 // Activity history: persistence round-trip, ordering and cap.
 do {
+    let activityRoot = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent("3106-activity-tests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: activityRoot, withIntermediateDirectories: true)
+    ActivityHistory.setRootForTesting(activityRoot)
+    defer {
+        ActivityHistory.clear()
+        ActivityHistory.setRootForTesting(nil)
+        try? FileManager.default.removeItem(at: activityRoot)
+    }
     ActivityHistory.clear()
     expect(ActivityHistory.load().isEmpty, "activity starts empty after clear")
 

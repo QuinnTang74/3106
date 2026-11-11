@@ -298,6 +298,7 @@ enum AppSaveBackupService {
         // (same-volume, kept as .pre-restore-*) instead of the old
         // recordOriginalIfNeeded call that silently no-opped on directories
         // and then removeItem destroyed the live data with no backup.
+        pruneRestoreAsides(near: URL(fileURLWithPath: (containerPath as NSString).deletingLastPathComponent))
         func restoreDirectory(source: URL, targetPath: String) throws {
             var isDirectory: ObjCBool = false
             if fm.fileExists(atPath: targetPath, isDirectory: &isDirectory) {
@@ -324,6 +325,28 @@ enum AppSaveBackupService {
         }
         ActivityHistory.log(.restore, feature: "savebackup", entry.manifest.bundleID)
         SoundEffects.play(.success)
+    }
+
+    /// Keep at most `keep` .pre-restore-* sibling dirs (oldest deleted):
+    /// every restore leaves one aside and without pruning they accumulate
+    /// forever inside the app container.
+    static func pruneRestoreAsides(near directory: URL, keep: Int = 4) {
+        let fm = FileManager.default
+        guard let contents = try? fm.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: []
+        ) else { return }
+        let asides = contents.filter { $0.lastPathComponent.hasPrefix(".pre-restore-") }
+        guard asides.count > keep else { return }
+        let sorted = asides.sorted { left, right in
+            let leftDate = (try? left.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            let rightDate = (try? right.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            return leftDate > rightDate
+        }
+        for stale in sorted.dropFirst(keep) {
+            try? fm.removeItem(at: stale)
+        }
     }
 
     // MARK: - Helpers

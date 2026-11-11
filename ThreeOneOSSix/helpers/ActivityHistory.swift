@@ -43,9 +43,19 @@ enum ActivityHistory {
     // load the same list and the second persist silently drops an event.
     private static let recordLock = NSLock()
 
+    /// Injectable root for tests: the policy harness runs as a bare CLI
+    /// binary whose documentDirectory IS the developer's real ~/Documents,
+    /// so tests must redirect the store to a temp dir.
+    nonisolated(unsafe) private static var injectedRoot: URL?
+
+    static func setRootForTesting(_ root: URL?) {
+        injectedRoot = root
+    }
+
     private static var fileURL: URL {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return docs.appendingPathComponent(fileName)
+        let base = injectedRoot
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+        return base!.appendingPathComponent(fileName)
     }
 
     // MARK: - Persistence

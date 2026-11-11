@@ -203,6 +203,11 @@ enum FullBackupService {
         }
         let manifestDir = manifestURL.deletingLastPathComponent()
 
+        // Asides accumulate under Documents/3106 — prune before adding more.
+        let docsRoot = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        AppSaveBackupService.pruneRestoreAsides(near: docsRoot.appendingPathComponent("3106", isDirectory: true))
+        AppSaveBackupService.pruneRestoreAsides(near: docsRoot.appendingPathComponent("3106/Patches", isDirectory: true))
+
         for entry in entries {
             let source = manifestDir.appendingPathComponent(entry)
             guard FileManager.default.fileExists(atPath: source.path) else { continue }

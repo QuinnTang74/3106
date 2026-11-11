@@ -190,14 +190,17 @@ struct GestaltFieldEditorView: View {
         isBusy = true
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                var root = try GestaltPlistIO.readRoot()
-                guard var cacheExtra = root["CacheExtra"] as? [String: Any] else {
-                    throw GestaltPresetError.missingCacheExtra
+                // Exclusive across read→mutate→write (shared Gestalt cache).
+                try GestaltPlistIO.withExclusiveAccess {
+                    var root = try GestaltPlistIO.readRoot()
+                    guard var cacheExtra = root["CacheExtra"] as? [String: Any] else {
+                        throw GestaltPresetError.missingCacheExtra
+                    }
+                    let value = try kind.parse(text)
+                    cacheExtra[key] = value
+                    root["CacheExtra"] = cacheExtra
+                    try GestaltPlistIO.writeRoot(root, reason: "field-edit:\(key)")
                 }
-                let value = try kind.parse(text)
-                cacheExtra[key] = value
-                root["CacheExtra"] = cacheExtra
-                try GestaltPlistIO.writeRoot(root, reason: "field-edit:\(key)")
                 DispatchQueue.main.async {
                     SoundEffects.play(.success)
                     reload()
@@ -216,13 +219,15 @@ struct GestaltFieldEditorView: View {
         isBusy = true
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                var root = try GestaltPlistIO.readRoot()
-                guard var cacheExtra = root["CacheExtra"] as? [String: Any] else {
-                    throw GestaltPresetError.missingCacheExtra
+                try GestaltPlistIO.withExclusiveAccess {
+                    var root = try GestaltPlistIO.readRoot()
+                    guard var cacheExtra = root["CacheExtra"] as? [String: Any] else {
+                        throw GestaltPresetError.missingCacheExtra
+                    }
+                    cacheExtra.removeValue(forKey: entry.key)
+                    root["CacheExtra"] = cacheExtra
+                    try GestaltPlistIO.writeRoot(root, reason: "field-remove:\(entry.key)")
                 }
-                cacheExtra.removeValue(forKey: entry.key)
-                root["CacheExtra"] = cacheExtra
-                try GestaltPlistIO.writeRoot(root, reason: "field-remove:\(entry.key)")
                 DispatchQueue.main.async {
                     SoundEffects.play(.success)
                     reload()
