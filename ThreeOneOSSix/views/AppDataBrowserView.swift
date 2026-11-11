@@ -6,6 +6,7 @@ struct AppDataBrowserView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @EnvironmentObject private var scanCoordinator: ScanCoordinator
     @State private var apps: [InstalledApp] = []
     @State private var unidentifiedApps: [InstalledApp] = []
     @State private var isLoading = false
@@ -454,9 +455,27 @@ struct AppDataBrowserView: View {
             }
             catalogBox.unlock()
 
-            let filesystemApps = catalogApps.isEmpty
-                ? ContainerStore.containersFromFilesystem()
-                : []
+            let filesystemApps: [InstalledApp]
+            if catalogApps.isEmpty {
+                let token = ScanToken()
+                DispatchQueue.main.async {
+                    scanCoordinator.begin(
+                        title: language.text("scan.title.apps"),
+                        message: language.text("scan.message.apps"),
+                        token: token
+                    )
+                }
+                filesystemApps = ContainerStore.containersFromFilesystem(token: token) { done, total in
+                    DispatchQueue.main.async {
+                        scanCoordinator.update(done: done, total: total)
+                    }
+                }
+                DispatchQueue.main.async {
+                    scanCoordinator.finish()
+                }
+            } else {
+                filesystemApps = []
+            }
             let baseIdentifiedApps = mcmApps + apiApps
             var result = ContainerDiscoveryMerger.merge(
                 enumerated: catalogApps.isEmpty ? filesystemApps : catalogApps,

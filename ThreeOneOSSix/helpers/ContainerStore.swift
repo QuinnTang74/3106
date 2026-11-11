@@ -857,13 +857,33 @@ enum ContainerStore {
 
     // MARK: Filesystem discovery
 
-    static func enumerateDirectories(path: String, maxInode: Int64 = 2_000_000) -> [String] {
+    static func enumerateDirectories(
+        path: String,
+        maxInode: Int64 = 2_000_000,
+        token: ScanToken? = nil,
+        progress: ((Int64, Int64) -> Void)? = nil
+    ) -> [String] {
         let clean = path.hasSuffix("/") ? String(path.dropLast()) : path
         guard clean.hasPrefix("/") else { return [] }
+        if token?.isCancelled == true { return [] }
 
         if let names = try? FileManager.default.contentsOfDirectory(atPath: clean), !names.isEmpty {
             return names.map { (clean as NSString).appendingPathComponent($0) }
         }
+
+        // faster fallback: fsgetpath inode enumeration with cancellation.
+        let wantsPrivatePrefix = clean.hasPrefix("/private/")
+        let leaked = Pathleak.list(
+            directory: clean,
+            maxInode: UInt64(max(1, maxInode)),
+            token: token,
+            progress: progress
+        )
+        if !leaked.isEmpty {
+            log("enumerate: pathleak for \(clean) -> \(leaked.count) entries")
+            return wantsPrivatePrefix ? leaked.map { "/private" + $0 } : leaked
+        }
+        if token?.isCancelled == true { return [] }
 
         var pathC = clean.utf8CString.map { Int8($0) }
         guard let result = bad_query_list(&pathC, maxInode) else {
@@ -877,15 +897,20 @@ enum ContainerStore {
         } else {
             log("enumerate: FileManager+inode unavailable for \(clean)")
         }
+        progress?(Int64(max(1, maxInode)), Int64(max(1, maxInode)))
         return list
     }
 
-    static func enumerateDirectoriesWithTraversalGrant(path: String) -> [String] {
+    static func enumerateDirectoriesWithTraversalGrant(
+        path: String,
+        token: ScanToken? = nil,
+        progress: ((Int64, Int64) -> Void)? = nil
+    ) -> [String] {
         if !requiresSandboxGrant {
             if let names = try? FileManager.default.contentsOfDirectory(atPath: path), !names.isEmpty {
                 return names.map { (path as NSString).appendingPathComponent($0) }
             }
-            return enumerateDirectories(path: path)
+            return enumerateDirectories(path: path, token: token, progress: progress)
         }
 
         let handle = grantContainerAccess(path)
@@ -898,7 +923,7 @@ enum ContainerStore {
             log("browser: root traversal grant failed \(path) -> \(handle)")
         }
 
-        return enumerateDirectories(path: path)
+        return enumerateDirectories(path: path, token: token, progress: progress)
     }
 
     static func readContainerMetadata(containerPath: String) -> ContainerMetadata? {
@@ -948,7 +973,11 @@ enum ContainerStore {
 
     /// The Files tab and the Cleaner both need the same app list. Without a
     /// short cache, switching tabs re-runs the 6-13 second inode scan twice.
-    static func containersFromFilesystem(refresh: Bool = false) -> [InstalledApp] {
+    static func containersFromFilesystem(
+        refresh: Bool = false,
+        token: ScanToken? = nil,
+        progress: ((Int64, Int64) -> Void)? = nil
+    ) -> [InstalledApp] {
         filesystemContainerCacheLock.lock()
         if !refresh,
            let cache = filesystemContainerCache,
@@ -960,23 +989,32 @@ enum ContainerStore {
         }
         filesystemContainerCacheLock.unlock()
 
-        let apps = discoverFilesystemContainers()
+        let apps = discoverFilesystemContainers(token: token, progress: progress)
+        if token?.isCancelled == true { return apps }
         filesystemContainerCacheLock.lock()
         filesystemContainerCache = (Date(), apps)
         filesystemContainerCacheLock.unlock()
         return apps
     }
 
-    private static func discoverFilesystemContainers() -> [InstalledApp] {
-        let grantedDirectories = enumerateDirectoriesWithTraversalGrant(path: appDataRoot)
+    private static func discoverFilesystemContainers(
+        token: ScanToken? = nil,
+        progress: ((Int64, Int64) -> Void)? = nil
+    ) -> [InstalledApp] {
+        let grantedDirectories = enumerateDirectoriesWithTraversalGrant(
+            path: appDataRoot,
+            token: token,
+            progress: progress
+        )
         var dirs: [String]
         if grantedDirectories.isEmpty {
-            dirs = enumerateDirectories(path: appDataRoot)
+            dirs = enumerateDirectories(path: appDataRoot, token: token, progress: progress)
             log("browser: filesystem root=\(appDataRoot) inode fallback enumerated \(dirs.count) containers")
         } else {
             dirs = grantedDirectories
             log("browser: filesystem root=\(appDataRoot) traversal enumerated \(dirs.count) containers")
         }
+        if token?.isCancelled == true { return [] }
 
         let snapshot = launchServicesSnapshot()
         if let snapshot {

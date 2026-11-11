@@ -21,6 +21,8 @@ All notable user-facing changes are documented in this file.
 - 主页替换为“功能”聚合页；底部固定 5 项：功能 / 文件 / 搜索 / 清理 / 壁纸。
 - 仓库市场、仓库源、补丁工程与备份中心移入功能页；设置页移除底栏开关与开发者模式开关。
 - 功能页、卡片说明与运行状态补齐简中 / English / Tiếng Việt 三语。
+- 新增可取消扫描：进度、剩余时间、隐藏、停止、后台任务；回退枚举改用 `pathleak`。
+- App Group 缺失时启动即提示签名要求；新增致谢与许可页、WebKit Respring。
 
 ## [3.1.12] - 2026-11-10
 

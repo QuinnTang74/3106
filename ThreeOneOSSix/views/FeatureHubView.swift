@@ -146,6 +146,18 @@ struct FeatureHubView: View {
                         )
                     }
 
+                    NavigationLink {
+                        AcknowledgementsView()
+                    } label: {
+                        card(
+                            "home.card.ack",
+                            detail: "home.card.ack_detail",
+                            icon: "heart.text.square.fill"
+                        )
+                    }
+
+                    RespringButton()
+
                     Button(action: onOpenSettings) {
                         card(
                             "home.card.settings",

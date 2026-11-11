@@ -77,6 +77,10 @@
 		3106B200 /* BackupCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106B100; };
 		3106B201 /* BackupCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106B101; };
 		3106H201 /* FeatureHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106H101; };
+		3106P200 /* Pathleak.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106P100; };
+		3106P201 /* ScanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106P101; };
+		3106R200 /* Respring.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R100; };
+		3106R201 /* AcknowledgementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R101; };
 		3105A233 /* ContainerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A104; };
 		3105A234 /* AppDataBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A105; };
 		3105A228 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3105A120; };
@@ -178,6 +182,10 @@
 		3106B100 /* BackupCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenter.swift; sourceTree = "<group>"; };
 		3106B101 /* BackupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenterView.swift; sourceTree = "<group>"; };
 		3106H101 /* FeatureHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureHubView.swift; sourceTree = "<group>"; };
+		3106P100 /* Pathleak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pathleak.swift; sourceTree = "<group>"; };
+		3106P101 /* ScanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCoordinator.swift; sourceTree = "<group>"; };
+		3106R100 /* Respring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Respring.swift; sourceTree = "<group>"; };
+		3106R101 /* AcknowledgementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcknowledgementsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -261,6 +269,7 @@
 				3105L104 /* RepositorySourcesView.swift */,
 				3106B101 /* BackupCenterView.swift */,
 				3106H101 /* FeatureHubView.swift */,
+				3106R101 /* AcknowledgementsView.swift */,
 			);
 			path = views;
 			sourceTree = "<group>";
@@ -312,6 +321,9 @@
 				3105A026 /* SBX.swift */,
 				3105A027 /* MG.swift */,
 				3106B100 /* BackupCenter.swift */,
+				3106P100 /* Pathleak.swift */,
+				3106P101 /* ScanCoordinator.swift */,
+				3106R100 /* Respring.swift */,
 			);
 			path = helpers;
 			sourceTree = "<group>";
@@ -465,6 +477,10 @@
 				3106B200,
 				3106B201,
 				3106H201,
+				3106P200,
+				3106P201,
+				3106R200,
+				3106R201,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -42,6 +42,17 @@ struct SettingsView: View {
                             systemImage: "externaldrive.badge.timemachine"
                         )
                     }
+
+                    NavigationLink {
+                        AcknowledgementsView()
+                    } label: {
+                        Label(
+                            language.text("ack.title"),
+                            systemImage: "heart.text.square.fill"
+                        )
+                    }
+
+                    RespringButton()
                 } header: {
                     Text(language.text("settings.backup"))
                 }

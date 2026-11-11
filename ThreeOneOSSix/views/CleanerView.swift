@@ -6,6 +6,7 @@ struct CleanerView: View {
     @State private var records: [CleanerAppRecord] = []
     @State private var selectedBundleIDs = Set<String>()
     @State private var searchText = ""
+    @EnvironmentObject private var scanCoordinator: ScanCoordinator
     @State private var sortOrder: CleanerSortOrder = .largestFirst
     @State private var isScanning = false
     @State private var isCleaning = false
@@ -628,12 +629,27 @@ struct CleanerView: View {
             )
             let resolvedFilesystemApps: [InstalledApp]
             if catalogApps.isEmpty {
-                resolvedFilesystemApps = ContainerStore.containersFromFilesystem().map {
+                let token = ScanToken()
+                DispatchQueue.main.async {
+                    scanCoordinator.begin(
+                        title: language.text("scan.title.cleaner"),
+                        message: language.text("scan.message.cleaner"),
+                        token: token
+                    )
+                }
+                resolvedFilesystemApps = ContainerStore.containersFromFilesystem(token: token) { done, total in
+                    DispatchQueue.main.async {
+                        scanCoordinator.update(done: done, total: total)
+                    }
+                }.map {
                     ContainerStore.inferredApp(
                         for: $0,
                         knownAppsByBundleID: knownAppsByBundleID,
                         launchServicesIdentifiers: Set(launchServicesIdentifiers)
                     ) ?? $0
+                }
+                DispatchQueue.main.async {
+                    scanCoordinator.finish()
                 }
             } else {
                 resolvedFilesystemApps = []

@@ -36,6 +36,7 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/FileBrowserMetadata.swift" \
   "$ROOT/ThreeOneOSSix/helpers/CleanerCatalog.swift" \
   "$ROOT/ThreeOneOSSix/helpers/BackupCenter.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/Pathleak.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

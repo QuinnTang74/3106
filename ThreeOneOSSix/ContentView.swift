@@ -10,23 +10,27 @@ struct ContentView: View {
     @State private var tabNavigation: AppTabNavigationState
     @State private var showSettings = false
     @State private var showLogs = false
+    @State private var showAppGroupAlert = false
+    @StateObject private var scanCoordinator = ScanCoordinator()
 
     init() {
 #if targetEnvironment(simulator)
         let arguments = ProcessInfo.processInfo.arguments
         let initialTab: Int
-        if arguments.contains("--simulate-new-tab") {
-            initialTab = 1
-        } else if arguments.contains("--simulate-sources-tab") {
-            initialTab = 2
-        } else if arguments.contains("--simulate-installed-tab")
-                    || arguments.contains("--simulate-patch-tab")
-                    || arguments.contains("--simulate-wallpaper-tab") {
-            initialTab = 3
+        if arguments.contains("--simulate-new-tab")
+            || arguments.contains("--simulate-sources-tab")
+            || arguments.contains("--simulate-installed-tab")
+            || arguments.contains("--simulate-patch-tab")
+            || arguments.contains("--simulate-features-tab") {
+            initialTab = 0
         } else if arguments.contains("--simulate-files-tab") {
             initialTab = 4
         } else if arguments.contains("--simulate-search-tab") {
             initialTab = 5
+        } else if arguments.contains("--simulate-cleaner-tab") {
+            initialTab = 6
+        } else if arguments.contains("--simulate-wallpaper-tab") {
+            initialTab = 7
         } else {
             initialTab = 0
         }
@@ -57,9 +61,32 @@ struct ContentView: View {
         }
         .onAppear {
             tabNavigation.reconcileSelection(with: featureVisibility)
+#if !targetEnvironment(simulator)
+            if SandboxAccess.needsWorseQuery, SandboxAccess.appGroup == nil {
+                showAppGroupAlert = true
+            }
+#endif
         }
+        .alert(language.text("appgroup.title"), isPresented: $showAppGroupAlert) {
+            Button(language.text("common.ok")) {}
+        } message: {
+            Text(language.text("appgroup.message"))
+        }
+        .environmentObject(scanCoordinator)
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showLogs) { LogView() }
+        .sheet(isPresented: $scanCoordinator.isPresented) {
+            ScanProgressSheet()
+                .environmentObject(scanCoordinator)
+                .environment(\.appLanguage, language)
+        }
+        .overlay(alignment: .bottom) {
+            if scanCoordinator.isRunning && !scanCoordinator.isPresented {
+                ScanRunningBanner()
+                    .environmentObject(scanCoordinator)
+                    .environment(\.appLanguage, language)
+            }
+        }
         .patchStorePresentation(patchStore)
         .repositoryStorePresentation(repositoryStore, patchStore: patchStore)
     }
