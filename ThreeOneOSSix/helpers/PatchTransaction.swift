@@ -278,8 +278,19 @@ enum PatchTransaction {
             throw PatchPackageError.applyFailed
         }
 
+        var targetGrants: [Int64] = []
+        defer {
+            for grant in targetGrants { SandboxAccess.release(grant) }
+        }
+
         do {
             for resolved in resolvedDirectories where !fileManager.fileExists(atPath: resolved.target.path) {
+                // The container-root grant is not always enough to create or
+                // write nested paths; ask for each target's own folder too.
+                let parentGrant = ContainerStore.grantContainerAccess(
+                    resolved.target.deletingLastPathComponent().path
+                )
+                if parentGrant >= 0 { targetGrants.append(parentGrant) }
                 try fileManager.createDirectory(
                     at: resolved.target,
                     withIntermediateDirectories: false
@@ -287,6 +298,10 @@ enum PatchTransaction {
             }
             for (index, resolved) in resolvedRules.enumerated() {
                 try beforeWrite?(index)
+                let parentGrant = ContainerStore.grantContainerAccess(
+                    resolved.target.deletingLastPathComponent().path
+                )
+                if parentGrant >= 0 { targetGrants.append(parentGrant) }
                 if let backupCenter {
                     try VerifiedFileWriter.write(
                         resolved.rule.replacementData,

@@ -36,6 +36,41 @@ struct FeatureHubView: View {
 
                 Section {
                     NavigationLink {
+                        MobileGestaltEditorView()
+                    } label: {
+                        card(
+                            "home.card.gestalt",
+                            detail: "home.card.gestalt_detail",
+                            icon: "cpu.fill"
+                        )
+                    }
+
+                    NavigationLink {
+                        KeypadThemeView()
+                    } label: {
+                        card(
+                            "home.card.keypad",
+                            detail: "home.card.keypad_detail",
+                            icon: "circle.grid.3x3.fill"
+                        )
+                    }
+
+                    Button {
+                        onSelectTab(.wallpapers)
+                    } label: {
+                        card(
+                            "home.card.wallpapers",
+                            detail: "home.card.wallpapers_detail",
+                            icon: "photo.on.rectangle.angled"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } header: {
+                    Text(language.text("home.section.device"))
+                }
+
+                Section {
+                    NavigationLink {
                         PatchProjectsView(
                             onOpenSettings: onOpenSettings,
                             onOpenLogs: onOpenLogs
@@ -107,17 +142,6 @@ struct FeatureHubView: View {
                             "home.card.cleaner",
                             detail: "home.card.cleaner_detail",
                             icon: "sparkles"
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        onSelectTab(.wallpapers)
-                    } label: {
-                        card(
-                            "home.card.wallpapers",
-                            detail: "home.card.wallpapers_detail",
-                            icon: "photo.on.rectangle.angled"
                         )
                     }
                     .buttonStyle(.plain)

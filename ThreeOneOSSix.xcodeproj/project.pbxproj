@@ -81,6 +81,13 @@
 		3106P201 /* ScanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106P101; };
 		3106R200 /* Respring.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R100; };
 		3106R201 /* AcknowledgementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R101; };
+		3106M200 /* MobileGestaltService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106M100; };
+		3106M201 /* MobileGestaltEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106M101; };
+		3106M202 /* KeypadThemeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106M102; };
+		3106M203 /* KeypadThemeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106M103; };
+		3106S200 /* SQLiteViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106S100; };
+		3106S201 /* HexViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106S101; };
+		3106S202 /* PlistEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106S102; };
 		3105A233 /* ContainerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A104; };
 		3105A234 /* AppDataBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A105; };
 		3105A228 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3105A120; };
@@ -186,6 +193,13 @@
 		3106P101 /* ScanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCoordinator.swift; sourceTree = "<group>"; };
 		3106R100 /* Respring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Respring.swift; sourceTree = "<group>"; };
 		3106R101 /* AcknowledgementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcknowledgementsView.swift; sourceTree = "<group>"; };
+		3106M100 /* MobileGestaltService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileGestaltService.swift; sourceTree = "<group>"; };
+		3106M101 /* MobileGestaltEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileGestaltEditorView.swift; sourceTree = "<group>"; };
+		3106M102 /* KeypadThemeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeypadThemeService.swift; sourceTree = "<group>"; };
+		3106M103 /* KeypadThemeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeypadThemeView.swift; sourceTree = "<group>"; };
+		3106S100 /* SQLiteViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteViewerView.swift; sourceTree = "<group>"; };
+		3106S101 /* HexViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HexViewerView.swift; sourceTree = "<group>"; };
+		3106S102 /* PlistEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlistEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -270,6 +284,11 @@
 				3106B101 /* BackupCenterView.swift */,
 				3106H101 /* FeatureHubView.swift */,
 				3106R101 /* AcknowledgementsView.swift */,
+				3106M101 /* MobileGestaltEditorView.swift */,
+				3106M103 /* KeypadThemeView.swift */,
+				3106S100 /* SQLiteViewerView.swift */,
+				3106S101 /* HexViewerView.swift */,
+				3106S102 /* PlistEditorView.swift */,
 			);
 			path = views;
 			sourceTree = "<group>";
@@ -324,6 +343,8 @@
 				3106P100 /* Pathleak.swift */,
 				3106P101 /* ScanCoordinator.swift */,
 				3106R100 /* Respring.swift */,
+				3106M100 /* MobileGestaltService.swift */,
+				3106M102 /* KeypadThemeService.swift */,
 			);
 			path = helpers;
 			sourceTree = "<group>";
@@ -481,6 +502,13 @@
 				3106P201,
 				3106R200,
 				3106R201,
+				3106M200,
+				3106M201,
+				3106M202,
+				3106M203,
+				3106S200,
+				3106S201,
+				3106S202,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

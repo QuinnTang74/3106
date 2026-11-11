@@ -3,6 +3,20 @@ import UIKit
 import UniformTypeIdentifiers
 import QuickLook
 
+private enum FileViewerRequest: Identifiable {
+    case sqlite(String)
+    case hex(String, Bool)
+    case plist(String)
+
+    var id: String {
+        switch self {
+        case .sqlite(let path): return "sqlite:\(path)"
+        case .hex(let path, _): return "hex:\(path)"
+        case .plist(let path): return "plist:\(path)"
+        }
+    }
+}
+
 struct FileBrowserView: View {
     @Environment(\.appLanguage) private var language
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -36,6 +50,7 @@ struct FileBrowserView: View {
     @State private var transferSession: FileTransferSession?
     @State private var transferConflict: FileTransferConflict?
     @State private var deleteTargets: [FileEntry] = []
+    @State private var viewerRequest: FileViewerRequest?
     @ObservedObject private var favoritesStore = FileFavoritesStore.shared
     @AppStorage(FileBrowserSortOrder.storageKey)
     private var sortOrderRaw = FileBrowserSortOrder.nameAscending.rawValue
@@ -269,6 +284,19 @@ struct FileBrowserView: View {
             )
             .ignoresSafeArea()
         }
+        .sheet(item: $viewerRequest) { request in
+            NavigationStack {
+                switch request {
+                case .sqlite(let path):
+                    SQLiteViewerView(path: path)
+                case .hex(let path, let readOnly):
+                    HexViewerView(path: path, readOnly: readOnly)
+                case .plist(let path):
+                    PlistEditorView(path: path)
+                }
+            }
+            .environment(\.appLanguage, language)
+        }
         .overlay {
             ZStack {
                 if let activityText {
@@ -467,6 +495,26 @@ struct FileBrowserView: View {
             Label(language.text("browser.share"), systemImage: "square.and.arrow.up")
         }
         if !entry.isDirectory {
+            let fileExtension = (entry.name as NSString).pathExtension.lowercased()
+            if fileExtension == "plist" {
+                Button {
+                    viewerRequest = .plist(entry.path)
+                } label: {
+                    Label(language.text("browser.plist_edit"), systemImage: "list.bullet.rectangle")
+                }
+            }
+            if ["sqlite", "db", "sqlite3"].contains(fileExtension) {
+                Button {
+                    viewerRequest = .sqlite(entry.path)
+                } label: {
+                    Label(language.text("browser.sqlite_view"), systemImage: "tablecells")
+                }
+            }
+            Button {
+                viewerRequest = .hex(entry.path, readOnly)
+            } label: {
+                Label(language.text("browser.hex_view"), systemImage: "number.square")
+            }
             Button {
                 createManualBackup(for: entry)
             } label: {

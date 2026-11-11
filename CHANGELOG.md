@@ -23,6 +23,10 @@ All notable user-facing changes are documented in this file.
 - 功能页、卡片说明与运行状态补齐简中 / English / Tiếng Việt 三语。
 - 新增可取消扫描：进度、剩余时间、隐藏、停止、后台任务；回退枚举改用 `pathleak`。
 - App Group 缺失时启动即提示签名要求；新增致谢与许可页、WebKit Respring。
+- 新增 MobileGestalt 安全子集编辑器：设备名称/子类型、灵动岛、AOD、充电上限、开机提示音；原始缓存与每次写入前版本自动备份，可一键恢复。
+- 新增拨号键主题：12 键图片替换、逐文件备份、恢复原始键图。
+- 文件浏览器新增 SQLite 只读查看器、Hex 查看/覆写、结构化 Plist 编辑；写入统一走 `VerifiedFileWriter`。
+- 利用层加固：补丁写入逐目标目录授权；worse_query 按设备学习并记住可用的 query flags。
 
 ## [3.1.12] - 2026-11-10
 
