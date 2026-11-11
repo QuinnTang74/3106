@@ -209,6 +209,27 @@ enum GestaltPresetEngine {
         return preset.keys.allSatisfy { cacheExtra[$0] != nil }
     }
 
+    /// Apply and report the resulting on/off state computed from the same
+    /// in-memory root (a follow-up currentState(for:) used to cost a second
+    /// full 18MB read+parse per toggle).
+    static func applyReportingState(
+        _ preset: GestaltPreset, enabled: Bool
+    ) throws -> Bool {
+        try apply(preset, enabled: enabled)
+        return enabled ? desiredStateAfterEnable(preset) : false
+    }
+
+    private static func desiredStateAfterEnable(_ preset: GestaltPreset) -> Bool {
+        guard let firstKey = preset.keys.first else { return false }
+        if let custom = preset.values, let desired = custom[firstKey] {
+            if let number = desired as? NSNumber {
+                return number.boolValue != false && number.intValue != 0
+            }
+            return true
+        }
+        return true
+    }
+
     static func apply(_ preset: GestaltPreset, enabled: Bool) throws {
         let path = GestaltKeys.gestaltPath
         let directory = (path as NSString).deletingLastPathComponent
@@ -332,6 +353,12 @@ enum GestaltPlistIO {
     }
 
     static func readRoot() throws -> [String: Any] {
+        try readRootWithFormat().root
+    }
+
+    /// Read the root AND its on-disk format in one pass, so the write path
+    /// does not re-read the 18MB file just to detect binary vs XML.
+    static func readRootWithFormat() throws -> (root: [String: Any], format: PropertyListSerialization.PropertyListFormat) {
         let path = GestaltKeys.gestaltPath
         let directory = (path as NSString).deletingLastPathComponent
         let grant = ContainerStore.grantContainerAccess(directory)
@@ -341,15 +368,20 @@ enum GestaltPlistIO {
         guard let data = FileManager.default.contents(atPath: path), !data.isEmpty else {
             throw GestaltPresetError.unreadable
         }
+        var format = PropertyListSerialization.PropertyListFormat.binary
         guard let root = try? PropertyListSerialization.propertyList(
-            from: data, options: [], format: nil
+            from: data, options: [], format: &format
         ) as? [String: Any] else {
             throw GestaltPresetError.invalidPlist
         }
-        return root
+        return (root, format)
     }
 
-    static func writeRoot(_ root: [String: Any], reason: String) throws {
+    static func writeRoot(
+        _ root: [String: Any],
+        reason: String,
+        format: PropertyListSerialization.PropertyListFormat? = nil
+    ) throws {
         let path = GestaltKeys.gestaltPath
         let directory = (path as NSString).deletingLastPathComponent
         let grant = ContainerStore.grantContainerAccess(directory)
@@ -357,21 +389,22 @@ enum GestaltPlistIO {
             if grant >= 0 { SandboxAccess.release(grant) }
         }
 
-        // Preserve the on-disk format (binary vs XML) of the original cache.
-        let format: PropertyListSerialization.PropertyListFormat
-        if let existing = FileManager.default.contents(atPath: path) {
-            var detected = PropertyListSerialization.PropertyListFormat.binary
-            _ = try? PropertyListSerialization.propertyList(
-                from: existing, options: [], format: &detected
-            )
-            format = detected
-        } else {
-            format = .binary
-        }
+        // Preserve the on-disk format (binary vs XML). Callers holding a
+        // root from readRootWithFormat pass it in; otherwise probe once.
+        let detectedFormat = format ?? {
+            if let existing = FileManager.default.contents(atPath: path) {
+                var probed = PropertyListSerialization.PropertyListFormat.binary
+                _ = try? PropertyListSerialization.propertyList(
+                    from: existing, options: [], format: &probed
+                )
+                return probed
+            }
+            return PropertyListSerialization.PropertyListFormat.binary
+        }()
         let data: Data
         do {
             data = try PropertyListSerialization.data(
-                fromPropertyList: root, format: format, options: 0
+                fromPropertyList: root, format: detectedFormat, options: 0
             )
         } catch {
             throw GestaltPresetError.invalidPlist

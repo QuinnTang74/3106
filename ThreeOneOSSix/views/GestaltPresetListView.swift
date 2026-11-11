@@ -117,8 +117,9 @@ struct GestaltPresetListView: View {
         isBusy = true
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try GestaltPresetEngine.apply(preset, enabled: enabled)
-                let state = try? GestaltPresetEngine.currentState(for: preset)
+                // State comes back from the same in-memory root the apply
+                // already had — no second 18MB read per toggle.
+                let state = try GestaltPresetEngine.applyReportingState(preset, enabled: enabled)
                 DispatchQueue.main.async {
                     states[preset.id] = state
                     isBusy = false

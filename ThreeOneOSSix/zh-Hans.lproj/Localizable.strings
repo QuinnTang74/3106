@@ -1125,3 +1125,5 @@
 "settings.experimental_footer" = "显示高风险实验流程（如 Siri AI 实验模式）。这些流程未经真机完整验证，最坏情况可能需要恢复设备。";
 "gestalt.presets.factory_protected" = "该能力出厂即为关闭（Erosion-CN v0.8.5 真机验证）：强行开启会断路生成式模型管线校验，导致照片“高质量”消除报错。已锁定。";
 "gestalt.region.error.factory_baseline" = "AI 能力旗标出厂为关闭，按出厂基线保护拒绝写入（照片高质量消除会报错）。";
+"cleaner.progress" = "清理中 %lld/%lld · 已释放 %@ · 当前：%@";
+"preview.too_large" = "文件超过 200 MB，为避免长时间等待未预加载。可直接点文件用系统方式打开。";

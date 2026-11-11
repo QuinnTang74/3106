@@ -92,6 +92,15 @@ enum FileBrowserSortPolicy {
 struct FileBrowserDirectorySummary: Equatable {
     let byteCount: Int64
     let childCount: Int
+    /// True when the walk hit the budget: byteCount is a floor, shown as "…"
+    /// so the UI never implies an exact total for huge subtrees.
+    let truncated: Bool
+
+    init(byteCount: Int64, childCount: Int, truncated: Bool = false) {
+        self.byteCount = byteCount
+        self.childCount = childCount
+        self.truncated = truncated
+    }
 }
 
 enum FileBrowserMetadataScanner {
@@ -125,8 +134,25 @@ enum FileBrowserMetadataScanner {
             throw CocoaError(.fileReadUnknown)
         }
 
+        // Budget: app containers can hold 50k-500k files under Library; an
+        // unbounded walk per directory row stalled listings for tens of
+        // seconds. Same limits as the cleaner/size-meter walkers.
+        let budgetEntries = 12_000
+        let budgetSeconds: TimeInterval = 0.5
+        let startedAt = Date()
+
         var byteCount: Int64 = 0
+        var visited = 0
+        var truncated = false
         for case let itemURL as URL in enumerator {
+            visited += 1
+            if visited % 512 == 0 {
+                if visited >= budgetEntries
+                    || Date().timeIntervalSince(startedAt) >= budgetSeconds {
+                    truncated = true
+                    break
+                }
+            }
             guard let values = try? itemURL.resourceValues(forKeys: Set(keys)) else {
                 continue
             }
@@ -142,7 +168,8 @@ enum FileBrowserMetadataScanner {
 
         return FileBrowserDirectorySummary(
             byteCount: byteCount,
-            childCount: childCount
+            childCount: childCount,
+            truncated: truncated
         )
     }
 }

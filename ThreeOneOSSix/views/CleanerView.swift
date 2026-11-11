@@ -17,6 +17,7 @@ struct CleanerView: View {
     @State private var crashSummary: CrashLogSummary?
     @State private var isCrashBusy = false
     @State private var cleanerHistory: [CleanerHistoryEntry] = []
+    @State private var cleaningProgressText = ""
     let confirmationGate = CleanerSafetyPolicy.ConfirmationGate()
     let onOpenSettings: () -> Void
 
@@ -404,10 +405,14 @@ struct CleanerView: View {
                 }
                 Text(
                     isCleaning
-                        ? language.text("cleaner.cleaning")
+                        ? (cleaningProgressText.isEmpty
+                            ? language.text("cleaner.cleaning")
+                            : cleaningProgressText)
                         : language.text("cleaner.clean_button", sizeText(selectedBytes))
                 )
                 .fontWeight(.semibold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
             }
             .frame(maxWidth: .infinity, minHeight: 44)
         }
@@ -798,6 +803,7 @@ struct CleanerView: View {
         let selectedRecords = records.filter { selectedBundleIDs.contains($0.id) }
         guard !selectedRecords.isEmpty else { return }
         isCleaning = true
+        cleaningProgressText = ""
 
         DispatchQueue.global(qos: .userInitiated).async {
             var updatedUsage: [String: LimitedCleanerUsage] = [:]
@@ -805,8 +811,26 @@ struct CleanerView: View {
             var removedItems = 0
             var failedItems = 0
             var unavailableApps = 0
+            let totalSelected = selectedRecords.count
+            var processedIndex = 0
+            var lastProgressPublish = Date.distantPast
 
             for record in selectedRecords {
+                processedIndex += 1
+                // Throttled per-app progress: the clean of many large apps
+                // takes minutes; a bare spinner read as "hung".
+                let now = Date()
+                if now.timeIntervalSince(lastProgressPublish) >= 0.5 {
+                    lastProgressPublish = now
+                    let progressText = language.text(
+                        "cleaner.progress",
+                        processedIndex, totalSelected,
+                        sizeText(freedBytes), record.app.displayName
+                    )
+                    DispatchQueue.main.async {
+                        cleaningProgressText = progressText
+                    }
+                }
                 // The scan already resolved the exact container. Re-resolving
                 // by bundle id fails whenever MCM is unavailable.
                 let containerPath: String
@@ -861,6 +885,7 @@ struct CleanerView: View {
                     guard usage.totalBytes > 0 else { return nil }
                     return CleanerAppRecord(app: record.app, usage: usage)
                 }
+                cleaningProgressText = ""
                 selectedBundleIDs.removeAll()
                 cleanerHistory = CleanerHistory.record(historyEntry)
                 ActivityHistory.log(

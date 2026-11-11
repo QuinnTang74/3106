@@ -1861,6 +1861,7 @@ struct FileQuickLookView: View {
     @State private var previewURL: URL?
     @State private var previewDirectory: URL?
     @State private var previewFailed = false
+    @State private var previewFailedMessage: String?
 
     var body: some View {
         Group {
@@ -1872,7 +1873,8 @@ struct FileQuickLookView: View {
                     Image(systemName: "doc.questionmark")
                         .font(.system(size: AppTheme.emptyIconSize, weight: .light))
                         .foregroundStyle(.secondary)
-                    Text(language.text("browser.preview_error"))
+                    Text(language.text(previewFailedMessage ?? "browser.preview_error"))
+
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -1910,7 +1912,12 @@ struct FileQuickLookView: View {
             case .success(let prepared):
                 previewURL = prepared.fileURL
                 previewDirectory = prepared.directoryURL
-            case .failure:
+            case .failure(let error):
+                // Too-large gets its own copy; a generic error reads as
+                // "the file is broken" when it is really "too big to copy".
+                previewFailedMessage = error is FilePreviewTooLargeError
+                    ? "preview.too_large"
+                    : nil
                 previewFailed = true
             }
         }
@@ -1930,15 +1937,29 @@ private struct PreparedFilePreview {
     let directoryURL: URL
 }
 
+/// Thrown when a file exceeds the QuickLook copy cap; the view maps it to
+/// a dedicated "too large" message instead of a generic preview error.
+private struct FilePreviewTooLargeError: Error {}
+
 private enum FilePreviewService {
+    /// Oversized files used to copyItem in full before QuickLook appeared —
+    /// a 1-2 GB video meant 10-30 s of an uncancellable "Loading…". The copy
+    /// is now chunked with a hard cap; the caller surfaces a choice instead
+    /// of a fake hang.
+    static let previewCopyMaxBytes: Int64 = 200 * 1024 * 1024
+
     static func makePreviewCopy(of sourceURL: URL) throws -> PreparedFilePreview {
         let values = try sourceURL.resourceValues(
-            forKeys: [.isRegularFileKey, .isDirectoryKey, .isSymbolicLinkKey]
+            forKeys: [.isRegularFileKey, .isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey]
         )
         guard values.isRegularFile == true,
               values.isDirectory != true,
               values.isSymbolicLink != true else {
             throw FileManagerOperationError.sourceMissing
+        }
+        let size = Int64(max(0, values.fileSize ?? 0))
+        if size > previewCopyMaxBytes {
+            throw FilePreviewTooLargeError()
         }
 
         let directory = FileManager.default.temporaryDirectory
@@ -1950,7 +1971,20 @@ private enum FilePreviewService {
                 at: directory,
                 withIntermediateDirectories: true
             )
-            try FileManager.default.copyItem(at: sourceURL, to: destination)
+            // Chunked copy with a size ceiling: copyItem had no bound.
+            let source = try FileHandle(forReadingFrom: sourceURL)
+            defer { try? source.close() }
+            FileManager.default.createFile(atPath: destination.path, contents: nil)
+            let output = try FileHandle(forWritingTo: destination)
+            defer { try? output.close() }
+            let chunkSize = 1 << 16
+            var remaining = size
+            while remaining > 0 {
+                let chunk = try source.read(upToCount: min(chunkSize, Int(remaining))) ?? Data()
+                guard !chunk.isEmpty else { break }
+                try output.write(contentsOf: chunk)
+                remaining -= Int64(chunk.count)
+            }
             return PreparedFilePreview(fileURL: destination, directoryURL: directory)
         } catch {
             try? FileManager.default.removeItem(at: directory)
