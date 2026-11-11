@@ -67,6 +67,24 @@ struct MobileGestaltEditorView: View {
                     Toggle(language.text("gestalt.boot_chime"), isOn: $bootChime)
                 }
 
+                Section(language.text("gestalt.section.advanced_tools")) {
+                    NavigationLink {
+                        GestaltPresetListView()
+                    } label: {
+                        Label(language.text("gestalt.presets.title"), systemImage: "switch.2")
+                    }
+                    NavigationLink {
+                        GestaltFieldEditorView()
+                    } label: {
+                        Label(language.text("gestalt.field.title"), systemImage: "list.bullet.rectangle")
+                    }
+                    NavigationLink {
+                        GestaltRegionView()
+                    } label: {
+                        Label(language.text("gestalt.region.title"), systemImage: "globe")
+                    }
+                }
+
                 Section {
                     Button {
                         showApplyConfirmation = true

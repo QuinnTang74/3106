@@ -60,6 +60,12 @@
 		3105E208 /* RiskConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E108; };
 		3105E209 /* ContainerSizeMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E109; };
 		3105E20A /* ScanDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10A; };
+		3105E20B /* GestaltKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10B; };
+		3105E20C /* GestaltPresets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10C; };
+		3105E20D /* GestaltRegionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10D; };
+		3105E20E /* GestaltFieldEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10E; };
+		3105E20F /* GestaltPresetListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E10F; };
+		3105E210 /* GestaltRegionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E110; };
 		3105E207 /* AppCardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E107; };
 		3105F200 /* wallpaper_zip.c in Sources */ = {isa = PBXBuildFile; fileRef = 3105F100; };
 		3105F201 /* WallpaperLabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105F102; };
@@ -178,6 +184,12 @@
 		3105E108 /* RiskConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskConfirmationView.swift; sourceTree = "<group>"; };
 		3105E109 /* ContainerSizeMeter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContainerSizeMeter.swift; sourceTree = "<group>"; };
 		3105E10A /* ScanDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanDiagnostics.swift; sourceTree = "<group>"; };
+		3105E10B /* GestaltKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltKeys.swift; sourceTree = "<group>"; };
+		3105E10C /* GestaltPresets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltPresets.swift; sourceTree = "<group>"; };
+		3105E10D /* GestaltRegionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltRegionService.swift; sourceTree = "<group>"; };
+		3105E10E /* GestaltFieldEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltFieldEditorView.swift; sourceTree = "<group>"; };
+		3105E10F /* GestaltPresetListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltPresetListView.swift; sourceTree = "<group>"; };
+		3105E110 /* GestaltRegionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltRegionView.swift; sourceTree = "<group>"; };
 		3105E107 /* AppCardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCardList.swift; sourceTree = "<group>"; };
 		3105F100 /* wallpaper_zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = wallpaper_zip.c; sourceTree = "<group>"; };
 		3105F101 /* wallpaper_zip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wallpaper_zip.h; sourceTree = "<group>"; };
@@ -299,6 +311,9 @@
 				3105F106 /* WallpaperLabView.swift */,
 				3105E106 /* BackupTabView.swift */,
 				3105E108 /* RiskConfirmationView.swift */,
+				3105E10E /* GestaltFieldEditorView.swift */,
+				3105E10F /* GestaltPresetListView.swift */,
+				3105E110 /* GestaltRegionView.swift */,
 				3105E107 /* AppCardList.swift */,
 				3105F108 /* OnboardingView.swift */,
 				3105L102 /* RepositoryMarketplaceView.swift */,
@@ -351,6 +366,9 @@
 				3105E102 /* CleanerCatalog.swift */,
 				3105E109 /* ContainerSizeMeter.swift */,
 				3105E10A /* ScanDiagnostics.swift */,
+				3105E10B /* GestaltKeys.swift */,
+				3105E10C /* GestaltPresets.swift */,
+				3105E10D /* GestaltRegionService.swift */,
 				3105E103 /* CleanerSafetyPolicy.swift */,
 				3105E104 /* CleanerHistory.swift */,
 				3105E105 /* CleanerMeasureCache.swift */,
@@ -511,6 +529,12 @@
 				3105E208,
 				3105E209,
 				3105E20A,
+				3105E20B,
+				3105E20C,
+				3105E20D,
+				3105E20E,
+				3105E20F,
+				3105E210,
 				3105E207,
 				3105F200,
 				3105F201,
