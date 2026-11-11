@@ -506,12 +506,13 @@ struct PlistValueEditor: View {
     @State private var errorMessage: String?
 
     private enum PlistValueType: String, CaseIterable, Identifiable {
-        case string, number, boolean, data, date
+        case string, number, real, boolean, data, date
         var id: String { rawValue }
         var title: String {
             switch self {
             case .string: return "String"
-            case .number: return "Number"
+            case .number: return "Integer"
+            case .real: return "Real"
             case .boolean: return "Boolean"
             case .data: return "Data"
             case .date: return "Date"
@@ -562,6 +563,11 @@ struct PlistValueEditor: View {
             if CFGetTypeID(number) == CFBooleanGetTypeID() {
                 type = .boolean
                 boolean = number.boolValue
+            } else if CFNumberIsFloatType(unsafeBitCast(number, to: CFNumber.self)) {
+                // Preserve Real values (e.g. camera zoom factors): writing
+                // them back as Integers black-screens the camera viewfinder.
+                type = .real
+                text = number.stringValue
             } else {
                 type = .number
                 text = number.stringValue
@@ -587,6 +593,12 @@ struct PlistValueEditor: View {
             case .number:
                 guard let number = Int(text) else { throw PlistEditorError.invalidValue }
                 value = number
+            case .real:
+                // Round-trip through Double so <real> stays <real>.
+                guard let number = Double(text), number.isFinite else {
+                    throw PlistEditorError.invalidValue
+                }
+                value = NSNumber(value: number)
             case .boolean:
                 value = boolean
             case .data:

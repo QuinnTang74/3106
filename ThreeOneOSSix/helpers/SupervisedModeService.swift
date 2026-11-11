@@ -69,6 +69,11 @@ enum SupervisedModeService {
             feature: .gestalt,
             reason: supervised ? "supervised:enable" : "supervised:disable"
         )
+        ActivityHistory.log(
+            .write,
+            feature: "supervised",
+            supervised ? "IsSupervised=true" : "IsSupervised=false"
+        )
         SoundEffects.play(.confirm)
     }
 

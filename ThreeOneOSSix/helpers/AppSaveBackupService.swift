@@ -142,6 +142,7 @@ enum AppSaveBackupService {
             to: tempURL
         )
         try FileManager.default.moveItem(at: tempURL, to: archiveURL)
+        ActivityHistory.log(.backup, feature: "savebackup", app.bundleID)
 
         let size = (try? archiveURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
         SoundEffects.play(.success)
@@ -299,6 +300,7 @@ enum AppSaveBackupService {
             }
             try fm.copyItem(at: preferencesSource, to: URL(fileURLWithPath: targetPreferences))
         }
+        ActivityHistory.log(.restore, feature: "savebackup", entry.manifest.bundleID)
         SoundEffects.play(.success)
     }
 

@@ -210,6 +210,11 @@ enum GestaltPresetEngine {
 
         root["CacheExtra"] = cacheExtra
         try GestaltPlistIO.writeRoot(root, reason: "preset:\(preset.id)")
+        ActivityHistory.log(
+            enabled ? .write : .restore,
+            feature: "gestalt",
+            "preset:\(preset.id)"
+        )
         SoundEffects.play(.confirm)
     }
 

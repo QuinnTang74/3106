@@ -180,10 +180,7 @@ struct ContentView: View {
         case .cleaner:
             CleanerView(onOpenSettings: openSettings)
         case .backup:
-            BackupTabView(
-                onOpenSettings: openSettings,
-                onOpenLogs: openLogs
-            )
+            BackupTabView()
         case .wallpapers:
             WallpaperLabView(
                 onOpenSettings: openSettings,

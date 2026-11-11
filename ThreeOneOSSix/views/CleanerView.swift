@@ -860,6 +860,11 @@ struct CleanerView: View {
                 }
                 selectedBundleIDs.removeAll()
                 cleanerHistory = CleanerHistory.record(historyEntry)
+                ActivityHistory.log(
+                    .clean,
+                    feature: "cleaner",
+                    "apps=\(historyEntry.cleanedAppCount) freed=\(historyEntry.totalFreedBytes)"
+                )
                 isCleaning = false
                 activeAlert = .result(message: resultMessage)
             }
