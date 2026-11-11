@@ -17,6 +17,7 @@ struct GestaltPresetListView: View {
 
     var body: some View {
         List {
+            BackendNoticeBanner()
             ForEach(GestaltPresetCategory.allCases) { category in
                 Section {
                     ForEach(GestaltPresets.presets(in: category)) { preset in

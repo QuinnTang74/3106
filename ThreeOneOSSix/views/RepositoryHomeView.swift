@@ -53,6 +53,26 @@ struct RepositoryHomeView: View {
             .onChange(of: store.packages) { _ in
                 rebuildFeed()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .repositoryShareIPA)) { notification in
+                // AltStore-source downloads land as .ipa files; the app has
+                // no sideload path, so hand the file to the share sheet for
+                // the user's own signing tool.
+                guard let url = notification.object as? URL else { return }
+                let activity = UIActivityViewController(
+                    activityItems: [url],
+                    applicationActivities: nil
+                )
+                // iPad requires a popover source or presentation crashes.
+                if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let root = scene.keyWindow?.rootViewController {
+                    activity.popoverPresentationController?.sourceView = root.view
+                    activity.popoverPresentationController?.sourceRect = CGRect(
+                        x: root.view.bounds.midX, y: root.view.bounds.maxY - 8,
+                        width: 1, height: 1
+                    )
+                    root.present(activity, animated: true)
+                }
+            }
         }
     }
 
@@ -532,7 +552,9 @@ private struct RepositoryFeaturedCard: View {
     private var placeholder: some View {
         Image(systemName: record.package.kind == .wallpaper
             ? "photo.fill"
-            : "shippingbox.fill")
+            : record.package.kind == .ipa
+                ? "arrow.down.app.fill"
+                : "shippingbox.fill")
             .font(.system(size: 30, weight: .medium))
             .foregroundStyle(.white.opacity(0.82))
     }

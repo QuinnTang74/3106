@@ -47,11 +47,11 @@ expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 2, patch: 1), "
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 26, minor: 7, patch: 3), "26.7.3 not worse_query")
 expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 0, patch: 0), "27.0 worse_query")
 expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 2, patch: 0), "27.2 worse_query")
-expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0), "27.3 not verified worse_query")
+expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0), "27.3 worse_query verified on hardware")
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 28, minor: 0, patch: 0), "28.0 not worse_query")
 
 // Experimental + overall support
-expect(ExploitSupportPolicy.isExperimental(major: 27, minor: 3), "27.3 experimental")
+expectFalse(ExploitSupportPolicy.isExperimental(major: 27, minor: 3), "27.3 is fully supported, not experimental")
 expectFalse(ExploitSupportPolicy.isExperimental(major: 27, minor: 2), "27.2 not experimental")
 
 expect(ExploitSupportPolicy.isSupported(major: 26, minor: 7, patch: 2, build: "any"), "26.7.2 supported")

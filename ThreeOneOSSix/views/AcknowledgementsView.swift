@@ -32,6 +32,31 @@ struct AcknowledgementsView: View {
                 detailKey: "ack.3105",
                 url: URL(string: "https://github.com/YangJiiii/3105")!
             ),
+            Credit(
+                name: "GestaltX / huamidev",
+                detailKey: "ack.gestaltx",
+                url: URL(string: "https://github.com/huamidev/GestaltX")!
+            ),
+            Credit(
+                name: "YumEdit / H4CNPE",
+                detailKey: "ack.yumedit",
+                url: URL(string: "https://github.com/H4CNPE/YumEdit")!
+            ),
+            Credit(
+                name: "Erosion-CN / Kianuni",
+                detailKey: "ack.erosion_cn",
+                url: URL(string: "https://github.com/Kianuni/Erosion-CN")!
+            ),
+            Credit(
+                name: "WQManager / hseons",
+                detailKey: "ack.wqmanager",
+                url: URL(string: "https://github.com/hseons/WQManager")!
+            ),
+            Credit(
+                name: "AltGallery / bebound",
+                detailKey: "ack.altgallery",
+                url: URL(string: "https://github.com/bebound/AltGallery")!
+            ),
         ]
     }
 

@@ -29,6 +29,7 @@ struct GestaltRegionView: View {
 
     var body: some View {
         List {
+            BackendNoticeBanner(unavailableKey: "backend.notice.region")
             snapshotSection
             nativeSection
             experimentalSection

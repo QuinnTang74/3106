@@ -15,6 +15,7 @@ struct SupervisedModeView: View {
 
     var body: some View {
         List {
+            BackendNoticeBanner(unavailableKey: "backend.notice.supervised")
             Section {
                 LabeledContent(language.text("supervised.state")) {
                     Text(stateText)

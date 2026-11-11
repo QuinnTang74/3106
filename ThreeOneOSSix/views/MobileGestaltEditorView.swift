@@ -27,6 +27,7 @@ struct MobileGestaltEditorView: View {
 
     var body: some View {
         Form {
+            BackendNoticeBanner()
             Section {
                 Text(language.text("gestalt.safety"))
                     .font(.footnote)

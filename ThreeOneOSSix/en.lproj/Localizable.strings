@@ -1127,3 +1127,12 @@
 "gestalt.region.error.factory_baseline" = "The AI capability flag ships OFF at the factory; the write is refused under the factory-baseline rule (photos high-quality Clean Up would break).";
 "cleaner.progress" = "Cleaning %lld/%lld · freed %@ · now: %@";
 "preview.too_large" = "The file exceeds 200 MB and was not preloaded to avoid a long wait. Open it directly instead.";
+"backend.notice.title" = "Feature limited on this iOS version";
+"backend.notice.system_group" = "This feature writes to system group containers (MobileGestalt cache, etc.). The older iOS 26.0–26.6.1 exploit only reaches app and daemon containers, so writes here are unavailable; update to iOS 26.7+ or 27.x to use it.";
+"backend.notice.supervised" = "Supervised Mode writes a configuration profile inside a system group container. The older iOS 26.0–26.6.1 exploit cannot reach that path; update to iOS 26.7+ or 27.x.";
+"backend.notice.region" = "Region & Siri AI modify the MobileGestalt system cache. The older iOS 26.0–26.6.1 exploit cannot reach that path; update to iOS 26.7+ or 27.x.";
+"ack.gestaltx" = "Cross-check source for MobileGestalt preset keys and model mappings (GPL-3.0).";
+"ack.yumedit" = "Reference for Siri AI model mappings and region-change guardrails (GPL-3.0).";
+"ack.erosion_cn" = "Erosion Simplified-Chinese hardening fork: anti-bounce rules, type fidelity and the factory-baseline finding (GPL-3.0).";
+"ack.wqmanager" = "Reference for the cleaner safety policy and budgeted measurement design (GPL-3.0).";
+"ack.altgallery" = "Provider of the default source manifest (AltStore format).";

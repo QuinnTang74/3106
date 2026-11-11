@@ -1127,3 +1127,12 @@
 "gestalt.region.error.factory_baseline" = "Cờ khả năng AI tắt sẵn tại nhà máy; việc ghi bị từ chối theo quy tắc baseline nhà máy (Clean Up chất lượng cao của Ảnh sẽ lỗi).";
 "cleaner.progress" = "Đang dọn %lld/%lld · đã giải phóng %@ · đang: %@";
 "preview.too_large" = "Tệp vượt 200 MB nên không tải trước để tránh chờ lâu. Hãy mở trực tiếp.";
+"backend.notice.title" = "Tính năng bị hạn chế trên phiên bản iOS này";
+"backend.notice.system_group" = "Tính năng này ghi vào vùng chứa nhóm hệ thống (bộ nhớ đệm MobileGestalt, …). Lỗ hổng cũ iOS 26.0–26.6.1 chỉ với được vùng chứa ứng dụng và daemon, nên không thể ghi ở đây; nâng cấp lên iOS 26.7+ hoặc 27.x để dùng.";
+"backend.notice.supervised" = "Chế độ giám sát ghi cấu hình mô tả trong vùng chứa nhóm hệ thống. Lỗ hổng cũ iOS 26.0–26.6.1 không với được đường dẫn đó; nâng cấp lên iOS 26.7+ hoặc 27.x.";
+"backend.notice.region" = "Vùng & Siri AI sửa bộ nhớ đệm hệ thống MobileGestalt. Lỗ hổng cũ iOS 26.0–26.6.1 không với được đường dẫn đó; nâng cấp lên iOS 26.7+ hoặc 27.x.";
+"ack.gestaltx" = "Nguồn đối chiếu khóa preset MobileGestalt và bảng ánh xạ máy (GPL-3.0).";
+"ack.yumedit" = "Tham chiếu ánh xạ máy Siri AI và rào cản đổi vùng (GPL-3.0).";
+"ack.erosion_cn" = "Bản加固 tiếng Trung của Erosion: quy tắc chống rebound, đúng kiểu dữ liệu và phát hiện baseline nhà máy (GPL-3.0).";
+"ack.wqmanager" = "Tham chiếu thiết kế chính sách an toàn dọn dẹp và đo có ngân sách (GPL-3.0).";
+"ack.altgallery" = "Bên cung cấp danh mục nguồn mặc định (định dạng AltStore).";

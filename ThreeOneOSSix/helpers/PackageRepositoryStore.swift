@@ -40,6 +40,24 @@ final class PackageRepositoryStore: ObservableObject {
         } else {
             sources = []
         }
+        // Single-source policy (operator-set): AltGallery's all-apps.json is
+        // the only source. Seed it on first run and REMOVE anything else
+        // persisted from earlier builds, so both fresh installs and updates
+        // converge to the same one source.
+        sources.removeAll {
+            $0.manifestURL.absoluteString.caseInsensitiveCompare(
+                AltStoreSourceAdapter.altGalleryURL.absoluteString
+            ) != .orderedSame
+        }
+        if !sources.contains(where: {
+            $0.manifestURL.absoluteString.caseInsensitiveCompare(
+                AltStoreSourceAdapter.altGalleryURL.absoluteString
+            ) == .orderedSame
+        }) {
+            let seed = RepositorySource(manifestURL: AltStoreSourceAdapter.altGalleryURL)
+            sources.append(seed)
+            persist()
+        }
         for source in sources {
             sourceStates[source.id] = .idle
         }
@@ -221,6 +239,20 @@ final class PackageRepositoryStore: ObservableObject {
             }
             do {
                 switch record.package.kind {
+                case .ipa:
+                    // AltStore-format sources ship upstream release IPAs.
+                    // There is no in-app sideload: download into the IPAs
+                    // folder and present the share sheet so the user's own
+                    // signing tool (AirDrop/Configurator/Sideloadly) takes it.
+                    let url = try await PackageRepositoryNetworkClient.downloadIPA(
+                        record.package
+                    )
+                    await MainActor.run {
+                        NotificationCenter.default.post(
+                            name: .repositoryShareIPA,
+                            object: url
+                        )
+                    }
                 case .patch:
                     let data = try await PackageRepositoryNetworkClient.download(
                         record.package
@@ -296,6 +328,10 @@ final class PackageRepositoryStore: ObservableObject {
             return WallpaperPackageStore.contains(
                 repositoryIdentity: record.repositoryIdentity
             )
+        case .ipa:
+            // IPAs are installed by the user's own signing tool, not by the
+            // app — there is no in-app "installed" state to report.
+            return false
         }
     }
 
@@ -444,6 +480,12 @@ enum PackageRepositoryNetworkClient {
         )
         defer { try? FileManager.default.removeItem(at: download.fileURL) }
         let data = try Data(contentsOf: download.fileURL, options: .mappedIfSafe)
+        // AltStore-format manifests (the AltGallery default source) have no
+        // schemaVersion field and would fail the native decode; dispatch on
+        // the known URL so they go through the adapter instead.
+        if download.finalURL.absoluteString == AltStoreSourceAdapter.altGalleryURL.absoluteString {
+            return try AltStoreSourceAdapter.decode(data, sourceURL: download.finalURL)
+        }
         return try PackageRepositoryValidator.decode(
             data,
             sourceURL: download.finalURL
@@ -457,6 +499,29 @@ enum PackageRepositoryNetworkClient {
         let fileURL = try await verifiedDownload(package, maximumBytes: nil)
         defer { try? FileManager.default.removeItem(at: fileURL) }
         return try Data(contentsOf: fileURL, options: .mappedIfSafe)
+    }
+
+    /// Download an upstream IPA into Documents/3106/IPAs, overwriting a
+    /// previous release of the same app (bundle identifier is the name key).
+    /// 512 MB cap: upstream releases are single-digit MB to a few hundred;
+    /// anything larger is almost certainly a wrong link.
+    static func downloadIPA(_ package: RepositoryPackage) async throws -> URL {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let dir = docs.appendingPathComponent("3106/IPAs", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let safeName = package.identifier
+            .replacingOccurrences(of: "/", with: "_")
+        let destination = dir
+            .appendingPathComponent("\(safeName)-\(package.version).ipa")
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+        let (fileURL, _) = try await downloadFile(
+            from: package.downloadURL,
+            maximumBytes: 512 * 1024 * 1024
+        )
+        try FileManager.default.moveItem(at: fileURL, to: destination)
+        return destination
     }
 
     static func downloadWallpaper(_ package: RepositoryPackage) async throws -> URL {
@@ -547,4 +612,8 @@ enum PackageRepositoryNetworkClient {
             throw PackageRepositoryError.sourceUnavailable
         }
     }
+}
+
+extension Notification.Name {
+    static let repositoryShareIPA = Notification.Name("repositoryShareIPA")
 }

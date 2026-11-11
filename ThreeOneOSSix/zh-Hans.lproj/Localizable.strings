@@ -1127,3 +1127,12 @@
 "gestalt.region.error.factory_baseline" = "AI 能力旗标出厂为关闭，按出厂基线保护拒绝写入（照片高质量消除会报错）。";
 "cleaner.progress" = "清理中 %lld/%lld · 已释放 %@ · 当前：%@";
 "preview.too_large" = "文件超过 200 MB，为避免长时间等待未预加载。可直接点文件用系统方式打开。";
+"backend.notice.title" = "当前系统版本功能受限";
+"backend.notice.system_group" = "本功能需要写入系统组容器（MobileGestalt 缓存等）。iOS 26.0–26.6.1 的旧漏洞只能访问应用与守护进程容器，无法使用本页的写入功能；升级到 iOS 26.7+ 或 27.x 可用。";
+"backend.notice.supervised" = "监管模式需要写系统组容器中的配置描述文件。iOS 26.0–26.6.1 的旧漏洞无法访问该路径；升级到 iOS 26.7+ 或 27.x 可用。";
+"backend.notice.region" = "区域与 Siri AI 需要修改 MobileGestalt 系统缓存。iOS 26.0–26.6.1 的旧漏洞无法访问该路径；升级到 iOS 26.7+ 或 27.x 可用。";
+"ack.gestaltx" = "MobileGestalt 预设键名与机型映射的交叉核对来源（GPL-3.0）。";
+"ack.yumedit" = "Siri AI 机型映射与区域修改护栏的参考（GPL-3.0）。";
+"ack.erosion_cn" = "Erosion 简中加固版：防重启反弹规则、类型保真与出厂基线发现（GPL-3.0）。";
+"ack.wqmanager" = "清理器安全策略与测量预算制设计的参考（GPL-3.0）。";
+"ack.altgallery" = "软件源默认清单（AltStore 格式）的提供方。";

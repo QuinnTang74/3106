@@ -75,6 +75,16 @@ enum LaunchServicesStore {
         Layout(label: "26", bundleSize: 0x23c, bundleID: 0x0c, container: 0x64,
                name: 0x68, displayName: 0x70, bundlePath: 0x00,
                pluginSize: 0x104, pluginBundleID: 0x00, pluginContainer: 0x50),
+        // iOS 26.5 (WQ Files 0.9.1, issue #37, from a device layout hint):
+        // same record sizes as 26.7 but container fields 4 bytes earlier;
+        // the bundle id position was unknown upstream, so both candidates
+        // are listed — the layout mapping the most containers wins.
+        Layout(label: "26.5", bundleSize: 0x23c, bundleID: 0x0c, container: 0x60,
+               name: 0x64, displayName: 0x6c, bundlePath: 0x00,
+               pluginSize: 0x104, pluginBundleID: 0x00, pluginContainer: 0x4c),
+        Layout(label: "26.5b", bundleSize: 0x23c, bundleID: 0x08, container: 0x60,
+               name: 0x64, displayName: 0x6c, bundlePath: 0x00,
+               pluginSize: 0x104, pluginBundleID: 0x00, pluginContainer: 0x4c),
         Layout(label: "27.2", bundleSize: 0x25c, bundleID: 0x0c, container: 0x6c,
                name: 0x70, displayName: 0x78, bundlePath: 0x00,
                pluginSize: 0x120, pluginBundleID: 0x00, pluginContainer: 0x58),

@@ -20,6 +20,7 @@ struct GestaltFieldEditorView: View {
 
     var body: some View {
         List {
+            BackendNoticeBanner()
             summarySection
             entriesSection
         }

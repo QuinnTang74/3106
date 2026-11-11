@@ -750,6 +750,9 @@ struct RepositoryPackageDetailView: View {
         if isInstalled {
             return "repository.update_package"
         }
+        if record.package.kind == .ipa {
+            return "repository.get_package"
+        }
         return record.package.kind == .wallpaper
             ? "repository.download_package"
             : "repository.install_package"

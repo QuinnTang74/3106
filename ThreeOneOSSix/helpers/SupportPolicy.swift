@@ -28,21 +28,24 @@ enum ExploitSupportPolicy {
         return minor < 6 || (minor == 6 && patch <= 1)
     }
 
-    /// worse_query targets iOS 26.0–26.7.2 and 27.x through 27.2. 27.3 beta 1
-    /// works in the field but is treated as experimental here.
+    /// worse_query targets iOS 26.0–26.7.2 and 27.x through 27.3.
+    /// iOS 27.3 beta 1 was verified working on hardware and is fully
+    /// supported (operator-confirmed).
     static func supportsWorseQuery(major: Int, minor: Int, patch: Int) -> Bool {
         guard minor >= 0, patch >= 0 else { return false }
         if major == 26 {
             return minor == 7 && patch <= 2
         }
         if major == 27 {
-            return minor < 3
+            return minor <= 3
         }
         return false
     }
 
+    /// Kept for the experimental-features gate; no release currently maps
+    /// to an experimental tier.
     static func isExperimental(major: Int, minor: Int) -> Bool {
-        major == 27 && minor == 3
+        false
     }
 
     static func isSupported(major: Int, minor: Int, patch: Int, build: String) -> Bool {

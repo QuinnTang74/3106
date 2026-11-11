@@ -61,6 +61,23 @@ enum SandboxAccess {
         }
     }
 
+    /// True when the current backend can reach Shared/SystemGroup containers
+    /// (MobileGestalt cache, ConfigurationProfiles → Supervised Mode, …).
+    /// Only worse_query grants those on iOS 26.7+; the bad_query backend
+    /// (iOS 26.0–26.6.1) covers app/daemon/group containers only, and the
+    /// kernel backend reaches whatever the kernel permits but historically
+    /// the 3105 lineage used it without SystemGroup writes.
+    static var systemGroupWritable: Bool {
+        backend == .worseQuery
+    }
+
+    /// True when worse_query's App-Group technique is REQUIRED but the
+    /// device cannot run it (e.g. iOS 26.0–26.6.1 on bad_query, or a
+    /// missing App Group entitlement).
+    static var systemGroupFeaturesUnavailable: Bool {
+        !systemGroupWritable
+    }
+
     /// System Groups' parent cannot be listed on 27.0.1; callers fall back to
     /// probing known container names.
     static var systemGroupParentListable: Bool {

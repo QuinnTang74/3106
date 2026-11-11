@@ -72,6 +72,8 @@
 		3105E214 /* AppSaveBackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E114; };
 		3105E215 /* FullBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E115; };
 		3105E216 /* ActivityHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E116; };
+		3105E217 /* AltStoreSourceAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E117; };
+		3105E218 /* BackendNoticeBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E118; };
 		3105E207 /* AppCardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E107; };
 		3105F200 /* wallpaper_zip.c in Sources */ = {isa = PBXBuildFile; fileRef = 3105F100; };
 		3105F201 /* WallpaperLabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105F102; };
@@ -202,6 +204,8 @@
 		3105E114 /* AppSaveBackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSaveBackupView.swift; sourceTree = "<group>"; };
 		3105E115 /* FullBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullBackupService.swift; sourceTree = "<group>"; };
 		3105E116 /* ActivityHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityHistory.swift; sourceTree = "<group>"; };
+		3105E117 /* AltStoreSourceAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltStoreSourceAdapter.swift; sourceTree = "<group>"; };
+		3105E118 /* BackendNoticeBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendNoticeBanner.swift; sourceTree = "<group>"; };
 		3105E107 /* AppCardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCardList.swift; sourceTree = "<group>"; };
 		3105F100 /* wallpaper_zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = wallpaper_zip.c; sourceTree = "<group>"; };
 		3105F101 /* wallpaper_zip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wallpaper_zip.h; sourceTree = "<group>"; };
@@ -323,6 +327,7 @@
 				3105F106 /* WallpaperLabView.swift */,
 				3105E106 /* BackupTabView.swift */,
 				3105E108 /* RiskConfirmationView.swift */,
+				3105E118 /* BackendNoticeBanner.swift */,
 				3105E10E /* GestaltFieldEditorView.swift */,
 				3105E10F /* GestaltPresetListView.swift */,
 				3105E110 /* GestaltRegionView.swift */,
@@ -387,6 +392,7 @@
 				3105E112 /* AppSaveBackupService.swift */,
 				3105E115 /* FullBackupService.swift */,
 				3105E116 /* ActivityHistory.swift */,
+				3105E117 /* AltStoreSourceAdapter.swift */,
 				3105E103 /* CleanerSafetyPolicy.swift */,
 				3105E104 /* CleanerHistory.swift */,
 				3105E105 /* CleanerMeasureCache.swift */,
@@ -559,6 +565,8 @@
 				3105E214,
 				3105E215,
 				3105E216,
+				3105E217,
+				3105E218,
 				3105E207,
 				3105F200,
 				3105F201,
