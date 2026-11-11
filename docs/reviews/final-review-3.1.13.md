@@ -12,10 +12,12 @@
 | `c2b216b` | 功能主页、固定 5 项底栏、三语 |
 | `1a4ba5a` | ScanCoordinator/Pathleak、App Group 提示、致谢、Respring |
 | `58920d3` | MobileGestalt/拨号主题、SQLite/Hex/Plist、逐目标授权与 flags 学习 |
+| `5401417` | 文件信息、左滑删除、崩溃日志清理、3.1.13 收口与 IPA |
+| `2662cd7` | 拨号键恢复失败处理、Respring 兜底与最终校验和 |
 
 ## 验证证据
 
-- Release 无签名构建：**BUILD SUCCEEDED**（3.1.13 build 17，构建日志 `/tmp/3106-build17.log`）。
+- Release 无签名构建：**BUILD SUCCEEDED**（3.1.13 build 17，最终构建日志 `/tmp/3106-build19.log`）。
 - 策略/单元测试：`bash Tests/run_policy_tests.sh` → **PASS: 76 checks**。
 - 本地化：491 个字面 key 在 en / zh-Hans / vi **全部存在**。
 - 工程文件：`plutil -lint project.pbxproj` → OK。
