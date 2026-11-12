@@ -61,3 +61,27 @@ iOS 26.7+ / 27.x 必须保留 App Group（Sideloadly 会丢，用 Impactor 或 X
 #3106 #iOS27 #无越狱
 
 ---
+
+🇬🇧 **English**
+
+🚀 **3106 v3.2.1 — stable**
+
+A no-jailbreak iOS container manager, rebuilt from 3105 with full feature parity against five comparable projects.
+
+✨ **MobileGestalt cards page**: staged toggles + one Apply button, 4-element Apple Intelligence checkup (config vs. on-device), 31 presets, lock states, Type-faithful CacheExtra field editor.
+
+📁 **Arbitrary file replace**: pick app → browse container folders → pick file → optional backup → replace. Persistent log, one-tap restore, saved presets. Works on iOS 26 & 27.
+
+💾 **Backup tab**: every write auto-backs-up first; full-workspace archive one-tap restore; app save backups survive reinstalls.
+
+🌍 **Region & Siri AI**: LL/A region triplet + regulatory matching, native Siri AI (Face ID untouched), experimental mode for older devices, anti-bounce writes.
+
+🧹 **Cleaner**: three-layer safety (blacklist + identity re-check + confirmation gate), budgeted measurement, live per-app progress.
+
+📡 **Support**: iOS 17.0–18.7.1 (kernel) · 26.0–26.6.1 (bad_query) · 26.7–27.3 beta 1 (worse_query). The exploit is picked automatically. On iOS 26.0–26.6.1 the system-group pages show a red banner; everything else works.
+
+📥 **Install**: sign the unsigned IPA yourself (LCSign / Sideloadly / Impactor / Xcode). iOS 26.7+/27.x must keep the App Group entitlement.
+
+🔗 https://github.com/QuinnTang74/3106/releases/tag/v3.2.1
+
+---
