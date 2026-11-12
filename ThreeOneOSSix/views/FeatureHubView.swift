@@ -181,6 +181,16 @@ struct FeatureHubView: View {
                             icon: "arrow.down.doc.fill"
                         )
                     }
+
+                    NavigationLink {
+                        FileReplaceView()
+                    } label: {
+                        card(
+                            "home.card.filereplace",
+                            detail: "home.card.filereplace_detail",
+                            icon: "arrowshape.replace.forward.fill"
+                        )
+                    }
                 } header: {
                     Text(language.text("home.section.data"))
                 }
