@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.2.1** (stable) |
-| Current release | **v3.2.1** (build 19, full parity: cleaner hardening, backup center tab, MobileGestalt cards, file replace, single source, Siri AI & region) |
+| Version | **3.2.2** (stable) |
+| Current release | **v3.2.2** (build 20, dark-mode fix: dynamic card fills on the MobileGestalt cards page) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.3 beta 1 (verified) |
 | Access backend | kernel / `bad_query` / `worse_query` (selected automatically by OS version) |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -51,7 +51,8 @@
 
 | Version | Highlights |
 | --- | --- |
-| **3.2.1** | Stable: checkup row states (unmodified=neutral / written&match=green / mismatch=warning, all-red-X on iOS 26), saved replace presets with one-tap reuse, backend reachability fix (kernel backend reaches system groups), File Replace banner removed, Settings update check |
+| **3.2.2** | Stable: fixed Gestalt cards dark mode (card backgrounds are dynamic; no more white-on-white in dark theme) |
+| **3.2.1** | Stable: checkup row states| **3.2.1** | Stable: checkup row states (unmodified=neutral / written&match=green / mismatch=warning, all-red-X on iOS 26), saved replace presets with one-tap reuse, backend reachability fix (kernel backend reaches system groups), File Replace banner removed, Settings update check |
 | **3.2.0** | Stable: full parity (see the feature table above and CHANGELOG); WQ Files 0.9.1 iOS 26.5 layout sync; iOS 27.3 beta 1 promoted to stable; AltGallery source; Erosion-CN v0.8.5 factory-baseline protection; credits expanded to 9 entries |
 | **3.1.13** | Feature hub + fixed five tabs; LaunchServices fast catalog; backup center and verified writes; scan progress/stop; safe MobileGestalt subset, keypad themes; SQLite/hex/plist tools |
 
