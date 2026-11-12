@@ -42,6 +42,10 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/CleanerSafetyPolicy.swift" \
   "$ROOT/ThreeOneOSSix/helpers/CleanerHistory.swift" \
   "$ROOT/ThreeOneOSSix/helpers/ActivityHistory.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/AltStoreSourceAdapter.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/AppVersionComparison.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/PackageRepositoryModels.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/PatchProjectModels.swift" \
   "$ROOT/ThreeOneOSSix/helpers/BackupCenter.swift" \
   "$ROOT/ThreeOneOSSix/helpers/Pathleak.swift" \
   "$ROOT/Tests/main.swift" \

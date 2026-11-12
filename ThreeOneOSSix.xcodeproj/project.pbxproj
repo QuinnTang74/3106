@@ -77,6 +77,7 @@
 		3105E219 /* FileReplaceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E119; };
 		3105E21A /* FileReplaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E11A; };
 		3105E21B /* GestaltCardsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E11B; };
+		3105E21C /* AppVersionComparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E11C; };
 		3105E207 /* AppCardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E107; };
 		3105F200 /* wallpaper_zip.c in Sources */ = {isa = PBXBuildFile; fileRef = 3105F100; };
 		3105F201 /* WallpaperLabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105F102; };
@@ -212,6 +213,7 @@
 		3105E119 /* FileReplaceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileReplaceService.swift; sourceTree = "<group>"; };
 		3105E11A /* FileReplaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileReplaceView.swift; sourceTree = "<group>"; };
 		3105E11B /* GestaltCardsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltCardsView.swift; sourceTree = "<group>"; };
+		3105E11C /* AppVersionComparison.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionComparison.swift; sourceTree = "<group>"; };
 		3105E107 /* AppCardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCardList.swift; sourceTree = "<group>"; };
 		3105F100 /* wallpaper_zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = wallpaper_zip.c; sourceTree = "<group>"; };
 		3105F101 /* wallpaper_zip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wallpaper_zip.h; sourceTree = "<group>"; };
@@ -401,6 +403,7 @@
 				3105E115 /* FullBackupService.swift */,
 				3105E116 /* ActivityHistory.swift */,
 				3105E117 /* AltStoreSourceAdapter.swift */,
+				3105E11C /* AppVersionComparison.swift */,
 				3105E119 /* FileReplaceService.swift */,
 				3105E103 /* CleanerSafetyPolicy.swift */,
 				3105E104 /* CleanerHistory.swift */,
@@ -579,6 +582,7 @@
 				3105E219,
 				3105E21A,
 				3105E21B,
+				3105E21C,
 				3105E207,
 				3105F200,
 				3105F201,

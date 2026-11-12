@@ -1238,3 +1238,4 @@
 "settings.update_new" = "New version %@ available";
 "settings.update_latest" = "Up to date";
 "update.open_github" = "Download from GitHub";
+"update.current" = "Currently installed: %@";

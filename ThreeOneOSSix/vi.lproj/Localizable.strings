@@ -1238,3 +1238,4 @@
 "settings.update_new" = "Có bản mới %@";
 "settings.update_latest" = "Đã là bản mới nhất";
 "update.open_github" = "Tải từ GitHub";
+"update.current" = "Phiên bản đang cài: %@";

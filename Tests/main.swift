@@ -632,6 +632,125 @@ do {
     expect(ActivityHistory.load().isEmpty, "clear empties activity")
 }
 
+// ── v3.2.1 verification block ──────────────────────────────────────────
+// Real-logic verification for this release: AltStore adapter (real
+// AltGallery manifest shape), update-check version comparison, the
+// open-ended-range compatibility fix, and the 27.3 / 26.5 policy flips.
+// These run in the bare CLI harness — no UIKit, no sandbox grants.
+
+// 1) AltStoreSourceAdapter: a realistic AltGallery-shaped manifest.
+do {
+    let manifestJSON = """
+    {
+      "name": "AltGallery",
+      "subtitle": "aggregate",
+      "iconURL": "https://raw.githubusercontent.com/bebound/AltGallery/master/icon.png",
+      "apps": [
+        {
+          "name": "Aidoku",
+          "bundleIdentifier": "app.aidoku.Aidoku",
+          "developerName": "Aidoku",
+          "subtitle": "Manga reader",
+          "localizedDescription": "An open source manga reader.",
+          "iconURL": "https://raw.githubusercontent.com/bebound/AltGallery/master/aidoku.png",
+          "versions": [
+            {
+              "version": "0.9.1",
+              "date": "2026-10-01T00:00:00Z",
+              "localizedDescription": "bugfixes",
+              "downloadURL": "https://github.com/Aidoku/Aidoku/releases/download/v0.9-4/Aidoku.ipa",
+              "size": 14753154,
+              "minOSVersion": "15.0"
+            }
+          ]
+        },
+        {
+          "name": "Duplicate Bundle",
+          "bundleIdentifier": "app.aidoku.Aidoku",
+          "versions": [
+            {"version": "0.1", "downloadURL": "https://github.com/x/x/releases/download/v1/x.ipa"}
+          ]
+        },
+        {
+          "name": "Bad Link",
+          "bundleIdentifier": "com.bad.link",
+          "versions": [
+            {"version": "1.0", "downloadURL": "http://insecure.example.com/x.ipa"}
+          ]
+        }
+      ]
+    }
+    """
+    let data = Data(manifestJSON.utf8)
+    let repo = try AltStoreSourceAdapter.decode(
+        data,
+        sourceURL: URL(string: "https://raw.githubusercontent.com/bebound/AltGallery/refs/heads/master/all-apps.json")!
+    )
+    expect(repo.identifier == "altgallery", "adapter: repo identifier")
+    expect(repo.packages.count == 1, "adapter: duplicate bundle deduped, insecure link skipped (3 apps -> 1)")
+    let pkg = repo.packages[0]
+    expect(pkg.identifier == "app.aidoku.Aidoku", "adapter: bundle id becomes package identifier")
+    expect(pkg.kind == .ipa, "adapter: kind is .ipa")
+    expect(pkg.version == "0.9.1", "adapter: newest version picked")
+    expect(pkg.expectedSize == 14_753_154, "adapter: size carried through")
+    expect(pkg.supportedOS.count == 1 && pkg.supportedOS[0].maximum == "99.0.0",
+           "adapter: open range expressed via sentinel maximum")
+    expect(pkg.downloadURL.scheme == "https", "adapter: download URL https")
+
+    // Compatibility: 3.2.1 device must see the package as compatible
+    // (regression for the nil-maximum bug that greyed every install).
+    let compatibility = PackageCompatibilityEvaluator.evaluate(
+        pkg.supportedOS, major: 27, minor: 0, patch: 1, build: "any"
+    )
+    expect(compatibility == .compatible, "adapter: open range evaluates compatible on 27.0.1")
+
+    // Oversized manifest refused.
+    let huge = Data(repeating: 65, count: PackageRepositoryLimits.maximumManifestBytes + 1)
+    var threw = false
+    _ = try? AltStoreSourceAdapter.decode(huge, sourceURL: repo.sourceURL)
+    do {
+        _ = try AltStoreSourceAdapter.decode(huge, sourceURL: repo.sourceURL)
+    } catch {
+        threw = true
+    }
+    expect(threw, "adapter: oversized manifest refused")
+}
+
+// 2) AppUpdateChecker version comparison (3.2.1 release gate).
+do {
+    expect(AppVersionComparison.isNewer("v3.2.1", than: "3.2.0"), "update: v-prefixed newer tag detected")
+    expectFalse(AppVersionComparison.isNewer("v3.2.1", than: "3.2.1"), "update: same version not newer")
+    expectFalse(AppVersionComparison.isNewer("3.2.0", than: "3.2.1"), "update: older tag not newer")
+    expect(AppVersionComparison.isNewer("3.2.10", than: "3.2.9"), "update: numeric not lexicographic (10 > 9)")
+    expect(AppVersionComparison.normalize(" v3.2.1 ") == "3.2.1", "update: normalize strips v and whitespace")
+    expect(AppVersionComparison.isNewer("v4", than: "3.2.1"), "update: major bump detected")
+}
+
+// 3) Support policy flips (27.3 promoted, 26.5 layouts unchanged).
+do {
+    expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0),
+           "policy: 27.3 verified & supported")
+    expectFalse(ExploitSupportPolicy.isExperimental(major: 27, minor: 3),
+                "policy: 27.3 no longer experimental")
+    expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 26, minor: 7, patch: 3),
+                "policy: 26.7.3 beyond worse_query ceiling")
+    expect(ExploitSupportPolicy.supportsBadQuery(major: 26, minor: 6, patch: 1),
+           "policy: 26.6.1 still bad_query")
+    expectFalse(ExploitSupportPolicy.supportsBadQuery(major: 26, minor: 6, patch: 2),
+                "policy: 26.6.2 past bad_query")
+}
+
+// 4) Version parsing edge used by PackageSystemVersion (sentinel path).
+do {
+    let maxRange = PackageOSRange(minimum: "15.0", maximum: "99.0.0", builds: nil)
+    expect(PackageCompatibilityEvaluator.evaluate(
+        [maxRange], major: 26, minor: 5, patch: 0, build: "b"
+    ) == .compatible, "compat: sentinel maximum covers 26.5")
+    expect(PackageCompatibilityEvaluator.evaluate(
+        [maxRange], major: 14, minor: 0, patch: 0, build: "b"
+    ) == .incompatible, "compat: below minimum (14.0 < 15.0) refused")
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

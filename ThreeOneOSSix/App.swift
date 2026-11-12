@@ -74,7 +74,7 @@ struct ThreeOneOSSixApp: App {
             .alert(item: $updateOffer) { offer in
                 Alert(
                     title: Text(language.text("update.title")),
-                    message: Text(language.text("update.message", offer.version)),
+                    message: Text(language.text("update.message", offer.version) + "\n" + language.text("update.current", AppInfo.appVersion)),
                     primaryButton: .default(Text(language.text("update.agree"))) {
                         UIApplication.shared.open(offer.url)
                     },

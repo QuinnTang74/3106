@@ -78,6 +78,13 @@ enum AppInfo {
     static var doubleVersion: Double {
         let v = versionTuple; return Double(v.major) + Double(v.minor) / 10.0
     }
+
+    /// The APP's own version (CFBundleShortVersionString) — NOT the OS
+    /// version. versionTuple above is the OS; do not confuse the two when
+    /// comparing against GitHub release tags.
+    static var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+    }
     static var osBuild: String {
         var size: size_t = 0
         guard sysctlbyname("kern.osversion", nil, &size, nil, 0) == 0, size > 0 else {
