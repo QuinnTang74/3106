@@ -2,6 +2,12 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.2.3] - 2026-11-12
+
+### Fixed
+
+- `.tendies` 导入在真机上全部失败 `noDescriptors`（issue #2）：路径包含检查此前依赖 `resolvingSymlinksInPath()`，沙盒内该调用可能提前返回，使 `/var` 与 `/private/var` 两种拼写无法归一，descriptors 目录被整棵跳过。现在比较接受两侧任意 raw/resolved 拼写组合，不再依赖软链解析；导入入口统一解压根的路径形态；skip 日志同时打印解析前后路径。
+
 ## [3.2.2] - 2026-11-12
 
 ### Fixed
