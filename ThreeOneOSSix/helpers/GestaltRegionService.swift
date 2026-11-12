@@ -2,7 +2,9 @@ import Foundation
 import Darwin
 
 /// hw.machine via sysctl (project convention, cf. BackupCenter.sysctlString).
-private func gestaltDeviceMachine() -> String {
+/// hw.machine via sysctl. Internal (not private) so the Gestalt cards
+/// page can build its four-element checkup from the same source.
+func gestaltDeviceMachine() -> String {
     var size = 0
     sysctlbyname("hw.machine", nil, &size, nil, 0)
     guard size > 0 else { return "" }

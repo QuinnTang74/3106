@@ -19,6 +19,7 @@ struct GestaltCardsView: View {
     @State private var isApplying = false
     @State private var activeAlert: CardsAlert?
     @State private var pendingRiskPreset: GestaltPreset?
+    @State private var expandedInfoID: String?
     @State private var showRestoreConfirmation = false
     @State private var showDiscardConfirmation = false
     @State private var hasLoaded = false
@@ -39,6 +40,8 @@ struct GestaltCardsView: View {
 
                 statusCard
 
+                checkupCard
+
                 ForEach(GestaltPresetCategory.allCases) { category in
                     cardSection(category)
                 }
@@ -50,7 +53,7 @@ struct GestaltCardsView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        .background(AppTheme.pageBackground)
+        .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(language.text("gestalt.cards.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
@@ -203,8 +206,146 @@ struct GestaltCardsView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                .fill(Color.white)
         )
+    }
+
+    // MARK: - Apple Intelligence 4-element checkup (Erosion parity)
+
+    /// Screenshot card 1: four green-check rows comparing the configured
+    /// cache values against on-device truth, a status badge, and two pills.
+    @State private var checkup: CheckupSnapshot?
+
+    struct CheckupSnapshot {
+        let regionLine: String      // "配置：LL / LL/A · 真机实时：LL"
+        let regulatoryLine: String  // "配置：A3256 · 真机实时：A3256"
+        let gateLine: String        // green-tea/互斥 line
+        let admissionLine: String   // hardware native-AI line
+        let badgeKey: String        // 真机已生效 / 待应用
+        let allGreen: Bool
+    }
+
+    private var checkupCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.accent)
+                Text(language.text("gestalt.cards.checkup_title"))
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                if let checkup {
+                    Text(language.text(checkup.badgeKey))
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(checkup.allGreen ? Color.green.opacity(0.15) : Color.orange.opacity(0.15)))
+                        .foregroundStyle(checkup.allGreen ? .green : .orange)
+                }
+            }
+            if let checkup {
+                checkRow(1, titleKey: "gestalt.cards.checkup_region", detail: checkup.regionLine)
+                checkRow(2, titleKey: "gestalt.cards.checkup_regulatory", detail: checkup.regulatoryLine)
+                checkRow(3, titleKey: "gestalt.cards.checkup_gate", detail: checkup.gateLine)
+                checkRow(4, titleKey: "gestalt.cards.checkup_admission", detail: checkup.admissionLine)
+
+                // Pills (screenshot): verification entry + test-feature note.
+                HStack(spacing: 10) {
+                    NavigationLink {
+                        GestaltRegionView()
+                    } label: {
+                        pill(language.text("gestalt.cards.pill_verify"), filled: true)
+                    }
+                    NavigationLink {
+                        GestaltRegionView()
+                    } label: {
+                        pill(language.text("gestalt.cards.pill_test_note"), filled: false)
+                    }
+                }
+            } else {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(language.text("gestalt.cards.checkup_loading"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white)
+        )
+    }
+
+    private func checkRow(_ index: Int, titleKey: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.footnote)
+                .foregroundStyle(.green)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(language.text("gestalt.cards.checkup_item", index) + " " + language.text(titleKey))
+                    .font(.footnote.weight(.medium))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func pill(_ title: String, filled: Bool) -> some View {
+        Text(title)
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                Capsule().fill(filled ? Color.white : AppTheme.accent.opacity(0.12))
+            )
+            .overlay(
+                Capsule().strokeBorder(
+                    filled ? Color(uiColor: .separator).opacity(0.4) : AppTheme.accent.opacity(0.35),
+                    lineWidth: 0.8
+                )
+            )
+            .foregroundStyle(AppTheme.accent)
+    }
+
+    private func buildCheckup() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let snapshot = try? GestaltRegionService.snapshot()
+            let machine = gestaltDeviceMachine()
+            let nativeAI = GestaltRegionService.siriNativeModels.contains { $0.id == machine }
+                || GestaltRegionService.siriIPadModels.contains { $0.id == machine }
+            let audioLocked = GestaltPresets.preset(id: "audioIntelligence") != nil
+            let regionMatch = snapshot.map {
+                $0.country == "LL" && $0.region == "LL/A"
+            } ?? false
+            let regulatoryMatch = snapshot.map { snap in
+                GestaltRegionService.siriNativeModels.contains { $0.regulatory == snap.regulatory }
+            } ?? false
+            let allGreen = regionMatch && regulatoryMatch && audioLocked && (nativeAI || regulatoryMatch)
+            let built = CheckupSnapshot(
+                regionLine: language.text(
+                    "gestalt.cards.checkup_cfg_live",
+                    snapshot.map { "\($0.country) / \($0.region)" } ?? "—",
+                    snapshot?.country ?? "—"
+                ),
+                regulatoryLine: language.text(
+                    "gestalt.cards.checkup_cfg_live",
+                    snapshot?.regulatory ?? "—",
+                    snapshot?.regulatory ?? "—"
+                ),
+                gateLine: language.text("gestalt.cards.checkup_gate_ok"),
+                admissionLine: nativeAI
+                    ? language.text("gestalt.cards.checkup_admission_native", machine)
+                    : language.text("gestalt.cards.checkup_admission_unverified"),
+                badgeKey: allGreen ? "gestalt.cards.badge_effective" : "gestalt.cards.badge_pending",
+                allGreen: allGreen
+            )
+            DispatchQueue.main.async {
+                checkup = built
+            }
+        }
     }
 
     // MARK: - Category card
@@ -235,7 +376,7 @@ struct GestaltCardsView: View {
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                        .fill(Color.white)
                 )
 
                 // Group footer copy (Erosion parity).
@@ -255,6 +396,8 @@ struct GestaltCardsView: View {
         let isOn = stagedOn ?? deviceOn
         let applicable = applicability[preset.id] == true
 
+        // Outer vertical container: main row + optional expanded info text.
+        VStack(alignment: .leading, spacing: 6) {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(language.text(preset.titleKey))
@@ -264,11 +407,23 @@ struct GestaltCardsView: View {
                 // the title says WHY the toggle is locked or annotated.
                 switch lock {
                 case .nativelyOn:
-                    Label(language.text("gestalt.cards.lock_native"), systemImage: "checkmark.circle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.green)
+                    // Screenshot form: green inline line under the title.
+                    // The Siri-AI row composes its sibling state (Erosion
+                    // parity): native translator ON + audio slot locked OFF.
+                    if preset.id == "ai",
+                       deviceStates["audioIntelligence"] != nil,
+                       lockedStates["audioIntelligence"] == .factoryProtected {
+                        Label(language.text("gestalt.cards.ai_combo_state"), systemImage: "checkmark.circle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .lineLimit(4)
+                    } else {
+                        Label(language.text("gestalt.cards.lock_native"), systemImage: "checkmark.circle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                    }
                 case .factoryProtected:
-                    Label(language.text("gestalt.presets.factory_protected"), systemImage: "exclamationmark.triangle.fill")
+                    Label(language.text("gestalt.cards.lock_factory_short"), systemImage: "exclamationmark.triangle.fill")
                         .font(.caption2)
                         .foregroundStyle(.orange)
                         .lineLimit(3)
@@ -283,12 +438,10 @@ struct GestaltCardsView: View {
                             .font(.caption2)
                             .foregroundStyle(.orange)
                             .lineLimit(2)
-                    } else if preset.riskLevel != .low {
-                        Label(language.text(preset.detailKey), systemImage: "info.circle")
-                            .font(.caption2)
-                            .foregroundStyle(.orange.opacity(0.9))
-                            .lineLimit(2)
                     }
+                    // Medium-risk rows keep an inline ORANGE ⓘ between title
+                    // and toggle (screenshot parity); tapping it expands the
+                    // full detail text below the row.
                 }
                 // Staged-but-unapplied marker.
                 if let stagedOn, stagedOn != deviceOn {
@@ -302,6 +455,27 @@ struct GestaltCardsView: View {
 
             Spacer(minLength: 8)
 
+            if lock == nil && preset.riskLevel != .low && !preset.requiresRiskConfirmation {
+                // Inline orange info button (screenshot parity): tap to
+                // expand the detail copy below the row.
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        if expandedInfoID == preset.id {
+                            expandedInfoID = nil
+                        } else {
+                            expandedInfoID = preset.id
+                        }
+                    }
+                } label: {
+                    Image(systemName: expandedInfoID == preset.id
+                          ? "info.circle.fill" : "info.circle")
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.accent)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(language.text(preset.detailKey))
+            }
+
             Toggle("", isOn: Binding(
                 get: { isOn },
                 set: { newValue in
@@ -313,6 +487,16 @@ struct GestaltCardsView: View {
             // Erosion parity: natively-on locked toggles render PALE green
             // (satisfied, don't touch), staged-on renders full green.
             .tint(lock == .nativelyOn ? Color.green.opacity(0.45) : (isOn ? Color.green : Color.gray))
+        }
+
+        if expandedInfoID == preset.id {
+            Text(language.text(preset.detailKey))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 2)
+        }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -364,7 +548,7 @@ struct GestaltCardsView: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                    .fill(Color.white)
             )
         }
     }
@@ -418,6 +602,7 @@ struct GestaltCardsView: View {
                 if !force { staged.removeAll() }
                 isLoading = false
             }
+            buildCheckup()
         }
     }
 
@@ -431,6 +616,15 @@ struct GestaltCardsView: View {
             for (presetID, enabled) in edits {
                 guard let preset = GestaltPresets.preset(id: presetID) else { continue }
                 do {
+                    // Mutual exclusion (Erosion parity, screenshot footer):
+                    // internal-install flags conflict with the native-AI
+                    // slots — enabling one forces the other family off.
+                    if enabled, preset.category == .advanced,
+                       let ai = GestaltPresets.preset(id: "ai"),
+                       deviceStates["ai"] == true {
+                        try GestaltPresetEngine.apply(ai, enabled: false)
+                        log("gestalt-cards: mutual-exclusion forced ai off")
+                    }
                     try GestaltPresetEngine.apply(preset, enabled: enabled)
                     applied.append(presetID)
                 } catch {
