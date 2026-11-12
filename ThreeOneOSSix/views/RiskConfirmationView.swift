@@ -19,18 +19,23 @@ struct RiskConfirmationView: View {
     var fallbackRiskKey: String?
     let confirmActionKey: String
     let onConfirm: () -> Void
+    /// Called when the user backs out (Cancel or swipe-down) without
+    /// confirming — lets callers roll staged state back.
+    var onCancel: (() -> Void)?
 
     init(
         titleKey: String,
         riskKey: String,
         fallbackRiskKey: String? = nil,
         confirmActionKey: String,
+        onCancel: (() -> Void)? = nil,
         onConfirm: @escaping () -> Void
     ) {
         self.titleKey = titleKey
         self.riskKey = riskKey
         self.fallbackRiskKey = fallbackRiskKey
         self.confirmActionKey = confirmActionKey
+        self.onCancel = onCancel
         self.onConfirm = onConfirm
     }
 
@@ -154,10 +159,18 @@ struct RiskConfirmationView: View {
             .accessibilityAddTraits(.isButton)
 
             Button {
+                onCancel?()
                 dismiss()
             } label: {
                 Text(language.text("common.cancel"))
                     .font(.subheadline)
+            }
+            .onDisappear {
+                // Swipe-down dismissal without tapping Cancel still counts
+                // as backing out; onConfirm already fired its own dismiss.
+                if !holdComplete {
+                    onCancel?()
+                }
             }
         }
     }

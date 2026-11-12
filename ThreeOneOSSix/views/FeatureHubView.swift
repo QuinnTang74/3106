@@ -40,7 +40,7 @@ struct FeatureHubView: View {
 
                 Section {
                     NavigationLink {
-                        MobileGestaltEditorView()
+                        GestaltCardsView()
                     } label: {
                         card(
                             "home.card.gestalt",
