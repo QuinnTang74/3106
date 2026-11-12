@@ -1,11 +1,11 @@
-# 3106 v3.2.1 发布文案（Telegram 用）
+# 3.2.1 发布文案（Telegram 用）
 
 > 直接复制下面分割线以内的内容发 Telegram。超出单条消息长度时按
 > 「📌 功能」段拆两条发。
 
 ---
 
-🚀 **3106 v3.2.1 正式版**
+🚀 **3.2.1 正式版**
 
 无越狱 iOS 容器管理工具，基于 3105 全面重构的续作。本版对照 5 个同类项目完成**全量功能对齐**，是一次大版本升级。
 
@@ -64,7 +64,7 @@ iOS 26.7+ / 27.x 必须保留 App Group（Sideloadly 会丢，用 Impactor 或 X
 
 🇬🇧 **English**
 
-🚀 **3106 v3.2.1 — stable**
+🚀 **3.2.1 — stable**
 
 A no-jailbreak iOS container manager, rebuilt from 3105 with full feature parity against five comparable projects.
 
