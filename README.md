@@ -146,7 +146,7 @@
 | --- | --- |
 | 无签名构建 | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | 策略测试 | `bash Tests/run_policy_tests.sh` |
-| 产物目录 | `dist/`，本次文件名 `3106-3.2.1-unsigned.ipa` |
+| 产物目录 | `dist/`，本次文件名 `3106-3.2.3-unsigned.ipa` |
 
 ## 下载
 
@@ -156,7 +156,7 @@
 
 发布资产为未签名 IPA，需要按上面的签名方式自行签名后安装。
 
-当前版本：`3106-3.2.1-unsigned.ipa`（SHA256 `0dac4ca201941fed384513bd5a80024ba9982a034aa7db00cbbbf0d3ee525faa`）。
+当前版本：`3106-3.2.3-unsigned.ipa`（SHA256 `4f47344764422731bd33b77f3aad8d39d25f67ef8a564bee9e2c5ced0d4c6fae`）。
 
 ## 开源协议与商用说明
 
