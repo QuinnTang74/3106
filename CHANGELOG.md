@@ -2,6 +2,12 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.2.2] - 2026-11-12
+
+### Fixed
+
+- MobileGestalt 卡片页暗黑模式：卡片底色此前写死为白色，暗色主题下白底白字不可读；改为动态语义色（浅色主题白卡、暗色主题深灰卡），药丸按钮同步修正。
+
 ## [3.2.1] - 2026-11-12
 
 ### Added

@@ -206,7 +206,7 @@ struct GestaltCardsView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
         )
     }
 
@@ -287,7 +287,7 @@ struct GestaltCardsView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
         )
     }
 
@@ -344,7 +344,7 @@ struct GestaltCardsView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(
-                Capsule().fill(filled ? Color.white : AppTheme.accent.opacity(0.12))
+                Capsule().fill(filled ? Color(uiColor: .tertiarySystemGroupedBackground) : AppTheme.accent.opacity(0.12))
             )
             .overlay(
                 Capsule().strokeBorder(
@@ -447,7 +447,7 @@ struct GestaltCardsView: View {
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.white)
+                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
                 )
 
                 // Group footer copy (Erosion parity).
@@ -619,7 +619,7 @@ struct GestaltCardsView: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white)
+                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
             )
         }
     }
