@@ -48,6 +48,7 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/PatchProjectModels.swift" \
   "$ROOT/ThreeOneOSSix/helpers/BackupCenter.swift" \
   "$ROOT/ThreeOneOSSix/helpers/Pathleak.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/WallpaperLabModels.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

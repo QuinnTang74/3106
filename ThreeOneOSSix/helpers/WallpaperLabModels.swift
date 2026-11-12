@@ -593,7 +593,21 @@ enum WallpaperLayoutScanner {
     }
 
     static func isContained(_ candidate: URL, in root: URL) -> Bool {
-        LaunchServicesStore.isPath(
+        // resolvingSymlinksInPath() can stop early inside the sandbox and
+        // return mixed spellings for the same tree (issue #2), so containment
+        // must not depend on the resolved forms matching. Accept either
+        // spelling on either side; the resolved paths only add extra accepted
+        // forms on top of the raw canonical ones.
+        let candidatePath = candidate.standardizedFileURL.path
+        let rootPath = root.standardizedFileURL.path
+        if LaunchServicesStore.isPath(candidatePath, containedIn: rootPath) { return true }
+        return LaunchServicesStore.isPath(
+            candidate.standardizedFileURL.resolvingSymlinksInPath().path,
+            containedIn: rootPath
+        ) || LaunchServicesStore.isPath(
+            candidatePath,
+            containedIn: root.standardizedFileURL.resolvingSymlinksInPath().path
+        ) || LaunchServicesStore.isPath(
             candidate.standardizedFileURL.resolvingSymlinksInPath().path,
             containedIn: root.standardizedFileURL.resolvingSymlinksInPath().path
         )
@@ -605,6 +619,9 @@ enum TendiesPackageInspector {
         at packageURL: URL,
         fileManager: FileManager = .default
     ) throws -> TendiesPayload {
+        // Use one spelling of the extraction root for the whole inspection so
+        // children enumerated under it cannot diverge from the root itself.
+        let packageURL = packageURL.standardizedFileURL
         try WallpaperLayoutScanner.validateDirectory(packageURL, fileManager: fileManager)
         log("wallpaper: inspecting package root=\(packageURL.path)")
         let descriptors = try collectDescriptorSources(
@@ -732,7 +749,10 @@ enum TendiesPackageInspector {
               WallpaperLayoutScanner.isContained(directory, in: packageRoot) else {
             log(
                 "wallpaper: descriptor source skipped dir=\(directory.path) " +
-                    "root=\(packageRoot.path) extension=\(extensionIdentifier)"
+                    "root=\(packageRoot.path) " +
+                    "dirResolved=\(directory.standardizedFileURL.resolvingSymlinksInPath().path) " +
+                    "rootResolved=\(packageRoot.standardizedFileURL.resolvingSymlinksInPath().path) " +
+                    "extension=\(extensionIdentifier)"
             )
             return []
         }

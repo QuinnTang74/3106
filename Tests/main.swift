@@ -1,5 +1,22 @@
 import Foundation
 
+// WallpaperLabModels calls the app-global log(); the harness has no UI, so
+// route the lines to stderr instead.
+func log(_ msg: String) {
+    fputs("[3106] \(msg)\n", stderr)
+}
+
+// Harness stubs for the sandbox-grant chain: -1 means "no grant needed" and
+// release() honors that guard, so the wallpaper scanner exercises its pure
+// path logic without the device-only worse_query backend.
+enum ContainerStore {
+    static func grantContainerAccess(_ containerPath: String) -> Int64 { -1 }
+}
+
+enum SandboxAccess {
+    static func release(_ handle: Int64) {}
+}
+
 // Standalone verification for the support matrix. Run with:
 //   bash Tests/run_policy_tests.sh
 //
@@ -190,6 +207,26 @@ expectFalse(
     ),
     "path containment does not match a sibling prefix"
 )
+
+// URL-level containment must not depend on resolvingSymlinksInPath(): inside
+// the sandbox that call can stop early and return mixed spellings for the
+// same tree (issue #2), so every raw/resolved spelling pair has to pass.
+do {
+    let root = URL(fileURLWithPath: "/var/mobile/Containers/Data/Application/\(testUUID)")
+        .appendingPathComponent("Library/Application Support/WallpaperLab/Packages/.importing-x/Extracted", isDirectory: true)
+    let child = URL(fileURLWithPath: "/private/var/mobile/Containers/Data/Application/\(testUUID)")
+        .appendingPathComponent("Library/Application Support/WallpaperLab/Packages/.importing-x/Extracted/descriptors", isDirectory: true)
+    expect(
+        WallpaperLayoutScanner.isContained(child, in: root),
+        "URL containment accepts /private/var child under /var root (issue #2 mix)"
+    )
+    let outside = root.deletingLastPathComponent()
+        .appendingPathComponent("Other/elsewhere", isDirectory: true)
+    expectFalse(
+        WallpaperLayoutScanner.isContained(outside, in: root),
+        "URL containment still rejects paths outside the root"
+    )
+}
 
 // MARK: - Favorites store checks
 
