@@ -79,6 +79,87 @@ enum FileReplaceService {
         return nil
     }
 
+    // MARK: - Replace presets (operator request: save a picked app+path as
+    // a named recipe; next time, pick the recipe and the target is set)
+
+    struct ReplacePreset: Codable, Identifiable, Equatable {
+        let id: UUID
+        let name: String
+        let bundleID: String
+        let appName: String
+        let targetPath: String
+        let backupRequested: Bool
+        let createdAt: Date
+    }
+
+    private static let presetLock = NSLock()
+    private static let maxPresets = 50
+
+    static var presetsFileURL: URL {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return docs.appendingPathComponent("3106/FileReplacePresets.plist", isDirectory: false)
+    }
+
+    static func loadPresets() -> [ReplacePreset] {
+        presetLock.lock()
+        defer { presetLock.unlock() }
+        return loadPresetsLocked()
+    }
+
+    private static func loadPresetsLocked() -> [ReplacePreset] {
+        guard
+            let data = try? Data(contentsOf: presetsFileURL),
+            let plist = try? PropertyListDecoder().decode([ReplacePreset].self, from: data)
+        else { return [] }
+        return plist.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    @discardableResult
+    static func savePreset(
+        name: String,
+        bundleID: String,
+        appName: String,
+        targetPath: String,
+        backupRequested: Bool
+    ) -> [ReplacePreset] {
+        presetLock.lock()
+        defer { presetLock.unlock() }
+        var presets = loadPresetsLocked()
+        // Same target path replaces its preset (an updated recipe, not a dupe).
+        presets.removeAll {
+            $0.targetPath.caseInsensitiveCompare(targetPath) == .orderedSame
+        }
+        presets.insert(
+            ReplacePreset(
+                id: UUID(),
+                name: name,
+                bundleID: bundleID,
+                appName: appName,
+                targetPath: targetPath,
+                backupRequested: backupRequested,
+                createdAt: Date()
+            ),
+            at: 0
+        )
+        if presets.count > maxPresets {
+            presets.removeLast(presets.count - maxPresets)
+        }
+        if let data = try? PropertyListEncoder().encode(presets) {
+            try? data.write(to: presetsFileURL, options: .atomic)
+        }
+        return presets
+    }
+
+    static func deletePreset(id: UUID) {
+        presetLock.lock()
+        defer { presetLock.unlock() }
+        var presets = loadPresetsLocked()
+        presets.removeAll { $0.id == id }
+        if let data = try? PropertyListEncoder().encode(presets) {
+            try? data.write(to: presetsFileURL, options: .atomic)
+        }
+    }
+
     // MARK: - Log persistence
 
     private static let maxEntries = 200

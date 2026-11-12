@@ -28,6 +28,9 @@ struct FileReplaceView: View {
 
     // Log state
     @State private var records: [FileReplaceService.ReplaceRecord] = []
+    // Preset state (saved app+path recipes)
+    @State private var presets: [FileReplaceService.ReplacePreset] = []
+    @State private var showSavePresetSheet = false
 
     @State private var activeAlert: ReplaceAlert?
     @State private var shareURL: URL?
@@ -45,6 +48,7 @@ struct FileReplaceView: View {
     var body: some View {
         List {
             targetSection
+            presetsSection
             replacementSection
             replaceActionSection
             recordsSection
@@ -72,6 +76,22 @@ struct FileReplaceView: View {
             )
             .ignoresSafeArea()
         }
+        .sheet(isPresented: $showSavePresetSheet) {
+            SavePresetSheet(
+                defaultName: (selectedApp?.displayName ?? "") + " · "
+                    + ((targetPath as NSString).lastPathComponent)
+            ) { name in
+                FileReplaceService.savePreset(
+                    name: name,
+                    bundleID: selectedApp?.bundleID ?? "",
+                    appName: selectedApp?.displayName ?? language.text("filereplace.manual_target"),
+                    targetPath: targetPath,
+                    backupRequested: backupRequested
+                )
+                presets = FileReplaceService.loadPresets()
+                showSavePresetSheet = false
+            }
+        }
         .sheet(isPresented: $manualPathSheet) {
             ManualPathSheet { path, bundleID, appName in
                 selectTarget(path: path, bundleID: bundleID, appName: appName)
@@ -93,7 +113,11 @@ struct FileReplaceView: View {
 
     private var targetSection: some View {
         Section {
-            BackendNoticeBanner(unavailableKey: "backend.notice.filereplace")
+            // No red banner here: replacements inside APP containers work on
+            // BOTH backends (bad_query on iOS 26.0-26.6.1 and worse_query on
+            // 26.7+/27) — the exploit is picked by version automatically.
+            // System-group targets are refused by the service rails with a
+            // localized reason, so a standing banner would be noise.
 
             if let selectedApp {
                 LabeledContent(language.text("filereplace.target_app")) {
@@ -171,6 +195,76 @@ struct FileReplaceView: View {
         } footer: {
             Text(language.text("filereplace.target_footer"))
         }
+    }
+
+    private var presetsSection: some View {
+        Section {
+            if presets.isEmpty {
+                Text(language.text("filereplace.presets_empty"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(presets) { preset in
+                Button {
+                    applyPreset(preset)
+                } label: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bookmark.fill")
+                                .font(.caption2)
+                                .foregroundStyle(AppTheme.accent)
+                            Text(preset.name)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.primary)
+                        }
+                        Text(preset.targetPath)
+                            .font(.caption2.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                .swipeActions {
+                    Button(role: .destructive) {
+                        FileReplaceService.deletePreset(id: preset.id)
+                        presets = FileReplaceService.loadPresets()
+                    } label: {
+                        Label(language.text("common.delete"), systemImage: "trash")
+                    }
+                }
+                .contextMenu {
+                    Button(role: .destructive) {
+                        FileReplaceService.deletePreset(id: preset.id)
+                        presets = FileReplaceService.loadPresets()
+                    } label: {
+                        Label(language.text("common.delete"), systemImage: "trash")
+                    }
+                }
+            }
+
+            if targetInfo != nil {
+                Button {
+                    showSavePresetSheet = true
+                } label: {
+                    Label(language.text("filereplace.save_preset"), systemImage: "bookmark")
+                }
+                .disabled(isBusy)
+            }
+        } header: {
+            Label(language.text("filereplace.presets_header"), systemImage: "bookmark.circle")
+        } footer: {
+            Text(language.text("filereplace.presets_footer"))
+        }
+    }
+
+    private func applyPreset(_ preset: FileReplaceService.ReplacePreset) {
+        // One tap re-anchors the whole target flow from a saved recipe.
+        if let app = apps.first(where: { $0.bundleID == preset.bundleID }) {
+            selectedApp = app
+        }
+        targetPath = preset.targetPath
+        backupRequested = preset.backupRequested
+        refreshTargetInfo(path: preset.targetPath)
     }
 
     private var replacementSection: some View {
@@ -318,9 +412,11 @@ struct FileReplaceView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             let loadedApps = AppSaveBackupService.eligibleApps()
             let loadedRecords = FileReplaceService.loadLog()
+            let loadedPresets = FileReplaceService.loadPresets()
             DispatchQueue.main.async {
                 apps = loadedApps
                 records = loadedRecords
+                presets = loadedPresets
                 if let path = targetPath.isEmpty ? nil : targetPath {
                     refreshTargetInfo(path: path)
                 }
@@ -811,6 +907,51 @@ struct FileReplaceDirectoryBrowser: View {
                 guard level == currentPath else { return }
                 entries = sorted
                 isLoading = false
+            }
+        }
+    }
+}
+
+/// Names a saved replace recipe (app + path + backup flag).
+struct SavePresetSheet: View {
+    @Environment(\.appLanguage) private var language
+    @Environment(\.dismiss) private var dismiss
+    @State private var nameText: String
+
+    let defaultName: String
+    let onSave: (String) -> Void
+
+    init(defaultName: String, onSave: @escaping (String) -> Void) {
+        self.defaultName = defaultName
+        self.onSave = onSave
+        _nameText = State(initialValue: defaultName)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(language.text("filereplace.save_preset")) {
+                    TextField(language.text("filereplace.preset_name"), text: $nameText)
+                        .autocorrectionDisabled()
+                }
+                Section {
+                    Text(language.text("filereplace.presets_footer"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle(language.text("filereplace.save_preset"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(language.text("common.cancel")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(language.text("common.save")) {
+                        let trimmed = nameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        onSave(trimmed.isEmpty ? defaultName : trimmed)
+                    }
+                }
             }
         }
     }

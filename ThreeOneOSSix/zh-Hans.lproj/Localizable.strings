@@ -1227,3 +1227,8 @@
 "gestalt.cards.lock_factory_short" = "实验性槽位已锁定关闭（强开会破坏原生管线）";
 "gestalt.cards.ai_combo_state" = "本机已原生开启个人实时翻译；实验性音频智能槽位已锁定关闭（强开会导致照片高质量消除报错）";
 "gestalt.cards.mutex_footer" = "已自动锁定：Apple 内部安装模式与 Apple 智能互斥，开启会导致原生 AI 机型无法激活 Apple 智能。";
+"filereplace.presets_header" = "替换预设";
+"filereplace.presets_empty" = "暂无预设——选好目标后点下方“保存为预设”";
+"filereplace.presets_footer" = "保存选好的应用与路径组合，下次一键选用；同一目标重新保存会更新预设。";
+"filereplace.save_preset" = "保存为预设";
+"filereplace.preset_name" = "预设名称";

@@ -1227,3 +1227,8 @@
 "gestalt.cards.lock_factory_short" = "Khe thử nghiệm đã khóa TẮT (ép bật sẽ phá pipeline gốc)";
 "gestalt.cards.ai_combo_state" = "Personal Translator bật sẵn; khe Audio Intelligence thử nghiệm đã khóa TẮT (ép bật làm Clean Up ảnh chất lượng cao lỗi)";
 "gestalt.cards.mutex_footer" = "Đã tự khóa: chế độ cài nội bộ Apple xung đột Apple Intelligence; bật sẽ chặn kích hoạt AI gốc.";
+"filereplace.presets_header" = "Mẫu thay thế";
+"filereplace.presets_empty" = "Chưa có mẫu — chọn đích rồi nhấn Lưu làm mẫu";
+"filereplace.presets_footer" = "Lưu tổ hợp ứng dụng+đường dẫn để dùng lại một chạm; lưu lại cùng đích sẽ cập nhật mẫu.";
+"filereplace.save_preset" = "Lưu làm mẫu";
+"filereplace.preset_name" = "Tên mẫu";

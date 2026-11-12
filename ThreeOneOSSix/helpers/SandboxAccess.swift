@@ -68,7 +68,10 @@ enum SandboxAccess {
     /// kernel backend reaches whatever the kernel permits but historically
     /// the 3105 lineage used it without SystemGroup writes.
     static var systemGroupWritable: Bool {
-        backend == .worseQuery
+        // kernel (iOS 17/18) escapes the sandbox entirely and reaches system
+        // groups; worse_query grants them on 26.7+/27. Only bad_query
+        // (26.0-26.6.1) cannot.
+        backend == .worseQuery || backend == .kernel
     }
 
     /// True when worse_query's App-Group technique is REQUIRED but the

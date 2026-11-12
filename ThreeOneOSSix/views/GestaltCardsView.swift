@@ -221,8 +221,21 @@ struct GestaltCardsView: View {
         let regulatoryLine: String  // "配置：A3256 · 真机实时：A3256"
         let gateLine: String        // green-tea/互斥 line
         let admissionLine: String   // hardware native-AI line
-        let badgeKey: String        // 真机已生效 / 待应用
+        let badgeKey: String
         let allGreen: Bool
+        /// Per-row icon state (operator rule): unmodified = neutral, written
+        /// & matching = green check, written & mismatched = orange warning.
+        let rowStates: [CheckupRowState]
+        /// iOS 26 (bad_query backend): no write path to the Gestalt cache at
+        /// all — every row renders a red X directly (operator rule).
+        let isUnsupportedBackend: Bool
+    }
+
+    /// Top-level so call sites can reference it without the nested path.
+    enum CheckupRowState {
+        case unmodified   // neutral gray minus-circle
+        case match        // green check
+        case mismatch     // orange warning triangle
     }
 
     private var checkupCard: some View {
@@ -244,10 +257,10 @@ struct GestaltCardsView: View {
                 }
             }
             if let checkup {
-                checkRow(1, titleKey: "gestalt.cards.checkup_region", detail: checkup.regionLine)
-                checkRow(2, titleKey: "gestalt.cards.checkup_regulatory", detail: checkup.regulatoryLine)
-                checkRow(3, titleKey: "gestalt.cards.checkup_gate", detail: checkup.gateLine)
-                checkRow(4, titleKey: "gestalt.cards.checkup_admission", detail: checkup.admissionLine)
+                checkRow(1, titleKey: "gestalt.cards.checkup_region", detail: checkup.regionLine, state: checkup.rowStates.indices.contains(0) ? checkup.rowStates[0] : nil)
+                checkRow(2, titleKey: "gestalt.cards.checkup_regulatory", detail: checkup.regulatoryLine, state: checkup.rowStates.indices.contains(1) ? checkup.rowStates[1] : nil)
+                checkRow(3, titleKey: "gestalt.cards.checkup_gate", detail: checkup.gateLine, state: checkup.rowStates.indices.contains(2) ? checkup.rowStates[2] : nil)
+                checkRow(4, titleKey: "gestalt.cards.checkup_admission", detail: checkup.admissionLine, state: checkup.rowStates.indices.contains(3) ? checkup.rowStates[3] : nil)
 
                 // Pills (screenshot): verification entry + test-feature note.
                 HStack(spacing: 10) {
@@ -278,19 +291,51 @@ struct GestaltCardsView: View {
         )
     }
 
-    private func checkRow(_ index: Int, titleKey: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.footnote)
-                .foregroundStyle(.green)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(language.text("gestalt.cards.checkup_item", index) + " " + language.text(titleKey))
-                    .font(.footnote.weight(.medium))
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private func checkRow(_ index: Int, titleKey: String, detail: String, state: CheckupRowState?) -> some View {
+        // Icon per operator rule: green check ONLY when written & matching;
+        // neutral minus-circle when untouched; orange warning on mismatch;
+        // red X for everything on an unsupported backend.
+        let icon: String
+        let color: Color
+        switch state {
+        case .match:
+            icon = "checkmark.circle.fill"; color = .green
+        case .mismatch:
+            icon = "exclamationmark.triangle.fill"; color = .orange
+        case .unmodified, .none:
+            icon = "minus.circle"; color = .secondary
         }
+        if checkup?.isUnsupportedBackend == true {
+            let redIcon = "xmark.circle.fill"; let redColor = Color.red
+            return AnyView(
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: redIcon)
+                        .font(.footnote)
+                        .foregroundStyle(redColor)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(language.text("gestalt.cards.checkup_item", index) + " " + language.text(titleKey))
+                            .font(.footnote.weight(.medium))
+                        Text(detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            )
+        }
+        return AnyView(
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: icon)
+                    .font(.footnote)
+                    .foregroundStyle(color)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(language.text("gestalt.cards.checkup_item", index) + " " + language.text(titleKey))
+                        .font(.footnote.weight(.medium))
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        )
     }
 
     private func pill(_ title: String, filled: Bool) -> some View {
@@ -312,6 +357,9 @@ struct GestaltCardsView: View {
 
     private func buildCheckup() {
         DispatchQueue.global(qos: .userInitiated).async {
+            // Operator rule: on iOS 26.0-26.6.1 (bad_query) the Gestalt cache
+            // is unreachable — every row is a straight red X, no nuance.
+            let unsupported = SandboxAccess.systemGroupFeaturesUnavailable
             let snapshot = try? GestaltRegionService.snapshot()
             let machine = gestaltDeviceMachine()
             let nativeAI = GestaltRegionService.siriNativeModels.contains { $0.id == machine }
@@ -324,6 +372,27 @@ struct GestaltCardsView: View {
                 GestaltRegionService.siriNativeModels.contains { $0.regulatory == snap.regulatory }
             } ?? false
             let allGreen = regionMatch && regulatoryMatch && audioLocked && (nativeAI || regulatoryMatch)
+
+            // Per-row state: "modified" means the ORIGINAL backup differs
+            // from the live value (a write happened); unmodified rows stay
+            // neutral instead of showing a green check they didn't earn.
+            func rowState(_ written: Bool, _ matches: Bool) -> CheckupRowState {
+                if unsupported { return .mismatch }  // red X overrides below
+                if !written { return .unmodified }
+                return matches ? .match : .mismatch
+            }
+            let gestaltWritten = BackupCenter.shared.records(feature: .gestalt).contains {
+                $0.kind == .original
+            }
+            let states: [CheckupRowState] = unsupported
+                ? [.mismatch, .mismatch, .mismatch, .mismatch]
+                : [
+                    rowState(gestaltWritten, regionMatch),
+                    rowState(gestaltWritten, regulatoryMatch),
+                    rowState(gestaltWritten, audioLocked),
+                    .match,  // hardware admission is read-only truth: native or not
+                ]
+
             let built = CheckupSnapshot(
                 regionLine: language.text(
                     "gestalt.cards.checkup_cfg_live",
@@ -340,7 +409,9 @@ struct GestaltCardsView: View {
                     ? language.text("gestalt.cards.checkup_admission_native", machine)
                     : language.text("gestalt.cards.checkup_admission_unverified"),
                 badgeKey: allGreen ? "gestalt.cards.badge_effective" : "gestalt.cards.badge_pending",
-                allGreen: allGreen
+                allGreen: allGreen,
+                rowStates: states,
+                isUnsupportedBackend: unsupported
             )
             DispatchQueue.main.async {
                 checkup = built

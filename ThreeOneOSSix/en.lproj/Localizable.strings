@@ -1227,3 +1227,8 @@
 "gestalt.cards.lock_factory_short" = "Experimental slot locked OFF (forcing it breaks native pipelines)";
 "gestalt.cards.ai_combo_state" = "Personal Translator natively enabled; experimental Audio Intelligence slot locked OFF (forcing it breaks photos high-quality Clean Up)";
 "gestalt.cards.mutex_footer" = "Auto-locked: Apple internal install mode conflicts with Apple Intelligence; enabling it blocks native AI activation.";
+"filereplace.presets_header" = "Replace presets";
+"filereplace.presets_empty" = "No presets yet — pick a target, then tap Save as preset";
+"filereplace.presets_footer" = "Saves an app+path combo for one-tap reuse; re-saving the same target updates the preset.";
+"filereplace.save_preset" = "Save as preset";
+"filereplace.preset_name" = "Preset name";
