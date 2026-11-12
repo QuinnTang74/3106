@@ -11,6 +11,29 @@ struct SettingsView: View {
     // Gates high-risk experimental flows (Siri AI experimental mode) behind
     // an explicit opt-in; the flows stay hidden until this is on.
     @AppStorage(FeatureVisibility.developerModeStorageKey) private var experimentalFeaturesEnabled = false
+    @State private var updateStatus: String?
+    @State private var updateURL: URL?
+    @State private var isCheckingUpdate = false
+
+    private func checkUpdateManually() {
+        isCheckingUpdate = true
+        updateStatus = nil
+        updateURL = nil
+        Task {
+            // Manual check ignores the dismissed-version memory: the user
+            // explicitly asked, so report the newest release either way.
+            let offer = await AppUpdateChecker.checkIgnoringDismissal()
+            await MainActor.run {
+                isCheckingUpdate = false
+                if let offer {
+                    updateStatus = language.text("settings.update_new", offer.version)
+                    updateURL = offer.url
+                } else {
+                    updateStatus = language.text("settings.update_latest")
+                }
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -74,6 +97,39 @@ struct SettingsView: View {
                     Text(language.text("settings.sound_effects"))
                 } footer: {
                     Text(language.text("settings.sound_effects_footer"))
+                }
+
+                Section {
+                    Button {
+                        checkUpdateManually()
+                    } label: {
+                        HStack {
+                            Label(
+                                language.text("settings.check_update"),
+                                systemImage: "arrow.triangle.down.circle"
+                            )
+                            Spacer()
+                            if isCheckingUpdate {
+                                ProgressView().controlSize(.small)
+                            } else if let updateStatus {
+                                Text(updateStatus)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .disabled(isCheckingUpdate)
+
+                    if let updateURL {
+                        Link(destination: updateURL) {
+                            Label(language.text("update.open_github"), systemImage: "safari")
+                                .foregroundStyle(AppTheme.accent)
+                        }
+                    }
+                } header: {
+                    Text(language.text("settings.update_header"))
+                } footer: {
+                    Text(language.text("settings.update_footer"))
                 }
 
                 Section {

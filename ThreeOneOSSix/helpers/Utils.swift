@@ -170,6 +170,29 @@ enum AppUpdateChecker {
         UserDefaults.standard.set(version, forKey: dismissedVersionKey)
     }
 
+    /// Manual-check variant: same probe, but a version the user previously
+    /// dismissed still surfaces (they asked, so tell them).
+    static func checkIgnoringDismissal() async -> Offer? {
+        guard let offer = await check() else {
+            // check() suppresses dismissed versions; re-probe raw and
+            // compare versions directly.
+            var request = URLRequest(url: apiURL)
+            request.timeoutInterval = 15
+            request.setValue("3106", forHTTPHeaderField: "User-Agent")
+            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            guard
+                let (data, _) = try? await URLSession.shared.data(for: request),
+                let decoded = try? JSONDecoder().decode(GitHubRelease.self, from: data),
+                isNewer(normalize(decoded.tagName), than: currentVersion)
+            else { return nil }
+            return Offer(
+                version: normalize(decoded.tagName),
+                url: URL(string: decoded.htmlURL) ?? fallbackURL
+            )
+        }
+        return offer
+    }
+
     static func check() async -> Offer? {
         var request = URLRequest(url: apiURL)
         request.timeoutInterval = 15

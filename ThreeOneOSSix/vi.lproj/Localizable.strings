@@ -1232,3 +1232,9 @@
 "filereplace.presets_footer" = "Lưu tổ hợp ứng dụng+đường dẫn để dùng lại một chạm; lưu lại cùng đích sẽ cập nhật mẫu.";
 "filereplace.save_preset" = "Lưu làm mẫu";
 "filereplace.preset_name" = "Tên mẫu";
+"settings.update_header" = "Phiên bản";
+"settings.check_update" = "Kiểm tra cập nhật";
+"settings.update_footer" = "Cũng tự kiểm tra khi khởi động; bản mới nằm trên GitHub Releases.";
+"settings.update_new" = "Có bản mới %@";
+"settings.update_latest" = "Đã là bản mới nhất";
+"update.open_github" = "Tải từ GitHub";

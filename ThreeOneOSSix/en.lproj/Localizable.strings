@@ -1232,3 +1232,9 @@
 "filereplace.presets_footer" = "Saves an app+path combo for one-tap reuse; re-saving the same target updates the preset.";
 "filereplace.save_preset" = "Save as preset";
 "filereplace.preset_name" = "Preset name";
+"settings.update_header" = "Version";
+"settings.check_update" = "Check for updates";
+"settings.update_footer" = "Also checked automatically at launch; new releases live on GitHub Releases.";
+"settings.update_new" = "New version %@ available";
+"settings.update_latest" = "Up to date";
+"update.open_github" = "Download from GitHub";

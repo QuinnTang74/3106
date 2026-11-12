@@ -1232,3 +1232,9 @@
 "filereplace.presets_footer" = "保存选好的应用与路径组合，下次一键选用；同一目标重新保存会更新预设。";
 "filereplace.save_preset" = "保存为预设";
 "filereplace.preset_name" = "预设名称";
+"settings.update_header" = "版本";
+"settings.check_update" = "检查更新";
+"settings.update_footer" = "启动时也会自动检查；新版本发布在 GitHub Releases。";
+"settings.update_new" = "有新版本 %@";
+"settings.update_latest" = "已是最新版本";
+"update.open_github" = "前往 GitHub 下载";
