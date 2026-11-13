@@ -31,10 +31,11 @@ jobs:
       - name: Package unsigned IPA
         run: |
           APP="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos/3106.app"
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist")
           mkdir Payload
           cp -R "$APP" Payload/
-          zip -qry "3106-3.1.4-r2-unsigned.ipa" Payload
-          shasum -a 256 "3106-3.1.4-r2-unsigned.ipa"
+          zip -qry "3106-${VERSION}-unsigned.ipa" Payload
+          shasum -a 256 "3106-${VERSION}-unsigned.ipa"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.2.3** (stable) |
-| Current release | **v3.2.3** (build 21, fixed on-device .tendies imports failing with noDescriptors: containment no longer depends on symlink resolution) |
+| Version | **3.3.0** (stable) |
+| Current release | **v3.3.0** (build 22, feature completion: WCMigrate migration engine + GestaltX appearance suite — migration, config packages, lock screen text, launch artwork, island layout, on-device Siri preservation) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.3 beta 1 (verified) |
 | Access backend | kernel / `bad_query` / `worse_query` (selected automatically by OS version) |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -51,6 +51,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.3.0** | Feature completion: dual-app folder migration (merge/replace/exchange, checkpoint resume, config packages) + GestaltX appearance suite (lock screen text, launch artwork, island layout, Siri preservation) |
 | **3.2.3** | Stable: fixed every on-device `.tendies` import failing with noDescriptors (issue #2: path containment no longer depends on symlink resolution; any /var vs /private/var spelling mix is accepted) |
 | **3.2.2** | Stable: fixed Gestalt cards dark mode (card backgrounds are dynamic; no more white-on-white in dark theme) |
 | **3.2.1** | Stable: checkup row states (unmodified=neutral / written&match=green / mismatch=warning, all-red-X on iOS 26), saved replace presets with one-tap reuse, backend reachability fix (kernel backend reaches system groups), File Replace banner removed, Settings update check |
@@ -101,7 +102,7 @@ The IPA is unsigned and must be signed with your own tool (LCSign / Sideloadly /
 
 **iOS 26.7+ / 27.x must keep the App Group entitlement** (Sideloadly drops it; use Impactor or Xcode).
 
-Current build: `3106-3.2.3-unsigned.ipa` (SHA256 `4f47344764422731bd33b77f3aad8d39d25f67ef8a564bee9e2c5ced0d4c6fae`).
+Current build: `3106-3.3.0-unsigned.ipa` (SHA256 `4f47344764422731bd33b77f3aad8d39d25f67ef8a564bee9e2c5ced0d4c6fae`).
 
 ## License
 
