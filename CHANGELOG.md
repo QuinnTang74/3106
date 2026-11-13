@@ -2,6 +2,18 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.2.5] - 2026-11-13
+
+### Fixed
+
+- `.tendies` 导入在真机上全部失败 `noDescriptors`（issue #3，#2 的续篇）：根因是 `validExtensionIdentifier` 以裸函数引用传递 `allowed.contains`，整模块优化构建下重载决议解析到不同的 `contains` 重载，对所有标识符（含 `com.apple.WallpaperKit.CollectionsPoster`）静默返回 false，descriptors 全部被跳过；改为显式闭包调用，全仓唯一一处该写法。
+- 清理器全部应用清理失败 `symlinkEscapesContainer`：组件级软链检查对 `/var`（本身是指向 `/private/var` 的软链）解析后与未归一化容器根比较必然失败；现按组件位置区分——容器根之上的系统组件只要求解析后仍通向容器根，根及以下必须留在容器内（逃逸软链依旧拒绝）。
+- 诊断：日志行携带构建戳（`[3106/3.2.5-24]`）；descriptor 跳过日志追加 `validIdentifier=`/`contained=` 逐项判定与 canonical 形态。
+
+### Other
+
+- CI 产物哨兵校验（断言二进制含当前源码特征串）+ 修复 artifact 上传路径硬编码 3.1.4 文件名。
+
 ## [3.2.4] - 2026-11-13
 
 ### Added

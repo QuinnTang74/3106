@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.2.4** (stable) |
-| Current release | **v3.2.4** (build 23, feature completion: WCMigrate migration engine + GestaltX appearance suite + update-check hardening) |
+| Version | **3.2.5** (stable) |
+| Current release | **v3.2.5** (build 24, fixes: tendies import overload-resolution defect + cleaner symlink rejections + log build stamps) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.3 beta 1 (verified) |
 | Access backend | kernel / `bad_query` / `worse_query` (selected automatically by OS version) |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -52,6 +52,7 @@
 | Version | Highlights |
 | --- | --- |
 | **3.2.4** | Feature completion: dual-app folder migration (merge/replace/exchange, checkpoint resume, config packages) + GestaltX appearance suite (lock screen text, launch artwork, island layout, Siri preservation) + update-check hardening |
+| **3.2.5** | Fixes: `.tendies` import overload-resolution defect (issue #3, the true root cause of all descriptors being skipped), cleaner `/var` symlink rejections (all 56 apps failed), log build stamps, CI artifact sentinel |
 | **3.2.3** | Stable: fixed every on-device `.tendies` import failing with noDescriptors (issue #2: path containment no longer depends on symlink resolution; any /var vs /private/var spelling mix is accepted) |
 | **3.2.2** | Stable: fixed Gestalt cards dark mode (card backgrounds are dynamic; no more white-on-white in dark theme) |
 | **3.2.1** | Stable: checkup row states (unmodified=neutral / written&match=green / mismatch=warning, all-red-X on iOS 26), saved replace presets with one-tap reuse, backend reachability fix (kernel backend reaches system groups), File Replace banner removed, Settings update check |
