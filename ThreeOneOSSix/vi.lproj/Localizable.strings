@@ -1397,3 +1397,45 @@
 "risk.launchArtwork.consequence" = "Thay các ảnh bộ đệm khởi động của ứng dụng bằng ảnh của bạn (render theo kích thước gốc); ứng dụng không bị đổi.";
 "risk.launchArtwork.recovery" = "Mỗi ảnh được sao lưu trước khi thay; nút khôi phục hoàn tác theo nhóm.";
 "risk.launchArtwork.worst_case" = "Màn hình khởi động có thể hiển thị sai; hệ thống tạo lại bộ đệm sẽ ghi đè thay thế.";
+
+// Lock screen text + preserve-only presets + store icons (stage 5)
+"gestalt.presets.factory_protected" = "Bảo vệ cơ sở xuất xưởng: slot này xuất xưởng ở trạng thái TẮT; bật cưỡng bức sẽ phá vỡ đường ống mô hình tạo sinh (Clean Up của Ảnh).";
+"gestalt.presets.preserve_no_baseline" = "Không có bản ghi cơ sở để khôi phục; nếu khóa được thêm sau, dùng \"Xóa khóa đã thêm\".";
+"gestalt.presets.preserve_only" = "Giá trị gốc của preset này khác nhau theo thiết bị; ghi giá trị chung có thể làm giao diện Siri Apple Intelligence quay lùi, nên không cung cấp bật/tắt.";
+"gestalt.presets.preserve_only_short" = "Giá trị gốc theo từng thiết bị — không có bật/tắt chung; chỉ khôi phục gốc hoặc xóa khóa thêm vào.";
+"gestalt.presets.preserve_remove" = "Xóa khóa đã thêm";
+"gestalt.presets.preserve_restore" = "Khôi phục giá trị gốc";
+"gestalt.presets.preserve_restored" = "Đã khôi phục giá trị gốc.";
+"home.card.launchartwork" = "Ảnh khởi động ứng dụng";
+"home.card.launchartwork_detail" = "Thay ảnh chụp khởi động của ứng dụng bằng ảnh của bạn, có sao lưu & khôi phục";
+"home.card.systemsettings" = "Chữ màn hình khóa";
+"home.card.systemsettings_detail" = "Chữ tùy biến dưới màn hình khóa (hồ sơ cấu hình hệ thống)";
+"risk.systemSettings.confirm_action" = "Giữ để xác nhận ghi chữ màn hình khóa";
+"risk.systemSettings.consequence" = "Ghi hoặc xóa khóa LockScreenFootnote trong hồ sơ cấu hình hệ thống — chữ của bạn sẽ hiện dưới màn hình khóa.";
+"risk.systemSettings.recovery" = "Tệp gốc được sao lưu trước khi ghi và khôi phục được từ trung tâm sao lưu; xóa chữ trả về trạng thái nguyên bản.";
+"risk.systemSettings.worst_case" = "Nội dung sai định dạng có thể làm vùng đó hiển thị lỗi; cập nhật hệ thống có thể đặt lại khóa này.";
+"settings.storeicon_fallback" = "Tải icon từ App Store cho ứng dụng không có icon";
+"settings.storeicon_fallback_footer" = "Ứng dụng không có icon cục bộ trong bộ chọn di chuyển sẽ dùng ảnh từ App Store; tắt để dùng hoàn toàn ngoại tuyến.";
+"systemsettings.applied" = "Đã ghi. Khóa máy một lần để xem.";
+"systemsettings.apply" = "Áp dụng chữ";
+"systemsettings.clear" = "Xóa chữ";
+"systemsettings.cleared" = "Đã xóa.";
+"systemsettings.current_empty" = "Chưa đặt (nguyên bản)";
+"systemsettings.edit_footer" = "Ghi khóa LockScreenFootnote của hồ sơ cấu hình hệ thống — một dòng, tối đa 256 ký tự; thấy sau khi khóa máy hoặc Respring. Không qua MobileGestalt.";
+"systemsettings.error.invalid" = "Tuần tự hóa thất bại, đã hủy ghi.";
+"systemsettings.error.title" = "Thao tác chữ màn hình khóa thất bại";
+"systemsettings.error.too_long" = "Chữ vượt giới hạn 256 ký tự.";
+"systemsettings.error.unavailable" = "Không truy cập được container hồ sơ cấu hình (backend này không ghi được nhóm hệ thống).";
+"systemsettings.error.unreadable" = "Không đọc được SharedDeviceConfiguration.plist.";
+"systemsettings.field_placeholder" = "Chữ hiển thị dưới màn hình khóa";
+"systemsettings.section.current" = "Nội dung hiện tại";
+"systemsettings.section.edit" = "Chỉnh sửa";
+"systemsettings.title" = "Chữ màn hình khóa";
+"wallpaper.open_gallery" = "Mở thư viện hình nền";
+
+// SQLite integrity (stage 5, W5a)
+"sqlite.integrity.header" = "Kết quả kiểm tra toàn vẹn";
+"sqlite.integrity.ok" = "Cấu trúc cơ sở dữ liệu nguyên vẹn (quick_check đạt)";
+"sqlite.integrity.problems" = "Phát hiện %d vấn đề";
+"sqlite.integrity.run" = "Kiểm tra toàn vẹn (chỉ đọc)";
+"sqlite.tools" = "Công cụ";

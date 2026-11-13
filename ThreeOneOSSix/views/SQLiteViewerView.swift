@@ -292,6 +292,32 @@ struct SQLiteViewerView: View {
                         } label: {
                             Label(language.text("sqlite.query"), systemImage: "terminal")
                         }
+                        // W5a: read-only PRAGMA quick_check with a row
+                        // budget; results land in the integrity section.
+                        Button {
+                            runIntegrityCheck()
+                        } label: {
+                            Label(language.text("sqlite.integrity.run"), systemImage: "stethoscope")
+                        }
+                        .disabled(isCheckingIntegrity)
+                    } header: {
+                        Text(language.text("sqlite.tools"))
+                    }
+
+                    if let integrityReport = integrityReport {
+                        Section(language.text("sqlite.integrity.header")) {
+                            Label(language.text(integrityReport.isHealthy
+                                ? "sqlite.integrity.ok"
+                                : "sqlite.integrity.problems", integrityReport.problemCount),
+                                  systemImage: integrityReport.isHealthy ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                                .foregroundStyle(integrityReport.isHealthy ? .green : .red)
+                                .font(.subheadline)
+                            if !integrityReport.isHealthy {
+                                Text(integrityReport.status)
+                                    .font(.caption.monospaced())
+                                    .textSelection(.enabled)
+                            }
+                        }
                     }
                 }
                 .listStyle(.insetGrouped)
@@ -300,6 +326,27 @@ struct SQLiteViewerView: View {
         .navigationTitle(language.text("sqlite.title"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: load)
+    }
+
+    @State private var isCheckingIntegrity = false
+    @State private var integrityReport: SQLiteIntegrityService.Report?
+
+    private func runIntegrityCheck() {
+        isCheckingIntegrity = true
+        let target = path
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = Result { try SQLiteIntegrityService.quickCheck(path: target) }
+            DispatchQueue.main.async {
+                isCheckingIntegrity = false
+                switch result {
+                case .success(let report):
+                    integrityReport = report
+                case .failure(let error):
+                    integrityReport = nil
+                    errorMessage = String(describing: error)
+                }
+            }
+        }
     }
 
     private func load() {

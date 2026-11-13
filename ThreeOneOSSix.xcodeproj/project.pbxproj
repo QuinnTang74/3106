@@ -130,6 +130,10 @@
 		3106T511 /* LaunchArtworkRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T321; };
 		3106T512 /* LaunchArtworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T322; };
 		3106T513 /* LaunchArtworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T323; };
+		3106T514 /* SystemSettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T324; };
+		3106T515 /* SystemSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T325; };
+		3106T516 /* SQLiteIntegrityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T326; };
+		3106T517 /* StoreIconFallbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T327; };
 		3106R200 /* Respring.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R100; };
 		3106R201 /* AcknowledgementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R101; };
 		3106M200 /* MobileGestaltService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106M100; };
@@ -295,6 +299,10 @@
 		3106T321 /* LaunchArtworkRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArtworkRenderer.swift; sourceTree = "<group>"; };
 		3106T322 /* LaunchArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArtworkService.swift; sourceTree = "<group>"; };
 		3106T323 /* LaunchArtworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArtworkView.swift; sourceTree = "<group>"; };
+		3106T324 /* SystemSettingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSettingsService.swift; sourceTree = "<group>"; };
+		3106T325 /* SystemSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSettingsView.swift; sourceTree = "<group>"; };
+		3106T326 /* SQLiteIntegrityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteIntegrityService.swift; sourceTree = "<group>"; };
+		3106T327 /* StoreIconFallbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreIconFallbackService.swift; sourceTree = "<group>"; };
 		3106R100 /* Respring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Respring.swift; sourceTree = "<group>"; };
 		3106R101 /* AcknowledgementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcknowledgementsView.swift; sourceTree = "<group>"; };
 		3106M100 /* MobileGestaltService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileGestaltService.swift; sourceTree = "<group>"; };
@@ -410,6 +418,7 @@
 				3106T110 /* PaginatedTextView.swift */,
 				3106T111 /* DiagnosticReportView.swift */,
 				3106T323 /* LaunchArtworkView.swift */,
+				3106T325 /* SystemSettingsView.swift */,
 				3106T310 /* MigrationView.swift */,
 				3106T311 /* MigrationMappingView.swift */,
 				3106T312 /* MigrationPreviewView.swift */,
@@ -500,6 +509,9 @@
 				3106T320 /* GestaltBaselineStore.swift */,
 				3106T321 /* LaunchArtworkRenderer.swift */,
 				3106T322 /* LaunchArtworkService.swift */,
+				3106T324 /* SystemSettingsService.swift */,
+				3106T326 /* SQLiteIntegrityService.swift */,
+				3106T327 /* StoreIconFallbackService.swift */,
 				3106R100 /* Respring.swift */,
 				3106M100 /* MobileGestaltService.swift */,
 				3106M102 /* KeypadThemeService.swift */,
@@ -721,6 +733,10 @@
 				3106T511,
 				3106T512,
 				3106T513,
+				3106T514,
+				3106T515,
+				3106T516,
+				3106T517,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

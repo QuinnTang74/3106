@@ -71,6 +71,26 @@ struct FeatureHubView: View {
                     }
 
                     NavigationLink {
+                        SystemSettingsView()
+                    } label: {
+                        card(
+                            "home.card.systemsettings",
+                            detail: "home.card.systemsettings_detail",
+                            icon: "text.bubble"
+                        )
+                    }
+
+                    NavigationLink {
+                        LaunchArtworkView()
+                    } label: {
+                        card(
+                            "home.card.launchartwork",
+                            detail: "home.card.launchartwork_detail",
+                            icon: "photo.on.rectangle.angled"
+                        )
+                    }
+
+                    NavigationLink {
                         WallpaperLabView(
                             onOpenSettings: onOpenSettings,
                             onOpenLogs: onOpenLogs

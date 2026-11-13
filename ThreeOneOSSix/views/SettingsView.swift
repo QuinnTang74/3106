@@ -93,6 +93,17 @@ struct SettingsView: View {
                             systemImage: "speaker.wave.2"
                         )
                     }
+                    // W5d: store-artwork fallback for icon-less migration
+                    // rows; off keeps the app fully offline.
+                    Toggle(isOn: Binding(
+                        get: { StoreIconFallbackService.isEnabled },
+                        set: { StoreIconFallbackService.setEnabled($0) }
+                    )) {
+                        Label(
+                            language.text("settings.storeicon_fallback"),
+                            systemImage: "network"
+                        )
+                    }
                 } header: {
                     Text(language.text("settings.sound_effects"))
                 } footer: {

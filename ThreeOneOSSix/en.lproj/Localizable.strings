@@ -1397,3 +1397,45 @@
 "risk.launchArtwork.consequence" = "Replaces the app's launch snapshot cache images with your photo (rendered per original size); the app itself is not modified.";
 "risk.launchArtwork.recovery" = "Every image is backed up before replacement; the restore button reverts per group.";
 "risk.launchArtwork.worst_case" = "The launch screen may look wrong afterwards; a system snapshot regeneration overwrites the replacement.";
+
+// Lock screen text + preserve-only presets + store icons (stage 5)
+"gestalt.presets.factory_protected" = "Factory baseline protected: this slot ships OFF; forcing it on breaks the generative-model pipeline (photos Clean Up).";
+"gestalt.presets.preserve_no_baseline" = "No baseline recorded to restore; if the key was added later, use \"Remove added key\" instead.";
+"gestalt.presets.preserve_only" = "This preset's factory value differs per device; writing a generic value can revert the Apple Intelligence Siri interface, so enable/disable is not offered.";
+"gestalt.presets.preserve_only_short" = "Factory value is device-specific — no generic on/off; restore original or remove the added key.";
+"gestalt.presets.preserve_remove" = "Remove added key";
+"gestalt.presets.preserve_restore" = "Restore original";
+"gestalt.presets.preserve_restored" = "Original value restored.";
+"home.card.launchartwork" = "Launch Artwork";
+"home.card.launchartwork_detail" = "Replace an app's launch snapshots with your photo, with backup & restore";
+"home.card.systemsettings" = "Lock Screen Text";
+"home.card.systemsettings_detail" = "Custom lock-screen footnote text (system configuration profiles)";
+"risk.systemSettings.confirm_action" = "Hold to confirm writing lock screen text";
+"risk.systemSettings.consequence" = "Writes or clears the LockScreenFootnote key in the system configuration profiles (SharedDeviceConfiguration.plist) — your text appears at the lock screen bottom.";
+"risk.systemSettings.recovery" = "The original file is backed up before writing and restorable from the backup center; clearing returns to the factory empty state.";
+"risk.systemSettings.worst_case" = "Malformed content can leave that lock-screen region looking wrong; an OS update may reset the key.";
+"settings.storeicon_fallback" = "Fetch icons from the App Store for icon-less apps";
+"settings.storeicon_fallback_footer" = "Apps without a local icon in the migration picker (e.g. clones) fall back to App Store artwork; disable for fully offline use.";
+"systemsettings.applied" = "Written. Lock the device once to see it.";
+"systemsettings.apply" = "Apply text";
+"systemsettings.clear" = "Clear text";
+"systemsettings.cleared" = "Cleared.";
+"systemsettings.current_empty" = "Not set (factory state)";
+"systemsettings.edit_footer" = "Writes the LockScreenFootnote key of the system configuration profiles — single line, up to 256 characters; visible after the next lock or respring. Not MobileGestalt.";
+"systemsettings.error.invalid" = "Serialization failed; the write was cancelled.";
+"systemsettings.error.title" = "Lock screen text operation failed";
+"systemsettings.error.too_long" = "Text exceeds the 256-character limit.";
+"systemsettings.error.unavailable" = "Configuration profiles container unreachable (this backend cannot write the system group).";
+"systemsettings.error.unreadable" = "SharedDeviceConfiguration.plist is unreadable.";
+"systemsettings.field_placeholder" = "Text shown at the lock screen bottom";
+"systemsettings.section.current" = "Current text";
+"systemsettings.section.edit" = "Edit";
+"systemsettings.title" = "Lock Screen Text";
+"wallpaper.open_gallery" = "Open wallpaper gallery";
+
+// SQLite integrity (stage 5, W5a)
+"sqlite.integrity.header" = "Integrity report";
+"sqlite.integrity.ok" = "Database structure intact (quick_check passed)";
+"sqlite.integrity.problems" = "%d problem(s) found";
+"sqlite.integrity.run" = "Integrity check (read-only)";
+"sqlite.tools" = "Tools";

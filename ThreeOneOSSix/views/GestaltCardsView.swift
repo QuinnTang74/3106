@@ -31,6 +31,9 @@ struct GestaltCardsView: View {
         case factoryProtected
         /// Keys missing on this device — not applicable at all.
         case notApplicable
+        /// Device-specific factory value (GestaltX #102/#98): the toggle is
+        /// replaced by keep / restore-original / remove-key actions.
+        case preserveOnly
     }
 
     var body: some View {
@@ -503,6 +506,11 @@ struct GestaltCardsView: View {
                         .font(.caption2)
                         .foregroundStyle(.orange)
                         .lineLimit(2)
+                case .preserveOnly:
+                    Label(language.text("gestalt.presets.preserve_only_short"), systemImage: "lock.shield")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                        .lineLimit(3)
                 case .none:
                     if preset.requiresRiskConfirmation {
                         Label(language.text("gestalt.cards.high_risk_note"), systemImage: "exclamationmark.triangle")
@@ -558,6 +566,28 @@ struct GestaltCardsView: View {
             // Erosion parity: natively-on locked toggles render PALE green
             // (satisfied, don't touch), staged-on renders full green.
             .tint(lock == .nativelyOn ? Color.green.opacity(0.45) : (isOn ? Color.green : Color.gray))
+
+            // Preserve-only rows (siriOnDevice): the toggle is locked — the
+            // factory value is device-specific and any generic write can
+            // revert the AI Siri interface. Actions live in this menu.
+            if lock == .preserveOnly {
+                Menu {
+                    Button {
+                        applyPreserveOnly(preset, action: .restoreOriginal)
+                    } label: {
+                        Label(language.text("gestalt.presets.preserve_restore"), systemImage: "arrow.uturn.backward")
+                    }
+                    Button(role: .destructive) {
+                        applyPreserveOnly(preset, action: .removeKey)
+                    } label: {
+                        Label(language.text("gestalt.presets.preserve_remove"), systemImage: "minus.circle")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.subheadline)
+                }
+                .disabled(isApplying)
+            }
         }
 
         if expandedInfoID == preset.id {
@@ -644,11 +674,18 @@ struct GestaltCardsView: View {
         isLoading = force || deviceStates.isEmpty
         DispatchQueue.global(qos: .userInitiated).async {
             let evaluation = GestaltPresetEngine.evaluateAll(GestaltPresets.all)
+            // Preserve-only rows baseline their keys on every load so a
+            // restore anchor exists even before the user touches anything.
+            for preset in GestaltPresets.all where preset.preserveOnly {
+                GestaltPresetEngine.observePreserveOnly(preset)
+            }
             // Locks: factory-protected (per Erosion v0.8.5), natively-on for
             // hardware slots already at the target state, not-applicable.
             var locks: [String: PresetLock] = [:]
             for preset in GestaltPresets.all {
-                if evaluation.applicability[preset.id] != true {
+                if preset.preserveOnly {
+                    locks[preset.id] = .preserveOnly
+                } else if evaluation.applicability[preset.id] != true {
                     locks[preset.id] = .notApplicable
                 } else if preset.factoryBaselineProtected,
                           evaluation.states[preset.id] == false {
@@ -719,6 +756,46 @@ struct GestaltCardsView: View {
                 }
             }
         }
+    }
+
+    /// Preserve-only preset actions (keep is implicit: doing nothing). Both
+    /// actions write immediately — no staging — because their semantics are
+    /// recovery, not configuration.
+    private func applyPreserveOnly(_ preset: GestaltPreset, action: PreserveOnlyAction) {
+        isApplying = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                switch action {
+                case .restoreOriginal:
+                    let restored = try GestaltPresetEngine.restorePreset(preset)
+                    DispatchQueue.main.async {
+                        isApplying = false
+                        reload(force: true)
+                        SoundEffects.play(restored ? .success : .tap)
+                        activeAlert = .message(language.text(restored
+                            ? "gestalt.presets.preserve_restored"
+                            : "gestalt.presets.preserve_no_baseline"))
+                    }
+                case .removeKey:
+                    try GestaltPresetEngine.removePresetKey(preset)
+                    DispatchQueue.main.async {
+                        isApplying = false
+                        reload(force: true)
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    isApplying = false
+                    SoundEffects.play(.failure)
+                    activeAlert = .message(String(describing: error))
+                }
+            }
+        }
+    }
+
+    private enum PreserveOnlyAction {
+        case restoreOriginal
+        case removeKey
     }
 
     private func restoreFactory() {

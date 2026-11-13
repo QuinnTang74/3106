@@ -59,6 +59,11 @@ struct GestaltPreset: Identifiable {
     /// → photos high-quality Clean Up). These presets are OFF by default and
     /// the engine refuses to enable them unless the value already exists.
     var factoryBaselineProtected: Bool = false
+    /// GestaltX #102/#98 rule (siriOnDevice): the factory value is a
+    /// device-specific enum (0-4 per machine); writing ANY generic value
+    /// (true/1/false/0) can revert the AI Siri interface. Such presets
+    /// expose only keep / restore-original / remove-key — no generic write.
+    var preserveOnly: Bool = false
 
     var riskKey: String {
         // Per-preset overrides live at "risk.gestalt.<id>.*"; category-level
@@ -110,7 +115,7 @@ enum GestaltPresets {
 
         // Intelligence
         .init(id: "ai", category: .intelligence, titleKey: "gestalt.preset.ai.title", detailKey: "gestalt.preset.ai.detail", keys: ["A62OafQ85EJAiiqKn4agtg"], riskLevel: .medium),
-        .init(id: "siriOnDevice", category: .intelligence, titleKey: "gestalt.preset.siriOnDevice.title", detailKey: "gestalt.preset.siriOnDevice.detail", keys: ["K/R1GfGfCkXvEhaPS2Vrng"], riskLevel: .medium),
+        .init(id: "siriOnDevice", category: .intelligence, titleKey: "gestalt.preset.siriOnDevice.title", detailKey: "gestalt.preset.siriOnDevice.detail", keys: ["K/R1GfGfCkXvEhaPS2Vrng"], riskLevel: .medium, preserveOnly: true),
         // Erosion-CN v0.8.5 finding (iPhone 18 Pro Max verified): Audio
         // Intelligence ships FALSE on every iPhone/iPad; enabling this slot
         // breaks the generative-model pipeline check and photos' high-quality
@@ -147,6 +152,7 @@ enum GestaltPresetError: Error, Equatable {
     case keyNotInOriginalCache(key: String)
     case unsupportedValueType(key: String)
     case factoryBaselineProtected(key: String)
+    case preserveOnly(key: String)
 }
 
 extension GestaltPresetError: LocalizedError {
@@ -159,6 +165,7 @@ extension GestaltPresetError: LocalizedError {
         case .keyNotInOriginalCache: return "gestalt.presets.not_applicable"
         case .factoryBaselineProtected: return "gestalt.presets.factory_protected"
         case .unsupportedValueType: return "gestalt.error.value"
+        case .preserveOnly: return "gestalt.presets.preserve_only"
         }
     }
 }
@@ -240,6 +247,13 @@ enum GestaltPresetEngine {
         guard FileManager.default.fileExists(atPath: path) else {
             throw GestaltPresetError.unavailable
         }
+        // Preserve-only presets never take generic writes from EITHER toggle
+        // direction — their factory value is device-specific, and any
+        // normalized write can revert the AI Siri interface. Restoration
+        // goes through the baseline store via restorePreset() instead.
+        if preset.preserveOnly {
+            throw GestaltPresetError.preserveOnly(key: preset.id)
+        }
 
         // Exclusive across read→mutate→write: two interleaved RMW sequences
         // from different editors would silently drop the first writer's keys.
@@ -314,6 +328,75 @@ enum GestaltPresetEngine {
             "preset:\(preset.id)"
         )
         SoundEffects.play(.confirm)
+    }
+
+    // MARK: - Preserve-only presets (GestaltX #102/#98 semantics)
+
+    /// Restore-Original for a preserve-only preset: writes back the FIRST
+    /// observed value from the baseline store. Absence semantics apply —
+    /// when the baseline recorded that the key did not exist, restore
+    /// deletes it. Returns false when no baseline exists yet (nothing to
+    /// restore; the UI then offers only "remove added key").
+    @discardableResult
+    static func restorePreset(_ preset: GestaltPreset) throws -> Bool {
+        try GestaltPlistIO.withExclusiveAccess {
+            var root = try GestaltPlistIO.readRoot()
+            guard var cacheExtra = root["CacheExtra"] as? [String: Any] else {
+                throw GestaltPresetError.missingCacheExtra
+            }
+            var restoredAny = false
+            for key in preset.keys {
+                let baselineKey = "CacheExtra.\(key)"
+                guard let baseline = GestaltBaselineStore.shared.baseline(for: baselineKey) else {
+                    continue
+                }
+                if let original = baseline.value {
+                    cacheExtra[key] = original.anyValue
+                } else {
+                    cacheExtra.removeValue(forKey: key)
+                }
+                GestaltBaselineStore.shared.clearBaseline(fullKey: baselineKey)
+                restoredAny = true
+            }
+            root["CacheExtra"] = cacheExtra
+            try GestaltPlistIO.writeRoot(root, reason: "preset:\(preset.id)-restore")
+            return restoredAny
+        }
+    }
+
+    /// Remove-Key for preserve-only presets: deletes the CacheExtra entry
+    /// entirely. NOT bound by the "only touch existing keys" anti-bounce
+    /// rule — that rule guards ADDING keys, removal of an added one is the
+    /// recovery path.
+    static func removePresetKey(_ preset: GestaltPreset) throws {
+        try GestaltPlistIO.withExclusiveAccess {
+            var root = try GestaltPlistIO.readRoot()
+            guard var cacheExtra = root["CacheExtra"] as? [String: Any] else {
+                throw GestaltPresetError.missingCacheExtra
+            }
+            for key in preset.keys {
+                cacheExtra.removeValue(forKey: key)
+                GestaltBaselineStore.shared.clearBaseline(fullKey: "CacheExtra.\(key)")
+            }
+            root["CacheExtra"] = cacheExtra
+            try GestaltPlistIO.writeRoot(root, reason: "preset:\(preset.id)-remove")
+        }
+        ActivityHistory.log(.restore, feature: "gestalt",
+                            "preset:\(preset.id) key removed")
+        SoundEffects.play(.confirm)
+    }
+
+    /// Records baselines for a preserve-only preset's keys on first sight
+    /// (the UI calls this when rendering the row) so restore has an anchor
+    /// even before the user touches anything.
+    static func observePreserveOnly(_ preset: GestaltPreset) {
+        let cacheExtra = (try? readCacheExtra()) ?? [:]
+        for key in preset.keys {
+            GestaltBaselineStore.shared.recordBaselineIfNeeded(
+                fullKey: "CacheExtra.\(key)",
+                currentValue: cacheExtra[key]
+            )
+        }
     }
 
     private static func isEqual(_ lhs: Any, _ rhs: Any) -> Bool {

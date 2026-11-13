@@ -1397,3 +1397,45 @@
 "risk.launchArtwork.consequence" = "把所选应用的启动快照缓存图片替换为你的照片（按原尺寸渲染）；应用本身不被修改。";
 "risk.launchArtwork.recovery" = "每张图片替换前自动备份，恢复按钮可逐组还原。";
 "risk.launchArtwork.worst_case" = "替换后启动画面显示异常；系统重新生成快照后替换会被覆盖。";
+
+// Lock screen text + preserve-only presets + store icons (stage 5)
+"gestalt.presets.factory_protected" = "出厂基线保护：该槽位出厂即为关闭，强制开启会破坏生成模型管线（照片清理等功能）。";
+"gestalt.presets.preserve_no_baseline" = "没有基线记录可恢复；如该键是后来新增的，可改用“删除新增键”。";
+"gestalt.presets.preserve_only" = "该预设的出厂值因设备而异，写入通用值会导致 Apple 智能 Siri 界面回退，因此不提供开启/关闭。";
+"gestalt.presets.preserve_only_short" = "出厂值为设备专属——不提供通用开启/关闭，只可恢复原始或删除新增键。";
+"gestalt.presets.preserve_remove" = "删除新增键";
+"gestalt.presets.preserve_restore" = "恢复原始值";
+"gestalt.presets.preserve_restored" = "已恢复原始值。";
+"home.card.launchartwork" = "应用启动图";
+"home.card.launchartwork_detail" = "用照片替换应用的启动快照，含备份恢复";
+"home.card.systemsettings" = "锁屏文字";
+"home.card.systemsettings_detail" = "锁屏底部自定义文字（系统配置描述文件）";
+"risk.systemSettings.confirm_action" = "长按确认写入锁屏文字";
+"risk.systemSettings.consequence" = "在系统配置描述文件（SharedDeviceConfiguration.plist）中写入或清除 LockScreenFootnote 键——锁屏底部将显示你设置的文字。";
+"risk.systemSettings.recovery" = "写入前自动备份原文件，备份中心可整体恢复；清除文字即回到原厂空状态。";
+"risk.systemSettings.worst_case" = "写入错误的格式可能导致锁屏该区域显示异常；系统更新可能重置此键。";
+"settings.storeicon_fallback" = "无图标应用从 App Store 查询图标";
+"settings.storeicon_fallback_footer" = "迁移选择器中无本地图标的应用（如克隆包）改为从 App Store 拉取图标；关闭后完全离线。";
+"systemsettings.applied" = "已写入，锁屏一次后查看效果。";
+"systemsettings.apply" = "应用文字";
+"systemsettings.clear" = "清除文字";
+"systemsettings.cleared" = "已清除。";
+"systemsettings.current_empty" = "未设置（原厂状态）";
+"systemsettings.edit_footer" = "写入系统配置描述文件的 LockScreenFootnote 键；单行、最多 256 字符；锁屏一次或 Respring 后生效。不走 MobileGestalt。";
+"systemsettings.error.invalid" = "序列化失败，已取消写入。";
+"systemsettings.error.title" = "锁屏文字操作失败";
+"systemsettings.error.too_long" = "文字超过 256 字符上限。";
+"systemsettings.error.unavailable" = "配置描述文件容器不可达（当前后端不支持写入系统组）。";
+"systemsettings.error.unreadable" = "SharedDeviceConfiguration.plist 无法读取。";
+"systemsettings.field_placeholder" = "锁屏底部显示的文字";
+"systemsettings.section.current" = "当前内容";
+"systemsettings.section.edit" = "编辑";
+"systemsettings.title" = "锁屏文字";
+"wallpaper.open_gallery" = "打开壁纸画廊";
+
+// SQLite integrity (stage 5, W5a)
+"sqlite.integrity.header" = "完整性检查结果";
+"sqlite.integrity.ok" = "数据库结构完整（quick_check 通过）";
+"sqlite.integrity.problems" = "发现 %d 个问题";
+"sqlite.integrity.run" = "完整性检查（只读）";
+"sqlite.tools" = "工具";

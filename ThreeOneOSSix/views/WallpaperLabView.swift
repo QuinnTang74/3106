@@ -205,6 +205,17 @@ struct WallpaperLabView: View {
             .disabled(isBusy)
             .accessibilityLabel(language.text("wallpaper.import"))
         }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            // G2: open the PosterBoard wallpaper gallery on demand (the
+            // install/reset flows already auto-open it).
+            Button {
+                _ = openApplicationForBundleID("com.apple.PosterBoard")
+            } label: {
+                Image(systemName: "paintpalette")
+            }
+            .disabled(isBusy)
+            .accessibilityLabel(language.text("wallpaper.open_gallery"))
+        }
         AppUtilityToolbar(
             language: language,
             onOpenSettings: onOpenSettings,

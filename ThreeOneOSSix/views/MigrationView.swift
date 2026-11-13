@@ -223,6 +223,29 @@ struct MigrationAppPicker: View {
                     DispatchQueue.main.async {
                         apps = loaded
                     }
+                    // W5d: fill icon-less rows from the store artwork cache
+                    // (settings-gated, silent on failure).
+                    applyStoreIconFallback(to: loaded)
+                }
+            }
+        }
+    }
+
+    /// Asynchronously backfills store artwork for apps whose local probe
+    /// produced no icon. Each resolved image updates only the matching row.
+    private func applyStoreIconFallback(to loaded: [InstalledApp]) {
+        let missing = loaded.filter { $0.icon == nil }
+        guard !missing.isEmpty else { return }
+        Task.detached {
+            for app in missing {
+                if let image = await StoreIconFallbackService.icon(for: app.bundleID) {
+                    await MainActor.run {
+                        if let index = apps.firstIndex(where: { $0.bundleID == app.bundleID }) {
+                            apps[index] = InstalledApp(bundleID: app.bundleID, name: app.name,
+                                                       containerPath: app.containerPath,
+                                                       version: app.version, icon: image)
+                        }
+                    }
                 }
             }
         }
