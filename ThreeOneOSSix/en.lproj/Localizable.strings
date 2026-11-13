@@ -346,6 +346,16 @@
 "logs.share" = "Share log";
 "logs.empty_title" = "No Log Entries";
 "logs.empty_message" = "Exploit and editor activity will appear here during this session.";
+"logs.paginated" = "Paged reader";
+
+"diagnostics.title" = "Diagnostics report";
+"diagnostics.empty" = "Nothing to display.";
+"diagnostics.page_of" = "Page %ld of %ld";
+"diagnostics.copy" = "Copy all";
+"diagnostics.copied" = "Copied";
+"diagnostics.share" = "Share";
+
+"temp.purged" = "Purged expired scratch files";
 
 "browser.title" = "App Data Browser";
 "browser.workspace" = "3106 Workspace";

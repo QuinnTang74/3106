@@ -49,6 +49,9 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/BackupCenter.swift" \
   "$ROOT/ThreeOneOSSix/helpers/Pathleak.swift" \
   "$ROOT/ThreeOneOSSix/helpers/WallpaperLabModels.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/TaskCancellation.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/TempSpaceRegistry.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/TextPagination.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

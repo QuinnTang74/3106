@@ -105,6 +105,11 @@
 		3106H201 /* FeatureHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106H101; };
 		3106P200 /* Pathleak.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106P100; };
 		3106P201 /* ScanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106P101; };
+		3106T200 /* TaskCancellation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T100; };
+		3106T201 /* TempSpaceRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T101; };
+		3106T202 /* TextPagination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T102; };
+		3106T210 /* PaginatedTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T110; };
+		3106T211 /* DiagnosticReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T111; };
 		3106R200 /* Respring.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R100; };
 		3106R201 /* AcknowledgementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R101; };
 		3106M200 /* MobileGestaltService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106M100; };
@@ -245,6 +250,11 @@
 		3106H101 /* FeatureHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureHubView.swift; sourceTree = "<group>"; };
 		3106P100 /* Pathleak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pathleak.swift; sourceTree = "<group>"; };
 		3106P101 /* ScanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCoordinator.swift; sourceTree = "<group>"; };
+		3106T100 /* TaskCancellation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCancellation.swift; sourceTree = "<group>"; };
+		3106T101 /* TempSpaceRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempSpaceRegistry.swift; sourceTree = "<group>"; };
+		3106T102 /* TextPagination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextPagination.swift; sourceTree = "<group>"; };
+		3106T110 /* PaginatedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaginatedTextView.swift; sourceTree = "<group>"; };
+		3106T111 /* DiagnosticReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticReportView.swift; sourceTree = "<group>"; };
 		3106R100 /* Respring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Respring.swift; sourceTree = "<group>"; };
 		3106R101 /* AcknowledgementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcknowledgementsView.swift; sourceTree = "<group>"; };
 		3106M100 /* MobileGestaltService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileGestaltService.swift; sourceTree = "<group>"; };
@@ -357,6 +367,8 @@
 				3106S101 /* HexViewerView.swift */,
 				3106S102 /* PlistEditorView.swift */,
 				3106S103 /* FileInfoView.swift */,
+				3106T110 /* PaginatedTextView.swift */,
+				3106T111 /* DiagnosticReportView.swift */,
 			);
 			path = views;
 			sourceTree = "<group>";
@@ -425,6 +437,9 @@
 				3106B100 /* BackupCenter.swift */,
 				3106P100 /* Pathleak.swift */,
 				3106P101 /* ScanCoordinator.swift */,
+				3106T100 /* TaskCancellation.swift */,
+				3106T101 /* TempSpaceRegistry.swift */,
+				3106T102 /* TextPagination.swift */,
 				3106R100 /* Respring.swift */,
 				3106M100 /* MobileGestaltService.swift */,
 				3106M102 /* KeypadThemeService.swift */,
@@ -621,6 +636,11 @@
 				3106S201,
 				3106S202,
 				3106S203,
+				3106T200,
+				3106T201,
+				3106T202,
+				3106T210,
+				3106T211,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

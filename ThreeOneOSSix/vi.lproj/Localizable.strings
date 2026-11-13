@@ -346,6 +346,16 @@
 "logs.share" = "Chia sẻ nhật ký";
 "logs.empty_title" = "Chưa có nhật ký";
 "logs.empty_message" = "Hoạt động exploit và chỉnh sửa sẽ xuất hiện tại đây trong phiên này.";
+"logs.paginated" = "Đọc theo trang";
+
+"diagnostics.title" = "Báo cáo chẩn đoán";
+"diagnostics.empty" = "Không có gì để hiển thị.";
+"diagnostics.page_of" = "Trang %ld / %ld";
+"diagnostics.copy" = "Sao chép tất cả";
+"diagnostics.copied" = "Đã sao chép";
+"diagnostics.share" = "Chia sẻ";
+
+"temp.purged" = "Đã dọn tệp tạm hết hạn";
 
 "browser.title" = "Duyệt dữ liệu ứng dụng";
 "browser.workspace" = "Workspace 3106";

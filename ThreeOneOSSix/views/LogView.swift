@@ -81,6 +81,14 @@ struct LogView: View {
                         .disabled(appLog.entries.isEmpty)
                 }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    NavigationLink {
+                        PaginatedTextView(text: shareText, titleKey: "logs.title")
+                    } label: {
+                        Image(systemName: "text.page")
+                    }
+                    .disabled(appLog.entries.isEmpty)
+                    .accessibilityLabel(language.text("logs.paginated"))
+
                     Button {
                         UIPasteboard.general.string = shareText
                         copied = true

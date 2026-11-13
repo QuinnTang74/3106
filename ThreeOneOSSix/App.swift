@@ -21,6 +21,7 @@ struct ThreeOneOSSixApp: App {
         let appBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
         log("app: 3106 \(appVersion) (\(appBuild)) launching — iOS \(AppInfo.osVersion) (\(AppInfo.osBuild)) \(AppInfo.machineName)")
         SandboxAccess.prepare()
+        TempSpaceRegistry.purgeExpired()
     }
 
     private var language: AppLanguage {

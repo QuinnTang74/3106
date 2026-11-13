@@ -346,6 +346,16 @@
 "logs.share" = "分享日志";
 "logs.empty_title" = "没有日志条目";
 "logs.empty_message" = "本次会话中的漏洞利用和编辑器活动将显示在这里。";
+"logs.paginated" = "分页阅读";
+
+"diagnostics.title" = "诊断报告";
+"diagnostics.empty" = "没有可显示的诊断内容。";
+"diagnostics.page_of" = "第 %ld / %ld 页";
+"diagnostics.copy" = "复制全文";
+"diagnostics.copied" = "已复制";
+"diagnostics.share" = "分享";
+
+"temp.purged" = "已清理过期临时文件";
 
 "browser.title" = "应用数据浏览器";
 "browser.workspace" = "3106 工作区";

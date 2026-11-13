@@ -788,6 +788,99 @@ do {
     ) == .incompatible, "compat: below minimum (14.0 < 15.0) refused")
 }
 
+// MARK: - TaskCancellation (stage 1, WCF-1)
+
+do {
+    let token = CancellationToken()
+    expectFalse(token.isCancelled, "cancellation token starts live")
+
+    var fired = 0
+    token.onCancel { fired += 1 }
+    token.cancel(reason: "test")
+    expect(token.isCancelled, "cancel flips the flag")
+    expect(token.cancelReason == "test", "cancel captures the reason")
+    expect(fired == 1, "registered handler fired once on cancel")
+
+    // Cancel is idempotent: a second call must not re-fire handlers.
+    token.cancel(reason: "second")
+    expect(fired == 1, "second cancel does not re-fire handlers")
+
+    // Late registration on a cancelled token fires immediately.
+    var late = 0
+    token.onCancel { late += 1 }
+    expect(late == 1, "handler registered after cancel fires immediately")
+
+    // check() throws CancellationError after cancel.
+    do {
+        try token.check()
+        expectFalse(true, "check() should throw after cancel")
+    } catch {
+        expect(error is CancellationError, "check() throws CancellationError")
+    }
+
+    // A live token's check() is a no-op.
+    let live = CancellationToken()
+    try? live.check()
+    expectFalse(live.isCancelled, "check() on live token does not cancel it")
+}
+
+// MARK: - TempSpaceRegistry lease expiry (stage 1, G7)
+
+do {
+    let now = Date()
+    let session = TempSpaceRegistry.Lease(id: UUID(), path: "/tmp/x-session",
+                                          purpose: "t", createdAt: now.addingTimeInterval(-5 * 3600),
+                                          retention: .session)
+    expectFalse(session.isExpired(now: now), "session lease of 5h still valid (limit 6h)")
+
+    let staleSession = TempSpaceRegistry.Lease(id: UUID(), path: "/tmp/x-session2",
+                                               purpose: "t", createdAt: now.addingTimeInterval(-7 * 3600),
+                                               retention: .session)
+    expect(staleSession.isExpired(now: now), "session lease of 7h expired")
+
+    let hours24 = TempSpaceRegistry.Lease(id: UUID(), path: "/tmp/x-24",
+                                          purpose: "t", createdAt: now.addingTimeInterval(-23 * 3600),
+                                          retention: .hours24)
+    expectFalse(hours24.isExpired(now: now), "24h lease of 23h still valid")
+
+    let days7 = TempSpaceRegistry.Lease(id: UUID(), path: "/tmp/x-7d",
+                                        purpose: "t", createdAt: now.addingTimeInterval(-6.5 * 24 * 3600),
+                                        retention: .days7)
+    expectFalse(days7.isExpired(now: now), "7d lease of 6.5d still valid")
+
+    let expiredDays7 = TempSpaceRegistry.Lease(id: UUID(), path: "/tmp/x-7d2",
+                                               purpose: "t", createdAt: now.addingTimeInterval(-8 * 24 * 3600),
+                                               retention: .days7)
+    expect(expiredDays7.isExpired(now: now), "7d lease of 8d expired")
+}
+
+// MARK: - TextPagination (stage 1, W4)
+
+do {
+    expect(TextPagination.paginate("").isEmpty, "empty text yields no pages")
+
+    let one = TextPagination.paginate("a")
+    expect(one.count == 1 && one[0] == "a", "single char yields one page")
+
+    let exact = String(repeating: "x", count: 6_000)
+    expect(TextPagination.paginate(exact).count == 1, "exactly one page yields one page")
+
+    let over = String(repeating: "y", count: 6_001)
+    let overPages = TextPagination.paginate(over)
+    expect(overPages.count == 2, "6001 chars spill to a second page")
+    expect(overPages[1] == "y", "spill page carries the remainder")
+
+    // Content fidelity: rejoining pages must reproduce the input.
+    let long = String((0..<15_000).map { Character(UnicodeScalar(65 + $0 % 26)!) })
+    let longPages = TextPagination.paginate(long)
+    expect(longPages.count == 3, "15000 chars split into 3 pages")
+    expect(longPages.joined() == long, "pagination preserves content exactly")
+
+    // Custom limit respected.
+    let small = TextPagination.paginate("abcdef", pageLimit: 2)
+    expect(small == ["ab", "cd", "ef"], "custom pageLimit respected")
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)
