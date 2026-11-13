@@ -134,6 +134,7 @@
 		3106T515 /* SystemSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T325; };
 		3106T516 /* SQLiteIntegrityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T326; };
 		3106T517 /* StoreIconFallbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T327; };
+		3106T518 /* AppUpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T328; };
 		3106R200 /* Respring.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R100; };
 		3106R201 /* AcknowledgementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R101; };
 		3106M200 /* MobileGestaltService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106M100; };
@@ -303,6 +304,7 @@
 		3106T325 /* SystemSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSettingsView.swift; sourceTree = "<group>"; };
 		3106T326 /* SQLiteIntegrityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteIntegrityService.swift; sourceTree = "<group>"; };
 		3106T327 /* StoreIconFallbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreIconFallbackService.swift; sourceTree = "<group>"; };
+		3106T328 /* AppUpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateChecker.swift; sourceTree = "<group>"; };
 		3106R100 /* Respring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Respring.swift; sourceTree = "<group>"; };
 		3106R101 /* AcknowledgementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcknowledgementsView.swift; sourceTree = "<group>"; };
 		3106M100 /* MobileGestaltService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileGestaltService.swift; sourceTree = "<group>"; };
@@ -512,6 +514,7 @@
 				3106T324 /* SystemSettingsService.swift */,
 				3106T326 /* SQLiteIntegrityService.swift */,
 				3106T327 /* StoreIconFallbackService.swift */,
+				3106T328 /* AppUpdateChecker.swift */,
 				3106R100 /* Respring.swift */,
 				3106M100 /* MobileGestaltService.swift */,
 				3106M102 /* KeypadThemeService.swift */,
@@ -737,6 +740,7 @@
 				3106T515,
 				3106T516,
 				3106T517,
+				3106T518,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -763,7 +767,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = "ThreeOneOSSix/ThreeOneOSSix.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -779,7 +783,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.3.0;
+				MARKETING_VERSION = 3.2.4;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.qingtang.3106;
 				PRODUCT_NAME = 3106;
@@ -797,7 +801,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = "ThreeOneOSSix/ThreeOneOSSix.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -813,7 +817,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.3.0;
+				MARKETING_VERSION = 3.2.4;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.qingtang.3106;
 				PRODUCT_NAME = 3106;

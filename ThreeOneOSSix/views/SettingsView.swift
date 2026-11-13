@@ -20,16 +20,29 @@ struct SettingsView: View {
         updateStatus = nil
         updateURL = nil
         Task {
-            // Manual check ignores the dismissed-version memory: the user
-            // explicitly asked, so report the newest release either way.
-            let offer = await AppUpdateChecker.checkIgnoringDismissal()
+            // Manual check uses the outcome-bearing probe: "already latest"
+            // and "the probe itself failed" must not collapse into one line.
+            let outcome = await AppUpdateChecker.checkWithOutcome()
             await MainActor.run {
                 isCheckingUpdate = false
-                if let offer {
+                switch outcome {
+                case .updateAvailable(let offer):
                     updateStatus = language.text("settings.update_new", offer.version)
                     updateURL = offer.url
-                } else {
+                case .upToDate:
                     updateStatus = language.text("settings.update_latest")
+                case .failure(let reason):
+                    updateURL = nil
+                    switch reason {
+                    case .offline:
+                        updateStatus = language.text("update.failure.offline")
+                    case .httpStatus(let code):
+                        updateStatus = language.text("update.failure.http", Int64(code))
+                    case .badResponse:
+                        updateStatus = language.text("update.failure.bad_response")
+                    case .other(let detail):
+                        updateStatus = language.text("update.failure.other") + " " + detail
+                    }
                 }
             }
         }

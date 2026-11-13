@@ -1439,3 +1439,9 @@
 "sqlite.integrity.problems" = "%d problem(s) found";
 "sqlite.integrity.run" = "Integrity check (read-only)";
 "sqlite.tools" = "Tools";
+
+// Update-check failure reasons (3.2.4)
+"update.failure.bad_response" = "Check failed: the GitHub response could not be parsed, try again later.";
+"update.failure.http" = "Check failed: GitHub returned an error (HTTP %d, possibly rate-limited — try again later).";
+"update.failure.offline" = "Check failed: GitHub unreachable (offline or blocked — needs a proxy or another network).";
+"update.failure.other" = "Check failed:";

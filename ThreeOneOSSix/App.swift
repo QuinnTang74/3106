@@ -36,6 +36,15 @@ struct ThreeOneOSSixApp: App {
         }
     }
 
+    /// Foreground-switch variant: 30-minute throttle lives in the checker
+    /// (persisted), so repeated quick app switches cost nothing.
+    private func checkForUpdateThrottled() {
+        Task {
+            guard let offer = await AppUpdateChecker.throttledForegroundCheck() else { return }
+            await MainActor.run { updateOffer = offer }
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ZStack {
@@ -96,6 +105,11 @@ struct ThreeOneOSSixApp: App {
             .onChange(of: scenePhase) { phase in
                 guard phase == .active, !showOnboarding else { return }
                 appState.detectSupport()
+                // 3.2.4: also probe for updates on foreground switches —
+                // the cold-start check alone misses releases published
+                // while the app idles in the background. Throttled to one
+                // probe per 30 minutes; failures stay silent here.
+                checkForUpdateThrottled()
             }
             .onOpenURL { url in
                 // Config backup packages (.3106cfg) route to the migration

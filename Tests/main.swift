@@ -788,6 +788,30 @@ do {
     ) == .incompatible, "compat: below minimum (14.0 < 15.0) refused")
 }
 
+// MARK: - AppUpdateChecker version comparison (3.2.4 regression guard)
+
+do {
+    // normalize strips the leading v.
+    expect(AppUpdateChecker.normalize("v3.2.4") == "3.2.4", "normalize strips v prefix")
+    expect(AppUpdateChecker.normalize(" 3.2.4 ") == "3.2.4", "normalize trims whitespace")
+
+    // isNewer: strict semver-ish numeric comparison, equal = false.
+    expect(AppUpdateChecker.isNewer("3.2.4", than: "3.2.3"), "3.2.4 newer than 3.2.3")
+    expect(AppUpdateChecker.isNewer("v3.3.0", than: "3.2.3"), "v-prefixed remote compares numerically")
+    expectFalse(AppUpdateChecker.isNewer("3.2.3", than: "3.2.3"), "same version is not newer")
+    expectFalse(AppUpdateChecker.isNewer("3.2.2", than: "3.2.3"), "older remote refused")
+    expect(AppUpdateChecker.isNewer("3.3", than: "3.2.9"), "missing patch treated as 0 (3.3.0 > 3.2.9)")
+    expect(AppUpdateChecker.isNewer("3.10.0", than: "3.9.9"), "numeric not lexicographic (10 > 9)")
+    expectFalse(AppUpdateChecker.isNewer("3.2.3-beta", than: "3.2.3"), "prerelease suffix does not outrank release")
+
+    // FailureReason classification keys exist for each case (string keys
+    // keep the UI test surface stable).
+    expect(AppUpdateChecker.FailureReason.offline.localizationKey == "update.failure.offline",
+           "offline reason maps to its key")
+    expect(AppUpdateChecker.FailureReason.httpStatus(403).localizationKey == "update.failure.http",
+           "http-status reason maps to its key")
+}
+
 // MARK: - TaskCancellation (stage 1, WCF-1)
 
 do {

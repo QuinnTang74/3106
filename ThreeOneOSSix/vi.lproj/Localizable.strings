@@ -1439,3 +1439,9 @@
 "sqlite.integrity.problems" = "Phát hiện %d vấn đề";
 "sqlite.integrity.run" = "Kiểm tra toàn vẹn (chỉ đọc)";
 "sqlite.tools" = "Công cụ";
+
+// Update-check failure reasons (3.2.4)
+"update.failure.bad_response" = "Kiểm tra thất bại: không phân giải được phản hồi của GitHub, thử lại sau.";
+"update.failure.http" = "Kiểm tra thất bại: GitHub trả về lỗi (HTTP %d, có thể bị giới hạn — thử lại sau).";
+"update.failure.offline" = "Kiểm tra thất bại: không kết nối được GitHub (ngoại tuyến hoặc bị chặn — cần proxy/mạng khác).";
+"update.failure.other" = "Kiểm tra thất bại:";

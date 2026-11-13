@@ -1439,3 +1439,9 @@
 "sqlite.integrity.problems" = "发现 %d 个问题";
 "sqlite.integrity.run" = "完整性检查（只读）";
 "sqlite.tools" = "工具";
+
+// Update-check failure reasons (3.2.4)
+"update.failure.bad_response" = "检查失败：GitHub 响应无法解析，稍后再试。";
+"update.failure.http" = "检查失败：GitHub 返回错误（HTTP %d，可能是限流，稍后再试）。";
+"update.failure.offline" = "检查失败：无法连接 GitHub（设备离线或被墙，需代理/其它网络）。";
+"update.failure.other" = "检查失败：";

@@ -52,6 +52,7 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/TaskCancellation.swift" \
   "$ROOT/ThreeOneOSSix/helpers/TempSpaceRegistry.swift" \
   "$ROOT/ThreeOneOSSix/helpers/TextPagination.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/AppUpdateChecker.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

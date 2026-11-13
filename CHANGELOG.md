@@ -2,7 +2,7 @@
 
 All notable user-facing changes are documented in this file.
 
-## [3.3.0] - 2026-11-13
+## [3.2.4] - 2026-11-13
 
 ### Added
 
@@ -16,6 +16,7 @@ All notable user-facing changes are documented in this file.
 - 诊断阅读器：日志/迁移诊断 6000 字符分页、全文复制（localOnly）与分享。
 - 横切治理：CancellationToken（长任务协作取消）、TempSpaceRegistry（tmp 租约 + session/24h/7d 保留期清扫，启动执行）、adhoc 描述文件到期提醒（迁移页）、无图标应用商店图标回退（CN 商店优先，设置可关）。
 - Info.plist 新增 .3106cfg UTI 声明；NOTICE.md 补 WCMigrate 设计参考条目。
+- 更新检查加固：前台切换时也检查一次（30 分钟节流持久化）；设置页手动检查失败时显示具体原因（离线/HTTP 状态/响应异常），不再把网络失败误报为"已是最新"。
 
 ## [3.2.3] - 2026-11-12
 
