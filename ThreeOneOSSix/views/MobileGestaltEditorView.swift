@@ -12,6 +12,8 @@ struct MobileGestaltEditorView: View {
 
     @State private var deviceName = ""
     @State private var deviceSubtype = ""
+    @State private var islandLayout = -1
+    @State private var hasIslandBaseline = false
     @State private var productType = ""
     @State private var dynamicIsland = false
     @State private var alwaysOnDisplay = false
@@ -66,6 +68,31 @@ struct MobileGestaltEditorView: View {
                         .disabled(!alwaysOnDisplay)
                     Toggle(language.text("gestalt.charge_limit"), isOn: $chargeLimit)
                     Toggle(language.text("gestalt.boot_chime"), isOn: $bootChime)
+                }
+
+                Section {
+                    Picker(language.text("gestalt.island.layout"), selection: $islandLayout) {
+                        Text(language.text("gestalt.island.keep")).tag(-1)
+                        ForEach(MobileGestaltService.IslandLayout.allCases) { layout in
+                            Text("iPhone · \(layout.rawValue)").tag(layout.rawValue)
+                        }
+                    }
+                    if islandLayout != -1 {
+                        Button(language.text("gestalt.island.apply")) {
+                            applyIslandLayout()
+                        }
+                        .fontWeight(.semibold)
+                    }
+                    Button(role: .destructive) {
+                        restoreIslandLayout()
+                    } label: {
+                        Label(language.text("gestalt.island.restore"), systemImage: "arrow.uturn.backward")
+                    }
+                    .disabled(!hasIslandBaseline)
+                } header: {
+                    Text(language.text("gestalt.island.section"))
+                } footer: {
+                    Text(language.text("gestalt.island.footer"))
                 }
 
                 Section(language.text("gestalt.section.advanced_tools")) {
@@ -157,6 +184,7 @@ struct MobileGestaltEditorView: View {
                     aodVibrancy = state.aodVibrancy
                     chargeLimit = state.chargeLimit
                     bootChime = state.bootChime
+                    refreshIslandState()
                     isLoading = false
                 }
             } catch {
@@ -239,5 +267,32 @@ struct MobileGestaltEditorView: View {
             return language.text(error.localizationKey)
         }
         return error.localizedDescription
+    }
+
+    private func refreshIslandState() {
+        islandLayout = -1
+        do {
+            hasIslandBaseline = GestaltBaselineStore.shared
+                .baseline(for: MobileGestaltService.islandBaselineKeyPublic) != nil
+        }
+    }
+
+    private func applyIslandLayout() {
+        guard islandLayout >= 0 else { return }
+        do {
+            try MobileGestaltService.applyArtworkSubtype(islandLayout)
+            refreshIslandState()
+        } catch {
+            errorMessage = String(describing: error)
+        }
+    }
+
+    private func restoreIslandLayout() {
+        do {
+            _ = try MobileGestaltService.restoreArtworkSubtype()
+            refreshIslandState()
+        } catch {
+            errorMessage = String(describing: error)
+        }
     }
 }

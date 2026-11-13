@@ -226,3 +226,101 @@ enum MobileGestaltService {
     }
 }
 
+
+// MARK: - Dynamic Island layout (artwork member-level editing, stage 4)
+
+extension MobileGestaltService {
+
+    /// Layout presets mirroring GestaltX v1.0.6's picker: the device
+    /// sub-type the system reads when rendering the Dynamic Island layout.
+    /// Keep-current is handled by the UI (it simply doesn't call apply).
+    enum IslandLayout: Int, CaseIterable, Identifiable {
+        case iPhone14Pro = 2556
+        case iPhone14ProMax = 2796
+        case iPhoneAir = 2736
+        case iPhone16Pro = 2622
+        case iPhone16ProMax = 2868
+
+        var id: Int { rawValue }
+    }
+
+    /// Public access for UI state refresh (baseline presence check).
+    static var islandBaselineKeyPublic: String {
+        "\(artworkKey).\(subtypeKey)"
+    }
+
+    private static var islandBaselineKey: String {
+        "\(artworkKey).\(subtypeKey)"
+    }
+
+    /// Current ArtworkDeviceSubType value, or nil when the member is absent.
+    static func currentArtworkSubtype() throws -> Int? {
+        try GestaltPlistIO.withExclusiveAccess {
+            let root = try GestaltPlistIO.readRoot()
+            guard let cacheExtra = root[cacheExtraKey] as? [String: Any],
+                  let artwork = cacheExtra[artworkKey] as? [String: Any] else { return nil }
+            return artwork[subtypeKey] as? Int
+        }
+    }
+
+    /// Writes ONLY the artwork dictionary's ArtworkDeviceSubType member.
+    /// Every other member (device name, product description) is copied back
+    /// untouched — this is the member-level guarantee. The original member
+    /// value (or its absence) is baselined on first write so restore can
+    /// revert surgically.
+    static func applyArtworkSubtype(_ value: Int) throws {
+        let baselineKey = islandBaselineKey
+        try GestaltPlistIO.withExclusiveAccess {
+            var root = try GestaltPlistIO.readRoot()
+            guard var cacheExtra = root[cacheExtraKey] as? [String: Any] else {
+                throw MobileGestaltError.missingCacheExtra
+            }
+            var artwork = cacheExtra[artworkKey] as? [String: Any] ?? [:]
+
+            // Baseline OUTSIDE the mutation decision: the first observed
+            // value (which may be absence) is the restore anchor.
+            GestaltBaselineStore.shared.recordBaselineIfNeeded(
+                fullKey: baselineKey,
+                currentValue: artwork[subtypeKey]
+            )
+
+            artwork[subtypeKey] = value
+            cacheExtra[artworkKey] = artwork
+            root[cacheExtraKey] = cacheExtra
+            try GestaltPlistIO.writeRoot(root, reason: "island-layout-\(value)")
+        }
+        ActivityHistory.log(.write, feature: "gestalt",
+                            "island layout → \(value)")
+    }
+
+    /// Restores the ArtworkDeviceSubType member to its baselined original.
+    /// Absence semantics: when the device never had the member, restore
+    /// deletes it. Only this one member is touched. Returns false when no
+    /// baseline exists (nothing to restore).
+    @discardableResult
+    static func restoreArtworkSubtype() throws -> Bool {
+        let baselineKey = islandBaselineKey
+        guard let baseline = GestaltBaselineStore.shared.baseline(for: baselineKey) else {
+            return false
+        }
+        try GestaltPlistIO.withExclusiveAccess {
+            var root = try GestaltPlistIO.readRoot()
+            guard var cacheExtra = root[cacheExtraKey] as? [String: Any] else {
+                throw MobileGestaltError.missingCacheExtra
+            }
+            var artwork = cacheExtra[artworkKey] as? [String: Any] ?? [:]
+
+            if let original = baseline.value {
+                artwork[subtypeKey] = original.anyValue
+            } else {
+                artwork.removeValue(forKey: subtypeKey)
+            }
+            cacheExtra[artworkKey] = artwork
+            root[cacheExtraKey] = cacheExtra
+            try GestaltPlistIO.writeRoot(root, reason: "island-layout-restore")
+        }
+        GestaltBaselineStore.shared.clearBaseline(fullKey: baselineKey)
+        ActivityHistory.log(.write, feature: "gestalt", "island layout restored")
+        return true
+    }
+}

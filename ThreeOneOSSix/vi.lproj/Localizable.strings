@@ -1371,3 +1371,29 @@
 "risk.migration.replace.consequence" = "Thư mục nguồn tiếp quản vị trí đích: trùng tên ghi đè, nội dung chỉ có ở đích bị xóa.";
 "risk.migration.replace.recovery" = "Bật sao lưu trước để khôi phục; tác vụ gián đoạn có thể tiếp tục, nội dung bị xóa chỉ phục hồi từ bản sao lưu.";
 "risk.migration.replace.worst_case" = "Nội dung chỉ có ở đích bị xóa vĩnh viễn; tệp trùng tên bị ghi đè. Gián đoạn để lại trạng thái một phần.";
+
+// Launch artwork + island layout (stage 4)
+"gestalt.island.apply" = "Áp dụng bố cục";
+"gestalt.island.footer" = "Ghi sub-type màn hình (ArtworkDeviceSubType) — chỉ mục này; có hiệu lực sau khi khởi động lại. Khôi phục chỉ hoàn tác sub-type.";
+"gestalt.island.keep" = "Giữ nguyên";
+"gestalt.island.layout" = "Máy tham chiếu";
+"gestalt.island.restore" = "Khôi phục mục này";
+"gestalt.island.section" = "Bố cục Dynamic Island";
+"launchartwork.apply" = "Thay ảnh khởi động";
+"launchartwork.apply_footer" = "Ảnh được cắt ghép theo độ phân giải từng ảnh gốc; mỗi ảnh được sao lưu trước khi thay.";
+"launchartwork.done" = "Đã thay %d ảnh";
+"launchartwork.error.title" = "Thao tác ảnh khởi động thất bại";
+"launchartwork.group_files" = "%d ảnh có thể thay thế";
+"launchartwork.no_snapshots" = "Không tìm thấy bộ đệm ảnh khởi động (ứng dụng có thể chưa từng mở; hãy mở một lần rồi quay lại).";
+"launchartwork.pick_app" = "Chọn ứng dụng cần tùy biến";
+"launchartwork.pick_photo" = "Chọn ảnh";
+"launchartwork.restore_group" = "Khôi phục nhóm này";
+"launchartwork.restored" = "Đã khôi phục %d ảnh";
+"launchartwork.section.app" = "Chọn ứng dụng";
+"launchartwork.section.snapshots" = "Ảnh chụp khởi động";
+"launchartwork.snapshots_footer" = "Thay bộ đệm ảnh khởi động của SpringBoard trong container ứng dụng — không đổi ứng dụng; có hiệu lực sau khi khởi động lại hoặc Respring.";
+"launchartwork.title" = "Ảnh khởi động ứng dụng";
+"risk.launchArtwork.confirm_action" = "Giữ để xác nhận thay ảnh khởi động";
+"risk.launchArtwork.consequence" = "Thay các ảnh bộ đệm khởi động của ứng dụng bằng ảnh của bạn (render theo kích thước gốc); ứng dụng không bị đổi.";
+"risk.launchArtwork.recovery" = "Mỗi ảnh được sao lưu trước khi thay; nút khôi phục hoàn tác theo nhóm.";
+"risk.launchArtwork.worst_case" = "Màn hình khởi động có thể hiển thị sai; hệ thống tạo lại bộ đệm sẽ ghi đè thay thế.";

@@ -1371,3 +1371,29 @@
 "risk.migration.replace.consequence" = "源应用所选文件夹完全接管目标位置：同名覆盖，目标独有的文件和文件夹会被删除。";
 "risk.migration.replace.recovery" = "开启\"迁移前自动备份\"可整包回滚；中断任务可续传，但被删除的目标独有内容只能靠备份找回。";
 "risk.migration.replace.worst_case" = "目标独有的数据被永久删除；同名文件被覆盖。迁移中途退出留下部分写入状态。";
+
+// Launch artwork + island layout (stage 4)
+"gestalt.island.apply" = "应用布局";
+"gestalt.island.footer" = "写入 MobileGestalt 的屏幕子类型（ArtworkDeviceSubType），只改这一个成员；重启后生效。恢复只还原子类型，不影响同字典内的型号名等其它键。";
+"gestalt.island.keep" = "保持现状";
+"gestalt.island.layout" = "布局机型";
+"gestalt.island.restore" = "恢复此成员";
+"gestalt.island.section" = "灵动岛布局";
+"launchartwork.apply" = "替换启动图";
+"launchartwork.apply_footer" = "照片会按每张快照的分辨率自动裁剪渲染；替换前每张图片自动进入备份中心。";
+"launchartwork.done" = "已替换 %d 张快照图片";
+"launchartwork.error.title" = "启动图操作失败";
+"launchartwork.group_files" = "%d 张快照图片可替换";
+"launchartwork.no_snapshots" = "未找到该应用的启动快照缓存（应用可能从未启动过；先在桌面打开一次再回来）。";
+"launchartwork.pick_app" = "选择要自定义启动图的应用";
+"launchartwork.pick_photo" = "选择照片";
+"launchartwork.restore_group" = "恢复此组";
+"launchartwork.restored" = "已恢复 %d 张快照";
+"launchartwork.section.app" = "选择应用";
+"launchartwork.section.snapshots" = "启动快照";
+"launchartwork.snapshots_footer" = "替换的是 SpringBoard 的启动快照缓存（应用容器内），不改应用本身；重启或 Respring 后生效。";
+"launchartwork.title" = "应用启动图";
+"risk.launchArtwork.confirm_action" = "长按确认替换启动图";
+"risk.launchArtwork.consequence" = "把所选应用的启动快照缓存图片替换为你的照片（按原尺寸渲染）；应用本身不被修改。";
+"risk.launchArtwork.recovery" = "每张图片替换前自动备份，恢复按钮可逐组还原。";
+"risk.launchArtwork.worst_case" = "替换后启动画面显示异常；系统重新生成快照后替换会被覆盖。";

@@ -1371,3 +1371,29 @@
 "risk.migration.replace.consequence" = "The source's selected folders take over the target location: same-name overwrite, target-only files and folders are deleted.";
 "risk.migration.replace.recovery" = "Enable pre-migration backup for rollback; interrupted tasks resume, but deleted target-only content only comes back from backup.";
 "risk.migration.replace.worst_case" = "Target-only data is permanently deleted; same-name files overwritten. Interruptions leave partial state.";
+
+// Launch artwork + island layout (stage 4)
+"gestalt.island.apply" = "Apply layout";
+"gestalt.island.footer" = "Writes the artwork screen sub-type (ArtworkDeviceSubType) — only that one member; takes effect after restart. Restore reverts just the sub-type, leaving sibling dictionary keys untouched.";
+"gestalt.island.keep" = "Keep current";
+"gestalt.island.layout" = "Layout device";
+"gestalt.island.restore" = "Restore this member";
+"gestalt.island.section" = "Dynamic Island layout";
+"launchartwork.apply" = "Replace launch artwork";
+"launchartwork.apply_footer" = "The photo is aspect-fill rendered at each snapshot's resolution; every replaced image lands in the backup center first.";
+"launchartwork.done" = "Replaced %d snapshot images";
+"launchartwork.error.title" = "Launch artwork operation failed";
+"launchartwork.group_files" = "%d snapshot images replaceable";
+"launchartwork.no_snapshots" = "No launch snapshot cache found for this app (it may never have launched; open it once on the home screen and come back).";
+"launchartwork.pick_app" = "Pick an app to customize";
+"launchartwork.pick_photo" = "Pick a photo";
+"launchartwork.restore_group" = "Restore this group";
+"launchartwork.restored" = "Restored %d snapshots";
+"launchartwork.section.app" = "Pick app";
+"launchartwork.section.snapshots" = "Launch snapshots";
+"launchartwork.snapshots_footer" = "Replaces SpringBoard's snapshot cache inside the app container — the app itself is untouched; takes effect after restart or respring.";
+"launchartwork.title" = "Launch Artwork";
+"risk.launchArtwork.confirm_action" = "Hold to confirm replacement";
+"risk.launchArtwork.consequence" = "Replaces the app's launch snapshot cache images with your photo (rendered per original size); the app itself is not modified.";
+"risk.launchArtwork.recovery" = "Every image is backed up before replacement; the restore button reverts per group.";
+"risk.launchArtwork.worst_case" = "The launch screen may look wrong afterwards; a system snapshot regeneration overwrites the replacement.";

@@ -359,6 +359,56 @@ do {
     expect(report.verdict == .ready, "deep check passes identical content")
 }
 
+// MARK: - LaunchArtworkRenderer aspect-fill (stage 4, pure function)
+
+do {
+    // Same aspect ratio: exact fit.
+    let r1 = LaunchArtworkRenderer.aspectFillRect(sourceWidth: 100, sourceHeight: 200,
+                                                  targetWidth: 200, targetHeight: 400)
+    expect(r1.width == 200 && r1.height == 400 && r1.origin.x == 0 && r1.origin.y == 0,
+           "aspect-fill same ratio fills exactly")
+
+    // Source wider than target: width dominates, height overflows, centered.
+    let r2 = LaunchArtworkRenderer.aspectFillRect(sourceWidth: 400, sourceHeight: 200,
+                                                  targetWidth: 200, targetHeight: 200)
+    expect(r2.width == 400 && r2.height == 200, "wide source overflows width")
+    expect(r2.origin.x == -100, "wide source centered horizontally")
+
+    // Source taller than target: scale = max(200/100, 200/400) = 2, so the
+    // source fills 200x800 and overflows vertically, centered.
+    let r3 = LaunchArtworkRenderer.aspectFillRect(sourceWidth: 100, sourceHeight: 400,
+                                                  targetWidth: 200, targetHeight: 200)
+    expect(r3.height == 800 && r3.width == 200, "tall source scaled to cover (200x800)")
+    expect(r3.origin.y == -300, "tall source centered vertically (overflow 600)")
+
+    // Degenerate inputs fall back to the target rect.
+    let r4 = LaunchArtworkRenderer.aspectFillRect(sourceWidth: 0, sourceHeight: 100,
+                                                  targetWidth: 50, targetHeight: 50)
+    expect(r4.width == 50 && r4.height == 50, "degenerate source uses target rect")
+
+    // KTX dimension probe on a synthetic header: 12-byte magic, then six
+    // u32 fields (endianness..glBaseInternalFormat) put pixelWidth at
+    // offset 36 and pixelHeight at 40, matching the parser's contract.
+    var ktx = Data([0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A])
+    func appendU32(_ v: UInt32, to data: inout Data) {
+        withUnsafeBytes(of: v.littleEndian) { data.append(contentsOf: $0) }
+    }
+    appendU32(0, to: &ktx)   // endianness (offset 12)
+    appendU32(0, to: &ktx)   // glType
+    appendU32(0, to: &ktx)   // glTypeSize
+    appendU32(0, to: &ktx)   // glFormat
+    appendU32(0, to: &ktx)   // glInternalFormat
+    appendU32(0, to: &ktx)   // glBaseInternalFormat
+    appendU32(750, to: &ktx) // pixelWidth (offset 36)
+    appendU32(1624, to: &ktx)// pixelHeight (offset 40)
+    let dims = LaunchArtworkRenderer.ktxDimensions(ktx)
+    expect(dims?.width == 750 && dims?.height == 1624, "KTX header dimensions parsed")
+
+    // Non-KTX data must be rejected.
+    expect(LaunchArtworkRenderer.ktxDimensions(Data("not a ktx".utf8)) == nil,
+           "non-KTX data rejected by dimension probe")
+}
+
 // MARK: - MigrationWeChatPolicy
 
 do {

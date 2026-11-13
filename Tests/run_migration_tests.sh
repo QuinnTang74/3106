@@ -20,6 +20,7 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/MigrationAppResolver.swift" \
   "$ROOT/ThreeOneOSSix/helpers/MigrationEngine.swift" \
   "$ROOT/ThreeOneOSSix/helpers/TaskCancellation.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/LaunchArtworkRenderer.swift" \
   "$HARNESS" \
   -o "$TMP/migration-tests"
 
