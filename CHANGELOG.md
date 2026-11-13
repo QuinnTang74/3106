@@ -2,6 +2,21 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.3.0] - 2026-11-13
+
+### Added
+
+- 应用迁移（WCMigrate 设计参考，独立实现）：双应用文件夹迁移——合并（同名覆盖、目标独有保留）/ 替换（源完全接管）/ 转换（renamex_np 原子互换）；APFS clone 优先 + 4MB 块流复制 + 边读边算 SHA-256 + 提交前 inode/mtime CAS；映射目标路径可编辑（拒绝越界）；迁移前可选 .3106save 存档作为整包回滚锚点；持久化检查点（每 8 文件/2 秒/64MB 节流 + 破坏性步骤强制落盘）、中断后"检查并继续"（快速/深度两档校验、孤儿临时文件清扫、exchange 中断组人工核对门）、ETA 与屏幕常亮；微信应用置顶标注（仅排序，无业务路径硬编码）；手动输入 Bundle ID 入口。
+- 配置备份包：Preferences 打包 `.3106cfg`（可选仅 plist）分享；导入逐文件 SHA-256 校验；应用到任意应用（走 VerifiedFileWriter）；迁移后 plist 路径引用审计（逐文件批准/拒绝重写）。
+- 锁屏文字：写入系统配置描述文件 LockScreenFootnote（不走 MobileGestalt），单行 ≤256 字符，风险确认 + 自动备份 + 清除还原。
+- 应用启动图：替换 SpringBoard 快照缓存（按原分辨率渲染 PNG、KTX 头解析尺寸、逐文件备份 + 失败逆序回滚、组级恢复；GestaltX 限额 20MB/文件、16 文件、64MB/组）。
+- 灵动岛布局：ArtworkDeviceSubType 五机型选择（2556/2796/2736=Air/2622/2868），成员级写入——同字典其余键不动；恢复基于首次观察基线（原不存在则删键）。
+- siriOnDevice 保护（GestaltX #102/#98）：端侧 Siri 预设去 enable 化——设备专属出厂值不提供通用写入（写 true/1 会让 AI Siri 界面回退），只可恢复原始/删除新增键；GestaltBaselineStore 提供逐键基线。
+- SQLite 完整性检查：只读 PRAGMA quick_check（64 行预算），SQLite 工具区入口。
+- 诊断阅读器：日志/迁移诊断 6000 字符分页、全文复制（localOnly）与分享。
+- 横切治理：CancellationToken（长任务协作取消）、TempSpaceRegistry（tmp 租约 + session/24h/7d 保留期清扫，启动执行）、adhoc 描述文件到期提醒（迁移页）、无图标应用商店图标回退（CN 商店优先，设置可关）。
+- Info.plist 新增 .3106cfg UTI 声明；NOTICE.md 补 WCMigrate 设计参考条目。
+
 ## [3.2.3] - 2026-11-12
 
 ### Fixed

@@ -7,6 +7,7 @@
 - **3105**，作者 YangJiii，GPL-3.0。3106 基于 3105 2.0 源码修改。
 - **worse_query**，作者 Taj C（forcequitOS），GPL-3.0-or-later。iOS 26.7+/27.x 的沙箱逃逸实现。
 - **GestaltX**，作者 huamidev，GPL-3.0。MobileGestalt 预设键名与机型映射交叉核对来源。
+- **WCMigrate (XChatTransfer)**，作者 yangokok886，GPL-3.0。双应用文件夹迁移（替换/合并/转换）、持久化检查点续传、配置备份包与重命名审计的**设计参考**——本仓库为独立实现，未复制任何代码；迁移引擎见 `MigrationEngine.swift` 等文件。
 - **YumEdit**，作者 H4CNPE，GPL-3.0。Siri AI 机型映射与区域修改护栏参考。
 - **Erosion-CN**，作者 Kianuni，GPL-3.0。Erosion 简中加固版：防重启反弹规则、类型保真方法与出厂基线发现（Audio Intelligence 真机验证）。
 - **WQManager**，作者 hseons，GPL-3.0。清理器安全策略与测量预算制设计参考。
