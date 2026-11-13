@@ -1,0 +1,524 @@
+import Foundation
+import CryptoKit
+
+// Migration-engine verification harness (stage 2). Run via:
+//   bash Tests/run_migration_tests.sh
+//
+// Covers the pure path math, tree scanning, file-copy pipeline, checkpoint
+// store, resume validation, and a full local end-to-end run of all three
+// TransferModes against synthetic containers in /tmp. Device-only surface
+// (worse_query grants, real app containers) is validated on hardware.
+
+// ─── Harness stubs (mirror Tests/main.swift conventions) ───
+
+func log(_ msg: String) {
+    fputs("[3106] \(msg)\n", stderr)
+}
+
+enum ContainerStore {
+    static func grantContainerAccess(_ containerPath: String) -> Int64 { -1 }
+    static func resolveAppContainerPath(bundleID: String) -> String? { nil }
+    static func resolveAppContainerPathByMetadataScan(bundleID: String) -> String? { nil }
+}
+
+enum SandboxAccess {
+    static func release(_ handle: Int64) {}
+}
+
+struct BackupEntry {}
+
+enum AppSaveBackupService {
+    static func backup(app: InstalledApp, includePreferences: Bool = true) throws -> BackupEntry {
+        BackupEntry()
+    }
+}
+
+// InstalledApp stub: the real type lives in ContainerStore.swift (UIKit icon);
+// the harness compiles the migration files without it, so provide a
+// field-compatible stand-in (icon typed as a local placeholder).
+struct InstalledApp: Identifiable, Hashable {
+    let bundleID: String
+    let name: String
+    let containerPath: String
+    let version: String
+    let icon: PlaceholderIcon?
+
+    var id: String { bundleID }
+    var displayName: String { name }
+}
+
+struct PlaceholderIcon: Hashable {}
+
+// ─── Assertions ───
+
+var checks = 0
+var failures = 0
+
+func expect(_ condition: Bool, _ message: String) {
+    checks += 1
+    if !condition {
+        failures += 1
+        fputs("FAIL: \(message)\n", stderr)
+    }
+}
+
+func expectEqual<T: Equatable>(_ a: T, _ b: T, _ message: String) {
+    expect(a == b, "\(message) (got \(a), want \(b))")
+}
+
+func expectFalse(_ condition: Bool, _ message: String) {
+    expect(!condition, message)
+}
+
+// Isolate checkpoint persistence in a throwaway root.
+let testRoot = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+    .appendingPathComponent("3106-migration-tests-\(UUID().uuidString)", isDirectory: true)
+try! FileManager.default.createDirectory(at: testRoot, withIntermediateDirectories: true)
+MigrationCheckpointStore.directoryOverride = testRoot
+defer {
+    MigrationCheckpointStore.directoryOverride = nil
+    try? FileManager.default.removeItem(at: testRoot)
+}
+
+// MARK: - MigrationPathMath
+
+do {
+    // remap: mapping root -> sibling target root
+    expectEqual(MigrationPathMath.remap("Documents/MD5/MM.sqlite", from: "Documents/MD5", to: "Documents/OTHER"),
+                "Documents/OTHER/MM.sqlite", "remap nested file")
+    expectEqual(MigrationPathMath.remap("Documents/MD5", from: "Documents/MD5", to: "Documents/OTHER"),
+                "Documents/OTHER", "remap root itself")
+    // remap: container-root mapping (empty source root)
+    expectEqual(MigrationPathMath.remap("Documents/a.txt", from: "", to: "Docs"),
+                "Docs/Documents/a.txt", "remap with empty source root")
+    expectEqual(MigrationPathMath.remap("a.txt", from: "Documents", to: ""),
+                "a.txt", "remap with empty target root flattens")
+
+    // mapping: longest prefix wins
+    let mappings = [
+        MigrationMapping(sourceRelativePath: "Documents"),
+        MigrationMapping(sourceRelativePath: "Documents/MD5"),
+    ]
+    expectEqual(MigrationPathMath.mapping(for: "Documents/MD5/MM.sqlite", in: mappings)!.id,
+                mappings[1].id, "longest-prefix mapping wins")
+    expectEqual(MigrationPathMath.mapping(for: "Documents/other-file", in: mappings)!.id,
+                mappings[0].id, "sibling under shorter mapping falls back to it")
+    expect(MigrationPathMath.mapping(for: "Library/x", in: mappings) == nil,
+           "unrelated path maps to nothing")
+
+    // projectedSourcePath: the sweep projection must NOT drop the source root
+    let m = MigrationMapping(sourceRelativePath: "Documents/MD5", targetRelativePath: "Documents/OTHER")
+    let targetRoot = "/tmp/container-target/Documents/OTHER"
+    expectEqual(MigrationPathMath.projectedSourcePath(entryPath: targetRoot + "/MM.sqlite",
+                                                      targetRoot: targetRoot, mapping: m),
+                "Documents/MD5/MM.sqlite",
+                "projection keeps source root (sweep must not delete copied files)")
+    expectEqual(MigrationPathMath.projectedSourcePath(entryPath: targetRoot,
+                                                      targetRoot: targetRoot, mapping: m),
+                "Documents/MD5", "projection of the mapped root itself")
+}
+
+// MARK: - MigrationTreeScanner
+
+do {
+    let fm = FileManager.default
+    let container = testRoot.appendingPathComponent("src-container", isDirectory: true)
+    let docs = container.appendingPathComponent("Documents/MD5", isDirectory: true)
+    try fm.createDirectory(at: docs, withIntermediateDirectories: true)
+    try Data("hello db".utf8).write(to: docs.appendingPathComponent("MM.sqlite"))
+    try Data("index".utf8).write(to: docs.appendingPathComponent("WCDB.contact"))
+
+    let mappings = [MigrationMapping(sourceRelativePath: "Documents/MD5")]
+    let scan = try MigrationTreeScanner.scan(containerPath: container.path, mappings: mappings)
+
+    // Directory record + file records, all container-relative.
+    expectEqual(scan.files.count, 3, "scan emits dir + 2 files")
+    expect(scan.files[0].isDirectory, "first record is the mapped directory")
+    expectEqual(scan.files[0].relativePath, "Documents/MD5", "directory record uses mapping path")
+    expectEqual(scan.files[1].relativePath, "Documents/MD5/MM.sqlite", "file record container-relative")
+    expectEqual(scan.files[1].byteCount, Int64("hello db".utf8.count), "byte count recorded")
+    expect(scan.files[1].inode != 0, "inode recorded")
+    expectEqual(scan.totalBytes, Int64("hello db".utf8.count + "index".utf8.count), "totalBytes sums files")
+
+    // Symlink rejection.
+    let linkTarget = container.appendingPathComponent("Documents/outside")
+    try fm.createSymbolicLink(atPath: docs.appendingPathComponent("evil").path,
+                              withDestinationPath: linkTarget.path)
+    do {
+        _ = try MigrationTreeScanner.scan(containerPath: container.path, mappings: mappings)
+        expect(false, "symlink inside mapped tree must be rejected")
+    } catch {
+        expect(true, "symlink rejected")
+    }
+    try fm.removeItem(at: docs.appendingPathComponent("evil"))
+
+    // joinRoot traversal defense.
+    let joined = MigrationTreeScanner.joinRoot(container.path, "Documents/../../etc/passwd")
+    expect(!joined.contains(".."), "joinRoot filters dot-dot segments")
+    expect(joined.hasPrefix(container.path), "joinRoot stays inside the container")
+}
+
+// MARK: - MigrationFileCopy
+
+do {
+    let fm = FileManager.default
+    let dir = testRoot.appendingPathComponent("copy-test", isDirectory: true)
+    try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+    let source = dir.appendingPathComponent("source.bin")
+    let payload = Data((0..<100_000).map { UInt8($0 % 251) })
+    try payload.write(to: source)
+
+    let tempPath = dir.appendingPathComponent("dest.bin.\(UUID().uuidString)\(MigrationFileCopy.partialSuffix)").path
+    let sha = try MigrationFileCopy.copyToTemp(source: source.path, tempPath: tempPath, token: nil)
+    expect(!sha.isEmpty && sha.count == 64, "copyToTemp returns a sha256 hex")
+
+    // Commit with no prior destination (RENAME_EXCL path).
+    let destination = dir.appendingPathComponent("dest.bin").path
+    try MigrationFileCopy.commitTemp(tempPath: tempPath, destination: destination, expected: nil, token: nil)
+    expectEqual(try! Data(contentsOf: URL(fileURLWithPath: destination)), payload, "committed content matches")
+
+    // Round-trip hash equals the recorded sha.
+    let recommitTemp = dir.appendingPathComponent("dest.bin.\(UUID().uuidString)\(MigrationFileCopy.partialSuffix)").path
+    let sha2 = try MigrationFileCopy.copyToTemp(source: destination, tempPath: recommitTemp, token: nil)
+    expectEqual(sha2, sha, "hash is stable across copies")
+
+    // CAS refusal: destination changed since prepare (mtime mismatch).
+    let record = MigrationFileRecord(relativePath: "dest.bin", isDirectory: false,
+                                     byteCount: Int64(payload.count), inode: 1, device: 1,
+                                     modifiedAt: Date(timeIntervalSince1970: 0), sha256: nil)
+    do {
+        try MigrationFileCopy.commitTemp(tempPath: recommitTemp, destination: destination,
+                                         expected: record, token: nil)
+        expect(false, "CAS must refuse a changed destination")
+    } catch MigrationFileCopy.CopyError.destinationChanged {
+        expect(true, "CAS refuses changed destination")
+        expect(!fm.fileExists(atPath: recommitTemp), "refused commit cleans its temp")
+    }
+
+    // RENAME_EXCL refusal when destination already exists.
+    let exclTemp = dir.appendingPathComponent("fresh.bin.\(UUID().uuidString)\(MigrationFileCopy.partialSuffix)").path
+    _ = try MigrationFileCopy.copyToTemp(source: source.path, tempPath: exclTemp, token: nil)
+    do {
+        try MigrationFileCopy.commitTemp(tempPath: exclTemp, destination: destination, expected: nil, token: nil)
+        expect(false, "RENAME_EXCL must refuse an existing destination")
+    } catch {
+        expect(true, "RENAME_EXCL refused existing destination")
+        expect(!fm.fileExists(atPath: exclTemp), "refused excl commit cleans its temp")
+    }
+}
+
+// MARK: - MigrationCheckpointStore
+
+do {
+    let fm = FileManager.default
+    let planID = UUID()
+    let plan = MigrationPlan(
+        id: planID, sourceBundleID: "a", targetBundleID: "b",
+        sourceContainerPath: "/tmp/a", targetContainerPath: "/tmp/b",
+        mode: .replace,
+        mappings: [MigrationMapping(sourceRelativePath: "Documents")],
+        files: [MigrationFileRecord(relativePath: "Documents", isDirectory: true,
+                                    byteCount: 0, inode: 1, device: 1,
+                                    modifiedAt: Date(), sha256: nil)],
+        totalBytes: 0, preSnapshotTarget: false, createdAt: Date()
+    )
+    try MigrationCheckpointStore.savePlan(plan)
+    let loaded = MigrationCheckpointStore.loadPlan(planID: planID)
+    expect(loaded != nil && loaded?.id == planID, "plan round-trips")
+    expectEqual(loaded?.files.count, 1, "plan file list survives encode/decode")
+
+    let receipt = MigrationReceipt(
+        id: planID, state: .running, plan: plan.summary,
+        completedFiles: 3, completedBytes: 999,
+        lastCompletedPath: "Documents/x", pendingExchange: false,
+        exchangedMappings: [], resumable: true, updatedAt: Date(), failureReason: nil
+    )
+    try MigrationCheckpointStore.save(receipt, force: true)
+    let receipts = MigrationCheckpointStore.loadAll()
+    expect(receipts.contains { $0.id == planID && $0.completedFiles == 3 },
+           "receipt round-trips through loadAll")
+
+    // Throttle: non-forced save skips non-multiple-of-8 counters.
+    var throttled = receipt
+    throttled.completedFiles = 3
+    try MigrationCheckpointStore.save(throttled) // not forced → skipped
+    let after = MigrationCheckpointStore.loadAll().first { $0.id == planID }
+    expectEqual(after?.completedFiles, 3, "throttled save did not overwrite")
+
+    // Journal.
+    try MigrationCheckpointStore.notePendingTemp(planID: planID, tempName: "x.bin.UUID.3106-partial")
+    expectEqual(MigrationCheckpointStore.readJournal(planID).pendingTemps.count, 1, "journal records temp")
+    MigrationCheckpointStore.clearPendingTemp(planID: planID, tempName: "x.bin.UUID.3106-partial")
+    expect(MigrationCheckpointStore.readJournal(planID).pendingTemps.isEmpty, "journal clears temp")
+
+    // Committed-files cursor.
+    let cursorPlan = MigrationPlan(
+        id: UUID(), sourceBundleID: "a", targetBundleID: "b",
+        sourceContainerPath: "/tmp/a", targetContainerPath: "/tmp/b",
+        mode: .merge,
+        mappings: [MigrationMapping(sourceRelativePath: "Documents")],
+        files: [
+            MigrationFileRecord(relativePath: "Documents", isDirectory: true, byteCount: 0, inode: 1, device: 1, modifiedAt: Date(), sha256: nil),
+            MigrationFileRecord(relativePath: "Documents/a", isDirectory: false, byteCount: 1, inode: 2, device: 1, modifiedAt: Date(), sha256: nil),
+            MigrationFileRecord(relativePath: "Documents/b", isDirectory: false, byteCount: 2, inode: 3, device: 1, modifiedAt: Date(), sha256: nil),
+        ],
+        totalBytes: 3, preSnapshotTarget: false, createdAt: Date()
+    )
+    var cursorReceipt = MigrationReceipt(
+        id: cursorPlan.id, state: .interrupted, plan: cursorPlan.summary,
+        completedFiles: 2, completedBytes: 3,
+        lastCompletedPath: "Documents/a", pendingExchange: false,
+        exchangedMappings: [], resumable: true, updatedAt: Date(), failureReason: nil
+    )
+    expectEqual(MigrationResumeService.committedFiles(receipt: cursorReceipt, plan: cursorPlan).count,
+                2, "cursor truncates to committed prefix")
+    cursorReceipt.lastCompletedPath = "Documents/missing"
+    expect(MigrationResumeService.committedFiles(receipt: cursorReceipt, plan: cursorPlan).isEmpty,
+           "unknown cursor yields empty committed set")
+}
+
+// MARK: - MigrationResumeService validation matrix
+
+do {
+    let fm = FileManager.default
+    let srcContainer = testRoot.appendingPathComponent("resume-src", isDirectory: true)
+    let dstContainer = testRoot.appendingPathComponent("resume-dst", isDirectory: true)
+    try fm.createDirectory(at: srcContainer.appendingPathComponent("Documents", isDirectory: true), withIntermediateDirectories: true)
+    try fm.createDirectory(at: dstContainer.appendingPathComponent("Documents", isDirectory: true), withIntermediateDirectories: true)
+    try Data("data".utf8).write(to: srcContainer.appendingPathComponent("Documents/a"))
+    try Data("data".utf8).write(to: dstContainer.appendingPathComponent("Documents/a"))
+
+    let planID = UUID()
+    let plan = MigrationPlan(
+        id: planID, sourceBundleID: "com.a", targetBundleID: "com.b",
+        sourceContainerPath: srcContainer.path, targetContainerPath: dstContainer.path,
+        mode: .merge,
+        mappings: [MigrationMapping(sourceRelativePath: "Documents")],
+        files: [
+            MigrationFileRecord(relativePath: "Documents", isDirectory: true, byteCount: 0, inode: 1, device: 1, modifiedAt: Date(), sha256: nil),
+            MigrationFileRecord(relativePath: "Documents/a", isDirectory: false, byteCount: 4, inode: 2, device: 1, modifiedAt: Date(), sha256: nil),
+        ],
+        totalBytes: 4, preSnapshotTarget: false, createdAt: Date()
+    )
+    try MigrationCheckpointStore.savePlan(plan)
+
+    func receipt(state: MigrationReceipt.State, cursor: String?, pending: Bool = false) -> MigrationReceipt {
+        MigrationReceipt(id: planID, state: state, plan: plan.summary,
+                         completedFiles: cursor == nil ? 0 : 2, completedBytes: cursor == nil ? 0 : 4,
+                         lastCompletedPath: cursor, pendingExchange: pending,
+                         exchangedMappings: [], resumable: true, updatedAt: Date(), failureReason: nil)
+    }
+
+    var report = MigrationResumeService.validate(receipt(state: .completed, cursor: "Documents/a"),
+                                                 resolvedSource: srcContainer.path,
+                                                 resolvedTarget: dstContainer.path,
+                                                 depth: .fast, fileManager: fm)
+    expect(report.verdict == .alreadyCompleted, "completed receipt needs no resume")
+
+    report = MigrationResumeService.validate(receipt(state: .interrupted, cursor: "Documents/a", pending: true),
+                                             resolvedSource: srcContainer.path,
+                                             resolvedTarget: dstContainer.path,
+                                             depth: .fast, fileManager: fm)
+    expect(report.verdict == .exchangeNeedsManualCheck, "pending exchange blocks auto-resume")
+
+    report = MigrationResumeService.validate(receipt(state: .interrupted, cursor: nil),
+                                             resolvedSource: nil, resolvedTarget: dstContainer.path,
+                                             depth: .fast, fileManager: fm)
+    expect(report.verdict == .appMissing(side: "com.a"), "missing source app refused")
+
+    report = MigrationResumeService.validate(receipt(state: .interrupted, cursor: nil),
+                                             resolvedSource: "/tmp/moved-src",
+                                             resolvedTarget: dstContainer.path,
+                                             depth: .fast, fileManager: fm)
+    if case .containerMoved = report.verdict {
+        expect(true, "container drift detected")
+    } else {
+        expect(false, "container drift detected")
+    }
+
+    report = MigrationResumeService.validate(receipt(state: .interrupted, cursor: "Documents/a"),
+                                             resolvedSource: srcContainer.path,
+                                             resolvedTarget: dstContainer.path,
+                                             depth: .fast, fileManager: fm)
+    expect(report.verdict == .ready && report.verifiedFiles == 1, "matching trees validate ready (fast)")
+
+    // Deep mismatch: target content diverges.
+    try Data("corrupted".utf8).write(to: dstContainer.appendingPathComponent("Documents/a"))
+    report = MigrationResumeService.validate(receipt(state: .interrupted, cursor: "Documents/a"),
+                                             resolvedSource: srcContainer.path,
+                                             resolvedTarget: dstContainer.path,
+                                             depth: .deep, fileManager: fm)
+    expect(report.verdict == .targetChanged(path: "Documents/a"), "deep check catches divergence")
+    try Data("data".utf8).write(to: dstContainer.appendingPathComponent("Documents/a"))
+
+    // Deep pass on identical content.
+    report = MigrationResumeService.validate(receipt(state: .interrupted, cursor: "Documents/a"),
+                                             resolvedSource: srcContainer.path,
+                                             resolvedTarget: dstContainer.path,
+                                             depth: .deep, fileManager: fm)
+    expect(report.verdict == .ready, "deep check passes identical content")
+}
+
+// MARK: - MigrationWeChatPolicy
+
+do {
+    expect(MigrationWeChatPolicy.isWeChatBundle("com.tencent.xin"), "official WeChat recognized")
+    expect(MigrationWeChatPolicy.isWeChatBundle("com.clone.wechat.pro"), "clone with wechat recognized")
+    expect(MigrationWeChatPolicy.isWeChatBundle("com.example.weixin.dev"), "weixin variant recognized")
+    expectFalse(MigrationWeChatPolicy.isWeChatBundle("com.apple.mail"), "unrelated bundle untouched")
+    expectFalse(MigrationWeChatPolicy.isWeChatBundle("com.tencent.mobileqq"), "QQ is not WeChat")
+}
+
+// MARK: - End-to-end engine runs (local container simulation)
+
+func runEngine(_ body: @escaping (MigrationEngine) async throws -> Void) -> Bool {
+    let sem = DispatchSemaphore(value: 0)
+    let box = FailureBox()
+    let engine = MigrationEngine()
+    Task {
+        do {
+            try await body(engine)
+        } catch {
+            box.fail("\(error)")
+        }
+        sem.signal()
+    }
+    sem.wait()
+    if let message = box.message {
+        fputs("FAIL: \(message)\n", stderr)
+        failures += 1
+        return false
+    }
+    return true
+}
+
+final class FailureBox: @unchecked Sendable {
+    private let lock = NSLock()
+    var message: String?
+    func fail(_ m: String) {
+        lock.lock()
+        message = m
+        lock.unlock()
+    }
+}
+
+do {
+    let fm = FileManager.default
+    let sourceContainer = testRoot.appendingPathComponent("e2e-src", isDirectory: true)
+    let targetContainer = testRoot.appendingPathComponent("e2e-dst", isDirectory: true)
+    let srcMD5 = sourceContainer.appendingPathComponent("Documents/MD5", isDirectory: true)
+    try fm.createDirectory(at: srcMD5, withIntermediateDirectories: true)
+    try Data("chat db v1".utf8).write(to: srcMD5.appendingPathComponent("MM.sqlite"))
+    try fm.createDirectory(at: targetContainer.appendingPathComponent("Documents/OTHER", isDirectory: true), withIntermediateDirectories: true)
+    try Data("old target".utf8).write(to: targetContainer.appendingPathComponent("Documents/OTHER/stale.txt"))
+
+    let source = InstalledApp(bundleID: "com.src", name: "Src", containerPath: sourceContainer.path,
+                              version: "1", icon: nil)
+    let target = InstalledApp(bundleID: "com.dst", name: "Dst", containerPath: targetContainer.path,
+                              version: "1", icon: nil)
+    let mappings = [MigrationMapping(sourceRelativePath: "Documents/MD5",
+                                     targetRelativePath: "Documents/OTHER")]
+
+    // merge: same-name overwrite, target-only kept.
+    let mergedOK = runEngine { engine in
+        let plan = try await engine.prepare(source: source, target: target, mappings: mappings,
+                                            mode: .merge, preSnapshotTarget: false)
+        _ = try await engine.run(plan: plan, token: CancellationToken(), onProgress: { _ in })
+        let mm = try Data(contentsOf: targetContainer.appendingPathComponent("Documents/OTHER/MM.sqlite"))
+        expectEqual(mm, Data("chat db v1".utf8), "e2e merge: source content landed")
+        let stale = try Data(contentsOf: targetContainer.appendingPathComponent("Documents/OTHER/stale.txt"))
+        expectEqual(stale, Data("old target".utf8), "e2e merge: target-only file kept")
+    }
+    expect(mergedOK, "e2e merge completed")
+
+    // exchange: atomic swap — source gets the old target tree, target gets MD5.
+    let exchangeOK = runEngine { engine in
+        let plan = try await engine.prepare(source: source, target: target, mappings: mappings,
+                                            mode: .exchange, preSnapshotTarget: false)
+        _ = try await engine.run(plan: plan, token: CancellationToken(), onProgress: { _ in })
+        let swapped = try Data(contentsOf: sourceContainer.appendingPathComponent("Documents/MD5/stale.txt"))
+        expectEqual(swapped, Data("old target".utf8), "e2e exchange: target tree moved to source side")
+        let db = try Data(contentsOf: targetContainer.appendingPathComponent("Documents/OTHER/MM.sqlite"))
+        expectEqual(db, Data("chat db v1".utf8), "e2e exchange: source db moved to target side")
+    }
+    expect(exchangeOK, "e2e exchange completed")
+
+    // replace: target-only entries removed, source authoritative.
+    try Data("extra".utf8).write(to: targetContainer.appendingPathComponent("Documents/OTHER/target-only.txt"))
+    let replaceOK = runEngine { engine in
+        let plan = try await engine.prepare(source: source, target: target, mappings: mappings,
+                                            mode: .replace, preSnapshotTarget: false)
+        _ = try await engine.run(plan: plan, token: CancellationToken(), onProgress: { _ in })
+        expect(!fm.fileExists(atPath: targetContainer.appendingPathComponent("Documents/OTHER/target-only.txt").path),
+               "e2e replace: target-only file removed")
+        expect(fm.fileExists(atPath: targetContainer.appendingPathComponent("Documents/OTHER/MM.sqlite").path),
+               "e2e replace: source content present")
+    }
+    expect(replaceOK, "e2e replace completed")
+
+    // Interrupted-run resume: kill after first file, then resume to completion.
+    let resumeOK = runEngine { engine in
+        try Data("fresh db".utf8).write(to: srcMD5.appendingPathComponent("MM.sqlite"))
+        try Data("journal".utf8).write(to: srcMD5.appendingPathComponent("WCDB.contact"))
+        try? fm.removeItem(atPath: targetContainer.appendingPathComponent("Documents/OTHER/stale.txt").path)
+        try? fm.removeItem(atPath: targetContainer.appendingPathComponent("Documents/OTHER/target-only.txt").path)
+
+        let plan = try await engine.prepare(source: source, target: target, mappings: mappings,
+                                            mode: .merge, preSnapshotTarget: false)
+        let token = CancellationToken()
+        _ = try await engine.run(plan: plan, token: token, onProgress: { _ in })
+        // Simulate interruption: flip the persisted receipt to interrupted.
+        token.cancel(reason: "simulated kill")
+        if let last = MigrationCheckpointStore.loadAll().first(where: { $0.id == plan.id }) {
+            await engine.markInterrupted(last, reason: "simulated kill")
+        }
+
+        let interrupted = MigrationResumeService.scanInterrupted()
+        expect(interrupted.contains { $0.id == plan.id }, "interrupted receipt discovered")
+
+        // Resume on a fresh engine.
+        let resumedPlan = MigrationCheckpointStore.loadPlan(planID: plan.id)!
+        guard let stored = MigrationCheckpointStore.loadAll().first(where: { $0.id == plan.id }) else {
+            expect(false, "resume: stored receipt missing")
+            return
+        }
+        let engine2 = MigrationEngine()
+        _ = try await engine2.run(plan: resumedPlan, resumeState: stored,
+                                  token: CancellationToken(), onProgress: { _ in })
+        let db = try Data(contentsOf: targetContainer.appendingPathComponent("Documents/OTHER/MM.sqlite"))
+        expectEqual(db, Data("fresh db".utf8), "resume: final content correct")
+        let contact = try Data(contentsOf: targetContainer.appendingPathComponent("Documents/OTHER/WCDB.contact"))
+        expectEqual(contact, Data("journal".utf8), "resume: second file landed")
+    }
+    expect(resumeOK, "e2e resume completed")
+
+    // Orphan partial cleanup on resume: seed a journal entry + a straggler
+    // temp inside the mapped target root, resume must sweep both.
+    if let resumeReceiptID = MigrationCheckpointStore.loadAll()
+        .first(where: { $0.plan.targetContainerPath == targetContainer.path })?.id {
+        let orphanName = "junk.bin.\(UUID().uuidString)\(MigrationFileCopy.partialSuffix)"
+        let orphan = targetContainer.appendingPathComponent("Documents/OTHER/\(orphanName)")
+        try Data("junk".utf8).write(to: orphan)
+        try MigrationCheckpointStore.notePendingTemp(planID: resumeReceiptID, tempName: orphanName)
+
+        let sweepOK = runEngine { engine in
+            let plan2 = MigrationCheckpointStore.loadPlan(planID: resumeReceiptID)!
+            let stored2 = MigrationCheckpointStore.loadAll().first { $0.id == resumeReceiptID }!
+            let engine2 = MigrationEngine()
+            _ = try await engine2.run(plan: plan2, resumeState: stored2,
+                                      token: CancellationToken(), onProgress: { _ in })
+            expect(!fm.fileExists(atPath: orphan.path), "orphan partial swept on resume")
+        }
+        expect(sweepOK, "orphan sweep run completed")
+    } else {
+        expect(false, "orphan sweep: receipt for e2e target missing")
+    }
+}
+
+if failures == 0 {
+    print("PASS: \(checks) migration checks")
+    exit(0)
+} else {
+    print("FAILED: \(failures)/\(checks) checks")
+    exit(1)
+}

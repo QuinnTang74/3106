@@ -11,6 +11,8 @@ enum BackupFeature: String, Codable, CaseIterable, Identifiable {
     case file
     case wallpaper
     case manual
+    /// Migration engine (folder copy, config-apply, launch artwork).
+    case migration
 
     var id: String { rawValue }
 }
