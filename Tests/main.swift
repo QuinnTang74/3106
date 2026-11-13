@@ -905,6 +905,113 @@ do {
     expect(small == ["ab", "cd", "ef"], "custom pageLimit respected")
 }
 
+// MARK: - Issue #3: cleaner policy vs the /var -> /private/var symlink
+
+// On iOS (and macOS) /var is a symlink to /private/var. The cleaner's
+// component walk lstat()s every ancestor; before the fix the /var component
+// resolved to /private/var and was then compared against an uncanonicalized
+// container root, so EVERY clean was rejected as symlinkEscapesContainer.
+do {
+    // Build a real container on disk with a real in-container symlink
+    // (Library/Caches -> tmp-cache), mirroring what apps ship.
+    let base = NSTemporaryDirectory()
+    let root = URL(fileURLWithPath: base)
+        .appendingPathComponent("3106-cleaner-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(
+        at: root.appendingPathComponent("Library/Caches", isDirectory: true),
+        withIntermediateDirectories: true
+    )
+    try FileManager.default.createDirectory(
+        at: root.appendingPathComponent("tmp-cache", isDirectory: true),
+        withIntermediateDirectories: true
+    )
+    // Replace Library/Caches with a symlink pointing at tmp-cache INSIDE the
+    // container (the common app layout the policy explicitly allows).
+    try FileManager.default.removeItem(at: root.appendingPathComponent("Library/Caches"))
+    try FileManager.default.createSymbolicLink(
+        at: root.appendingPathComponent("Library/Caches", isDirectory: true),
+        withDestinationURL: root.appendingPathComponent("tmp-cache")
+    )
+    try FileManager.default.createDirectory(
+        at: root.appendingPathComponent("tmp", isDirectory: true),
+        withIntermediateDirectories: true
+    )
+
+    // Exercise the policy through the /var spelling so the walk hits the
+    // system-level symlink exactly like on a device.
+    let rootVarSpelling = root.path.replacingOccurrences(
+        of: "/private/var",
+        with: "/var"
+    )
+    let cachesTarget = CleanerSafetyPolicy.PlannedTarget.build(
+        containerRoot: rootVarSpelling,
+        relativePath: "Library/Caches"
+    )
+    let tmpTarget = CleanerSafetyPolicy.PlannedTarget.build(
+        containerRoot: rootVarSpelling,
+        relativePath: "tmp"
+    )
+    expect(cachesTarget != nil, "PlannedTarget.build accepts a /var-spelled root")
+    expect(tmpTarget != nil, "PlannedTarget.build accepts /var root for tmp")
+
+    if let cachesTarget {
+        expect(
+            CleanerSafetyPolicy.checkTarget(cachesTarget, snapshot: nil) == .allowed,
+            "in-container Caches symlink allowed through /var root (issue #3)"
+        )
+    }
+    if let tmpTarget {
+        expect(
+            CleanerSafetyPolicy.checkTarget(tmpTarget, snapshot: nil) == .allowed,
+            "plain tmp allowed through /var root (issue #3)"
+        )
+    }
+
+    // Escape must still be rejected: point the Caches symlink OUTSIDE the
+    // container and re-check.
+    let escapeLink = root.appendingPathComponent("Library/Caches")
+    try FileManager.default.removeItem(at: escapeLink)
+    try FileManager.default.createSymbolicLink(
+        at: escapeLink,
+        withDestinationURL: URL(fileURLWithPath: "/tmp")
+    )
+    if let cachesTarget {
+        expect(
+            CleanerSafetyPolicy.checkTarget(cachesTarget, snapshot: nil)
+                == .rejected(reason: .symlinkEscapesContainer),
+            "escape symlink outside the container still rejected"
+        )
+    }
+    // A sibling-prefix root must not satisfy containment.
+    expectFalse(
+        LaunchServicesStore.isPath(
+            root.path + "X/Library/Caches",
+            containedIn: root.path
+        ),
+        "cleaner containment rejects a sibling prefix"
+    )
+
+    try? FileManager.default.removeItem(at: root)
+}
+
+// MARK: - Issue #3: descriptor-skip diagnosis fields
+
+do {
+    // validExtensionIdentifier must accept the real Apple extension id that
+    // appeared in the skipped-descriptor log (issue #3).
+    expect(
+        WallpaperLayoutScanner.validExtensionIdentifier(
+            "com.apple.WallpaperKit.CollectionsPoster"
+        ),
+        "CollectionsPoster identifier passes the extension check"
+    )
+    // And the container-identity variant used elsewhere keeps passing.
+    expect(
+        !WallpaperLayoutScanner.validExtensionIdentifier("no-dot"),
+        "identifier without a dot rejected"
+    )
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

@@ -17,7 +17,7 @@ class AppLog: ObservableObject {
 private var consoleStderrFD: Int32 = -1
 
 func log(_ msg: String) {
-    let line = "[3106] \(msg)"
+    let line = "[3106/\(buildStamp)] \(msg)"
     AppLog.shared.append(line)
     let fd = consoleStderrFD
     if fd >= 0 {
@@ -28,6 +28,17 @@ func log(_ msg: String) {
         }
     }
 }
+
+/// Build stamp for every log line ("[3106/3.2.5-24] ..."), so a device log
+/// alone identifies which binary produced it (issue #3: testers reported
+/// logs from builds that no longer matched any released artifact).
+var buildStamp: String = {
+    let short = Bundle.main.object(
+        forInfoDictionaryKey: "CFBundleShortVersionString"
+    ) as? String ?? "0.0.0"
+    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+    return "\(short)-\(build)"
+}()
 
 // Retain the pipe for the app's lifetime so stdout/stderr stay redirected.
 private var logCapturePipe: Pipe?

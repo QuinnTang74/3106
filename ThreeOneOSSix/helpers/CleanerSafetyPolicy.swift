@@ -158,6 +158,12 @@ enum CleanerSafetyPolicy {
         // Walk every component without following symlinks. `Library/Caches`
         // is frequently a symlink INSIDE the container; that is allowed, but
         // only when the resolved destination stays within the container root.
+        // System-path ancestors need separate handling (issue #3): /var is
+        // itself a symlink to /private/var, so a component ABOVE the root
+        // legitimately resolves outside it — but only components that are a
+        // path-prefix of the root may do so. A symlink below the root (e.g.
+        // Caches -> /private/var) must never be excused by that ancestor rule.
+        let resolvedRootPath = (target.containerRoot as NSString).resolvingSymlinksInPath
         let components = target.absolutePath.split(separator: "/").map(String.init)
         var prefix = ""
         for component in components {
@@ -170,8 +176,19 @@ enum CleanerSafetyPolicy {
             }
             if (st.st_mode & S_IFMT) == S_IFLNK {
                 let resolved = (prefix as NSString).resolvingSymlinksInPath
-                if !resolved.hasPrefix(target.containerRoot + "/") {
-                    return .rejected(reason: .symlinkEscapesContainer)
+                let atOrBelowRoot = prefix == target.containerRoot ||
+                    prefix.hasPrefix(target.containerRoot + "/")
+                if atOrBelowRoot {
+                    // Below the root: the resolved destination must stay inside.
+                    if !LaunchServicesStore.isPath(resolved, containedIn: target.containerRoot) {
+                        return .rejected(reason: .symlinkEscapesContainer)
+                    }
+                } else {
+                    // Above the root (system path like /var): fine while it
+                    // still leads to the container root in resolved space.
+                    if !LaunchServicesStore.isPath(resolvedRootPath, containedIn: resolved) {
+                        return .rejected(reason: .symlinkEscapesContainer)
+                    }
                 }
             }
         }

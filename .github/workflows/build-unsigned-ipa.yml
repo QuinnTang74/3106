@@ -32,13 +32,36 @@ jobs:
         run: |
           APP="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos/3106.app"
           VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist")
+          BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Info.plist")
           mkdir Payload
           cp -R "$APP" Payload/
           zip -qry "3106-${VERSION}-unsigned.ipa" Payload
           shasum -a 256 "3106-${VERSION}-unsigned.ipa"
+          echo "IPA=3106-${VERSION}-unsigned.ipa" >> "$GITHUB_ENV"
+          echo "IPA_VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "IPA_BUILD=${BUILD}" >> "$GITHUB_ENV"
+
+      # Release-gate sentinel (issue #3): the packaged binary must contain a
+      # constant string that exists only in the current source. Swift -O
+      # inlines interpolation fragments <= 15 bytes (small-string encoding), so
+      # short probes like "dirResolved" are NOT reliable sentinels;
+      # "validIdentifier=" (16 bytes) survives into the constant pool and is
+      # new in this release. Asserts the artifact was built from the tree that
+      # just passed the policy tests.
+      - name: Verify artifact matches source
+        run: |
+          APP="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos/3106.app"
+          SENTINEL="validIdentifier="
+          COUNT=$(strings "$APP/3106" | grep -cF "$SENTINEL" || true)
+          if [[ "$COUNT" -lt 1 ]]; then
+            echo "FAIL: release artifact missing source sentinel '$SENTINEL'" >&2
+            echo "The packaged binary does not match the current source tree." >&2
+            exit 1
+          fi
+          echo "artifact sentinel OK (count=$COUNT)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 3106-unsigned-ipa
-          path: "3106-3.1.4-r2-unsigned.ipa"
+          path: "3106-*-unsigned.ipa"

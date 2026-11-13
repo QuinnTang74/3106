@@ -228,10 +228,13 @@ enum LimitedCleanerService {
             guard FileManager.default.fileExists(atPath: target.path) else { continue }
 
             // `Library/Caches` is often a symlink. Only follow it when the
-            // resolved target stays inside the app container.
+            // resolved target stays inside the app container. isPath
+            // canonicalizes /var <-> /private/var on both sides (issue #3).
             let resolvedTarget = target.resolvingSymlinksInPath().standardizedFileURL
-            let inside = resolvedTarget.path == resolvedRoot.path ||
-                resolvedTarget.path.hasPrefix(resolvedRoot.path + "/")
+            let inside = LaunchServicesStore.isPath(
+                resolvedTarget.path,
+                containedIn: resolvedRoot.path
+            )
             guard inside else {
                 failed += 1
                 log(
@@ -251,8 +254,10 @@ enum LimitedCleanerService {
                 // container immediately before deletion (a symlink swapped in
                 // between listing and removal is refused here).
                 let resolvedChild = child.resolvingSymlinksInPath().standardizedFileURL
-                let childInside = resolvedChild.path == resolvedRoot.path ||
-                    resolvedChild.path.hasPrefix(resolvedRoot.path + "/")
+                let childInside = LaunchServicesStore.isPath(
+                    resolvedChild.path,
+                    containedIn: resolvedRoot.path
+                )
                 guard childInside else {
                     failed += 1
                     log(

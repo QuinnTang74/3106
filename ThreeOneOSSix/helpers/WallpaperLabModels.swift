@@ -521,7 +521,11 @@ enum WallpaperLayoutScanner {
     static func validExtensionIdentifier(_ value: String) -> Bool {
         guard !value.isEmpty, value.utf8.count <= 255, value.contains(".") else { return false }
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: ".-_"))
-        return value.unicodeScalars.allSatisfy(allowed.contains)
+        // Explicit closure, not a curried `allowed.contains` reference: in
+        // whole-module builds the bare reference can resolve to a different
+        // `contains` overload and silently fail every identifier (issue #3:
+        // every descriptor was skipped, com.apple.WallpaperKit.* included).
+        return value.unicodeScalars.allSatisfy { allowed.contains($0) }
     }
 
     static func validateDirectory(
@@ -621,7 +625,12 @@ enum TendiesPackageInspector {
     ) throws -> TendiesPayload {
         // Use one spelling of the extraction root for the whole inspection so
         // children enumerated under it cannot diverge from the root itself.
+        // Resolve once up front: whatever the caller passed in (raw /var
+        // spelling from the sandbox or a resolved /private/var form), every
+        // derived child path below shares this spelling (issue #2/#3).
         let packageURL = packageURL.standardizedFileURL
+            .resolvingSymlinksInPath()
+            .standardizedFileURL
         try WallpaperLayoutScanner.validateDirectory(packageURL, fileManager: fileManager)
         log("wallpaper: inspecting package root=\(packageURL.path)")
         let descriptors = try collectDescriptorSources(
@@ -677,14 +686,19 @@ enum TendiesPackageInspector {
             return []
         }
         try WallpaperLayoutScanner.validateDirectory(directory, fileManager: fileManager)
-        let children = try fileManager.contentsOfDirectory(
+        let rawChildren = try fileManager.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
             options: [.skipsHiddenFiles]
         ).sorted { $0.lastPathComponent < $1.lastPathComponent }
         var result: [WallpaperDescriptorSource] = []
 
-        for child in children where child.lastPathComponent != "__MACOSX" {
+        for rawChild in rawChildren where rawChild.lastPathComponent != "__MACOSX" {
+            // Re-derive every child URL from the directory spelling we were
+            // given instead of trusting the enumerator's own spelling. A
+            // mixed /var vs /private/var form for the same tree used to
+            // defeat the containment guard one level down (issue #2/#3).
+            let child = directory.appendingPathComponent(rawChild.lastPathComponent)
             let values = try child.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             guard values.isSymbolicLink != true else {
                 log("wallpaper: package symlink skipped \(child.path)")
@@ -747,11 +761,23 @@ enum TendiesPackageInspector {
     ) throws -> [WallpaperDescriptorSource] {
         guard WallpaperLayoutScanner.validExtensionIdentifier(extensionIdentifier),
               WallpaperLayoutScanner.isContained(directory, in: packageRoot) else {
+            // Print each guard clause separately plus the canonical forms so a
+            // device log alone shows which clause failed and under which
+            // spelling (issue #2/#3 diagnosis).
+            let dirCanonical = LaunchServicesStore.canonicalContainerPath(
+                directory.standardizedFileURL.path
+            )
+            let rootCanonical = LaunchServicesStore.canonicalContainerPath(
+                packageRoot.standardizedFileURL.path
+            )
             log(
                 "wallpaper: descriptor source skipped dir=\(directory.path) " +
                     "root=\(packageRoot.path) " +
                     "dirResolved=\(directory.standardizedFileURL.resolvingSymlinksInPath().path) " +
                     "rootResolved=\(packageRoot.standardizedFileURL.resolvingSymlinksInPath().path) " +
+                    "dirCanonical=\(dirCanonical) rootCanonical=\(rootCanonical) " +
+                    "validIdentifier=\(WallpaperLayoutScanner.validExtensionIdentifier(extensionIdentifier)) " +
+                    "contained=\(WallpaperLayoutScanner.isContained(directory, in: packageRoot)) " +
                     "extension=\(extensionIdentifier)"
             )
             return []
