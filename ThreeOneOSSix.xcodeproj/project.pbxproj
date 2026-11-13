@@ -120,6 +120,12 @@
 		3106T407 /* MigrationConfigBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T307; };
 		3106T408 /* MigrationRenameAuditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T308; };
 		3106T409 /* MigrationTaskCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T309; };
+		3106T500 /* MigrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T310; };
+		3106T501 /* MigrationMappingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T311; };
+		3106T502 /* MigrationPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T312; };
+		3106T503 /* MigrationProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T313; };
+		3106T504 /* MigrationResumeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T314; };
+		3106T505 /* MigrationConfigBackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106T315; };
 		3106R200 /* Respring.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R100; };
 		3106R201 /* AcknowledgementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106R101; };
 		3106M200 /* MobileGestaltService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106M100; };
@@ -275,6 +281,12 @@
 		3106T307 /* MigrationConfigBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationConfigBackupService.swift; sourceTree = "<group>"; };
 		3106T308 /* MigrationRenameAuditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationRenameAuditor.swift; sourceTree = "<group>"; };
 		3106T309 /* MigrationTaskCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationTaskCenter.swift; sourceTree = "<group>"; };
+		3106T310 /* MigrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationView.swift; sourceTree = "<group>"; };
+		3106T311 /* MigrationMappingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationMappingView.swift; sourceTree = "<group>"; };
+		3106T312 /* MigrationPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationPreviewView.swift; sourceTree = "<group>"; };
+		3106T313 /* MigrationProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationProgressView.swift; sourceTree = "<group>"; };
+		3106T314 /* MigrationResumeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationResumeView.swift; sourceTree = "<group>"; };
+		3106T315 /* MigrationConfigBackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationConfigBackupView.swift; sourceTree = "<group>"; };
 		3106R100 /* Respring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Respring.swift; sourceTree = "<group>"; };
 		3106R101 /* AcknowledgementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcknowledgementsView.swift; sourceTree = "<group>"; };
 		3106M100 /* MobileGestaltService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileGestaltService.swift; sourceTree = "<group>"; };
@@ -389,6 +401,12 @@
 				3106S103 /* FileInfoView.swift */,
 				3106T110 /* PaginatedTextView.swift */,
 				3106T111 /* DiagnosticReportView.swift */,
+				3106T310 /* MigrationView.swift */,
+				3106T311 /* MigrationMappingView.swift */,
+				3106T312 /* MigrationPreviewView.swift */,
+				3106T313 /* MigrationProgressView.swift */,
+				3106T314 /* MigrationResumeView.swift */,
+				3106T315 /* MigrationConfigBackupView.swift */,
 			);
 			path = views;
 			sourceTree = "<group>";
@@ -681,6 +699,12 @@
 				3106T407,
 				3106T408,
 				3106T409,
+				3106T500,
+				3106T501,
+				3106T502,
+				3106T503,
+				3106T504,
+				3106T505,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

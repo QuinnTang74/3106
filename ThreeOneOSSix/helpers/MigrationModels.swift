@@ -7,7 +7,7 @@ import Foundation
 /// arbitrary user-selected files/folders between two application containers.
 /// WeChat only gets sort priority and a label in the app picker UI.
 
-enum TransferMode: String, Codable, CaseIterable {
+enum TransferMode: String, Codable, CaseIterable, Identifiable {
     /// Source overwrites the target; target entries the source lacks are removed.
     case replace
     /// Same-name overwrite, target-only entries preserved.
@@ -15,6 +15,8 @@ enum TransferMode: String, Codable, CaseIterable {
     /// Atomic two-way swap via renamex_np(RENAME_SWAP); errors out when the
     /// filesystem cannot swap — never degrades to copy.
     case exchange
+
+    var id: String { rawValue }
 
     var riskKey: String {
         switch self {
@@ -97,7 +99,7 @@ struct MigrationPlanSummary: Codable, Hashable {
     var fileCount: Int
 }
 
-struct MigrationReceipt: Codable, Hashable {
+struct MigrationReceipt: Codable, Hashable, Identifiable {
     enum State: String, Codable {
         case prepared
         case running

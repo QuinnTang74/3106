@@ -20,6 +20,18 @@
 				<string>com.qingtang.3106.patch-package</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>3106 Config Package</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.qingtang.3106.config-package</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
@@ -97,6 +109,25 @@
 				</array>
 				<key>public.mime-type</key>
 				<string>application/x-3106-patch</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>3106 Config Package</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.qingtang.3106.config-package</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>3106cfg</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>application/x-3106-config</string>
 			</dict>
 		</dict>
 	</array>

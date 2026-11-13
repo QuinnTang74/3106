@@ -7,6 +7,7 @@ import SwiftUI
 struct FeatureHubView: View {
     @Environment(\.appLanguage) private var language
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @EnvironmentObject private var taskCenter: MigrationTaskCenter
     // Page-level single entrance: the whole card list fades/slides in once.
     // Per-row @State animations would replay when List recycles rows.
     @State private var entranceShown = false
@@ -191,6 +192,17 @@ struct FeatureHubView: View {
                             icon: "arrowshape.replace.forward.fill"
                         )
                     }
+
+                    NavigationLink {
+                        MigrationView()
+                    } label: {
+                        card(
+                            "home.card.migration",
+                            detail: "home.card.migration_detail",
+                            icon: "arrow.left.arrow.right.square.fill"
+                        )
+                    }
+                    .badge(taskCenter.pendingResumes.count)
                 } header: {
                     Text(language.text("home.section.data"))
                 }
@@ -238,11 +250,13 @@ struct FeatureHubView: View {
             .onAppear {
                 guard !entranceShown, !reduceMotion else {
                     entranceShown = true
+                    taskCenter.refreshPendingResumes()
                     return
                 }
                 withAnimation(.easeOut(duration: 0.3)) {
                     entranceShown = true
                 }
+                taskCenter.refreshPendingResumes()
             }
             .toolbar {
                 AppUtilityToolbar(

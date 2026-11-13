@@ -6,6 +6,7 @@ import SwiftUI
 /// BackupCenterView; save archives in AppSaveBackupView.
 struct BackupTabView: View {
     @Environment(\.appLanguage) private var language
+    @EnvironmentObject private var taskCenter: MigrationTaskCenter
     private let backupCenter = BackupCenter.shared
     @State private var records: [BackupRecord] = []
     @State private var fullBackups: [FullBackupService.ArchivedBackup] = []
@@ -19,6 +20,7 @@ struct BackupTabView: View {
     var body: some View {
         NavigationStack {
             List {
+                migrationSection
                 autoBackupSection
                 snapshotSection
                 fullBackupSection
@@ -27,7 +29,10 @@ struct BackupTabView: View {
             }
             .navigationTitle(language.text("backup.tab.title"))
             .navigationBarTitleDisplayMode(.inline)
-            .refreshable { reload() }
+            .refreshable {
+                reload()
+                taskCenter.refreshPendingResumes()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -53,6 +58,33 @@ struct BackupTabView: View {
     }
 
     // MARK: - Sections
+
+    /// Interrupted migrations ("check and continue"), surfaced above the
+    /// backup sections — resuming is the most time-sensitive action here.
+    @ViewBuilder
+    private var migrationSection: some View {
+        if !taskCenter.pendingResumes.isEmpty {
+            Section {
+                ForEach(taskCenter.pendingResumes) { receipt in
+                    NavigationLink {
+                        MigrationResumeView(receipt: receipt)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(language.text("migration.resume.pending"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.orange)
+                            Text("\(receipt.plan.sourceBundleID) → \(receipt.plan.targetBundleID) · \(language.text("migration.mode.\(receipt.plan.mode.rawValue)"))")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                    }
+                }
+            } header: {
+                Text(language.text("migration.section.pending"))
+            }
+        }
+    }
 
     private var autoBackupSection: some View {
         Section {

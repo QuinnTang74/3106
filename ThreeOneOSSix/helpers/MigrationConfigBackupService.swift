@@ -29,7 +29,7 @@ enum MigrationConfigBackupService {
         let sha256: String
     }
 
-    struct Manifest: Codable {
+    struct Manifest: Codable, Hashable {
         var format: Int = 1
         var sourceBundleID: String
         var sourceAppName: String
@@ -147,7 +147,7 @@ enum MigrationConfigBackupService {
             if Int64(data.count) != record.bytes {
                 throw ConfigError.hashMismatch(record.path)
             }
-            let hex = try MigrationResumeService.fileHash(path, fileManager: fm)
+            let hex = try MigrationResumeService.fileHash(path.path, fileManager: fm)
             if hex != record.sha256 {
                 throw ConfigError.hashMismatch(record.path)
             }

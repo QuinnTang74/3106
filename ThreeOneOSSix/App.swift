@@ -8,6 +8,7 @@ struct ThreeOneOSSixApp: App {
     @StateObject private var fileOperationCoordinator = FileOperationCoordinator()
     @StateObject private var patchStore = PatchProjectStore()
     @StateObject private var repositoryStore = PackageRepositoryStore()
+    @StateObject private var migrationTaskCenter = MigrationTaskCenter()
     @AppStorage(AppLanguage.storageKey) private var languageCode = AppLanguage.english.rawValue
     @State private var showOnboarding = OnboardingStore.shouldShow()
     @State private var showAttribution = false
@@ -44,6 +45,7 @@ struct ThreeOneOSSixApp: App {
                     .environmentObject(fileOperationCoordinator)
                     .environmentObject(patchStore)
                     .environmentObject(repositoryStore)
+                    .environmentObject(migrationTaskCenter)
                     .environment(\.appLanguage, language)
                     .environment(\.locale, language.locale)
                     .opacity(showOnboarding ? 0 : 1)
@@ -89,12 +91,26 @@ struct ThreeOneOSSixApp: App {
                     appState.detectSupport()
                     checkForUpdate()
                 }
+                migrationTaskCenter.refreshPendingResumes()
             }
             .onChange(of: scenePhase) { phase in
                 guard phase == .active, !showOnboarding else { return }
                 appState.detectSupport()
             }
             .onOpenURL { url in
+                // Config backup packages (.3106cfg) route to the migration
+                // importer; everything else stays on the patch-package path.
+                if url.isFileURL,
+                   url.pathExtension.lowercased() == MigrationConfigBackupService.packageExtension {
+                    do {
+                        _ = try MigrationConfigBackupService.importPackage(at: url)
+                        migrationTaskCenter.refreshStoredSets()
+                        log("migration: config package imported via URL")
+                    } catch {
+                        log("migration: config package import failed — \(error)")
+                    }
+                    return
+                }
                 patchDraftCoordinator.presentImport(url)
             }
         }
