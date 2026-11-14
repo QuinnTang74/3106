@@ -1449,3 +1449,6 @@
 // GestaltX v1.1.1 #138 field-import merge (3.2.5 rebuild)
 "gestalt.error.layout_mismatch" = "Định danh bộ nhớ đệm trong plist nhập không khớp thiết bị này; đã từ chối ghi.";
 "gestalt.field.import_summary" = "Nhập xong: ghi đè %d, bỏ qua %d khóa không xác định, giữ %d mục.";
+
+// GestaltX v1.1.1 #133 config import errors (3.2.5 rebuild)
+"config.import_error.title" = "Nhập gói cấu hình thất bại";

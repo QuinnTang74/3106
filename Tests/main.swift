@@ -1088,6 +1088,64 @@ do {
            "strict data parser rejects empty input")
 }
 
+// MARK: - GestaltX v1.1.1 #134 backup metadata validation
+
+do {
+    let archive = "com.example.app-123.3106save"
+    let sidecar = BackupMetadataPolicy.sidecarName(forArchive: archive)
+    expect(sidecar == "com.example.app-123.manifest.plist",
+           "backup sidecar name is derived from the archive name")
+    expect(BackupMetadataPolicy.validateSidecarName(
+        archiveName: archive, sidecarName: sidecar
+    ) == .valid, "valid backup sidecar name accepted")
+    expect(BackupMetadataPolicy.validateSidecarName(
+        archiveName: archive, sidecarName: "other.manifest.plist"
+    ) == .rejected(reason: .invalidSidecarName),
+           "mismatched backup sidecar name rejected")
+    expect(BackupMetadataPolicy.validateSidecarName(
+        archiveName: "com.example.app-123.zip", sidecarName: sidecar
+    ) == .rejected(reason: .invalidSidecarName),
+           "non-3106save archive rejected")
+
+    let now = Date()
+    expect(BackupMetadataPolicy.validateManifest(
+        bundleID: "com.example.app", createdAt: now.addingTimeInterval(-60), now: now
+    ) == .valid, "valid backup manifest accepted")
+    expect(BackupMetadataPolicy.validateManifest(
+        bundleID: "", createdAt: now, now: now
+    ) == .rejected(reason: .emptyBundleID), "empty bundle ID rejected")
+    expect(BackupMetadataPolicy.validateManifest(
+        bundleID: "example", createdAt: now, now: now
+    ) == .rejected(reason: .invalidBundleID), "single-component bundle ID rejected")
+    expect(BackupMetadataPolicy.validateManifest(
+        bundleID: "com.example/app", createdAt: now, now: now
+    ) == .rejected(reason: .invalidBundleID), "bundle ID with slash rejected")
+    expect(BackupMetadataPolicy.validateManifest(
+        bundleID: "com.example.app", createdAt: now.addingTimeInterval(3600), now: now
+    ) == .rejected(reason: .futureTimestamp), "future createdAt rejected")
+
+    expect(BackupMetadataPolicy.validateArchivePath("Library/Preferences/a.plist") == .valid,
+           "safe archive path accepted")
+    expect(BackupMetadataPolicy.validateArchivePath("../escape.plist") ==
+           .rejected(reason: .unsafePath), "parent traversal rejected")
+    expect(BackupMetadataPolicy.validateArchivePath("/absolute.plist") ==
+           .rejected(reason: .unsafePath), "absolute archive path rejected")
+    expect(BackupMetadataPolicy.validateArchivePath("Library\\escape.plist") ==
+           .rejected(reason: .unsafePath), "backslash archive path rejected")
+    expect(BackupMetadataPolicy.validateArchivePath("Library/./a.plist") ==
+           .rejected(reason: .unsafePath), "dot component rejected")
+    expect(BackupMetadataPolicy.validateManifest(
+        bundleID: "com.example.app",
+        createdAt: now.addingTimeInterval(BackupMetadataPolicy.maxFutureTolerance - 1),
+        now: now
+    ) == .valid, "small clock drift within tolerance accepted")
+    expect(BackupMetadataPolicy.validateManifest(
+        bundleID: "com.example.app",
+        createdAt: now.addingTimeInterval(BackupMetadataPolicy.maxFutureTolerance + 1),
+        now: now
+    ) == .rejected(reason: .futureTimestamp), "clock drift beyond tolerance rejected")
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

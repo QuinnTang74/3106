@@ -1449,3 +1449,6 @@
 // GestaltX v1.1.1 #138 field-import merge (3.2.5 rebuild)
 "gestalt.error.layout_mismatch" = "The imported plist cache identity does not match this device; write rejected.";
 "gestalt.field.import_summary" = "Import complete: %d overwritten, %d unknown keys skipped, %d preserved.";
+
+// GestaltX v1.1.1 #133 config import errors (3.2.5 rebuild)
+"config.import_error.title" = "Config package import failed";

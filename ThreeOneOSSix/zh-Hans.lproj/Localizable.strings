@@ -1449,3 +1449,6 @@
 // GestaltX v1.1.1 #138 field-import merge (3.2.5 rebuild)
 "gestalt.error.layout_mismatch" = "导入 plist 的设备缓存标识与当前设备不匹配，已拒绝写入。";
 "gestalt.field.import_summary" = "导入完成：覆盖 %d 项，跳过 %d 项未知键，保留 %d 项。";
+
+// GestaltX v1.1.1 #133 config import errors (3.2.5 rebuild)
+"config.import_error.title" = "配置包导入失败";
