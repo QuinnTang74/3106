@@ -96,8 +96,19 @@ enum ContainerStore {
         }
         // The LaunchServices store pairs a bundle id with its data container
         // even when MCM activation and the metadata plist are unavailable.
+        //
+        // iOS 27: LSApplicationWorkspace enumeration returns 0, so this store is
+        // served from a stale on-disk cache and can hand back a container UUID
+        // that was deleted when the target app was reinstalled/updated.
+        // `isApplicationContainerPath` only validates the path *shape*, so a
+        // dead UUID passes it and we short-circuit before the live resolvers
+        // below ever run — the patch transaction then writes, hits ENOENT and
+        // rolls everything back. Verify the container is actually live and still
+        // owned by this bundle id before trusting the cache; otherwise fall
+        // through to MCM / the index / the metadata scan, which read live disk.
         if let mapped = launchServicesSnapshot()?.containerPath(forBundleID: bundleID),
-           isApplicationContainerPath(mapped) {
+           isApplicationContainerPath(mapped),
+           containerPathMatchesBundle(mapped, bundleID: bundleID) {
             log("patch: LaunchServices store resolved \(bundleID)")
             return mapped
         }
@@ -907,6 +918,26 @@ enum ContainerStore {
         let canonicalPath = ContainerDiscoveryMerger.canonicalPath(path)
         guard canonicalPath.hasPrefix(canonicalRoot + "/") else { return false }
         return UUID(uuidString: (canonicalPath as NSString).lastPathComponent) != nil
+    }
+
+    /// Confirm a resolved container path is a *live* container still owned by
+    /// `bundleID`. LaunchServices (and, on some builds, MCM) can return a cached
+    /// UUID that no longer exists on disk after the target was reinstalled, or
+    /// one that iOS has since reassigned to a different app. Reading the
+    /// container's own `.com.apple.mobile_container_manager.metadata.plist`
+    /// returns nil for a stale/absent path and a mismatching identifier for a
+    /// reassigned one, so this rejects both and lets the caller fall through to
+    /// a resolver that reflects current disk state.
+    static func containerPathMatchesBundle(_ path: String, bundleID: String) -> Bool {
+        guard let metadata = readContainerMetadata(containerPath: path) else {
+            log("patch: resolved container not present on disk — ignoring stale entry for \(bundleID)")
+            return false
+        }
+        guard metadata.bundleID == bundleID else {
+            log("patch: resolved container is owned by \(metadata.bundleID), not \(bundleID) — ignoring stale entry")
+            return false
+        }
+        return true
     }
 
     // MARK: Filesystem discovery
