@@ -103,7 +103,7 @@ The IPA is unsigned and must be signed with your own tool (LCSign / Sideloadly /
 
 **iOS 26.7+ / 27.x must keep the App Group entitlement** (Sideloadly drops it; use Impactor or Xcode).
 
-Current build: `3106-3.2.4-unsigned.ipa` (SHA256 `4f47344764422731bd33b77f3aad8d39d25f67ef8a564bee9e2c5ced0d4c6fae`).
+Current build: `3106-3.2.5-unsigned.ipa` / build 24. This is a same-version rebuild; use the latest SHA256 in `dist/SHA256SUMS.txt` to distinguish it from the previous package, whose backup lives in `dist/backups/`.
 
 ## License
 

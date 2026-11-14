@@ -19,8 +19,7 @@ enum AppUpdateChecker {
     }
 
     static var currentVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "AppReleaseDisplayVersion") as? String
-            ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
             ?? "0"
     }
 

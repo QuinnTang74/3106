@@ -37,8 +37,16 @@ URLSession.shared.dataTask(with: request) { data, response, error in
 }.resume()
 semaphore.wait()
 
+// The expected tag is derived from the checked-in Info.plist so a rebuild
+// under the same version does not silently turn this check into a stale gate.
+let plistURL = URL(fileURLWithPath: "ThreeOneOSSix/Info.plist")
+let info = (try? Data(contentsOf: plistURL))
+    .flatMap { try? PropertyListSerialization.propertyList(from: $0, options: [], format: nil) as? [String: Any] } ?? [:]
+let localVersion = info["CFBundleShortVersionString"] as? String ?? "0"
+let expectedTag = "v\(localVersion)"
+
 expect(remoteTag != nil, "e2e: GitHub latest reachable (got \(remoteTag ?? "nil"))")
-expect(remoteTag == "v3.2.1", "e2e: latest tag is v3.2.1 (got \(remoteTag ?? "nil"))")
+expect(remoteTag == expectedTag, "e2e: latest tag matches local version \(expectedTag) (got \(remoteTag ?? "nil"))")
 expect(assetsCount >= 2, "e2e: IPA + SHA256SUMS attached (got \(assetsCount))")
 
 // The app's decode path: GitHubRelease(tagName:htmlURL:) + normalize + isNewer
@@ -64,11 +72,12 @@ func isNewer(_ remote: String, than local: String) -> Bool {
 }
 
 let tag = remoteTag ?? ""
-expect(normalize(tag) == "3.2.1", "e2e: normalize strips v (got \(normalize(tag)))")
+expect(normalize(tag) == localVersion, "e2e: normalize strips v (got \(normalize(tag)))")
 
-// A device running 3.2.1 must NOT see an update (the operator's report);
-// a device on 3.2.0/3.1.13 MUST.
-expectFalse(isNewer(tag, than: "3.2.1"), "e2e: 3.2.1 device gets NO prompt")
+// A device already running the checked-in version must NOT see an update;
+// clearly older devices MUST. The expected tag comes from Info.plist so a
+// same-version rebuild does not turn this into a stale assertion.
+expectFalse(isNewer(tag, than: localVersion), "e2e: current-version device gets NO prompt")
 expect(isNewer(tag, than: "3.2.0"), "e2e: 3.2.0 device gets prompted")
 expect(isNewer(tag, than: "3.1.13"), "e2e: 3.1.13 device gets prompted")
 

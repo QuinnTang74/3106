@@ -1,11 +1,12 @@
 # 运行时验证脚本（macOS 宿主运行）
 
+两个脚本的源文件以 `.txt` 结尾（避免被 Xcode target 误收录），编译前必须先复制成 `.swift`：
+
 ## filereplace 全流程（28 项）
 
 ```bash
-cd /tmp && cp "$(pwd)/../Tests/verify_filereplace_main.swift.txt" /tmp/main.swift 2>/dev/null || true
-# 从仓库根执行：
-swiftc -O Tests/verify_filereplace_main.swift.txt \
+cp Tests/verify_filereplace_main.swift.txt /tmp/fr-main.swift
+swiftc -O /tmp/fr-main.swift \
   ThreeOneOSSix/helpers/FileReplaceService.swift \
   ThreeOneOSSix/helpers/ActivityHistory.swift \
   -o /tmp/filereplace-verify && /tmp/filereplace-verify
@@ -14,13 +15,15 @@ swiftc -O Tests/verify_filereplace_main.swift.txt \
 aside 清理上限、删除强制备份、删除后恢复（时序敏感）、受保护路径护栏 4 条、
 预设增删改查去重持久化自清理。脚本自清理，不污染真实 ~/Documents。
 
-## 更新检查端到端（7 项，打真 GitHub API）
+## 更新检查端到端（打真 GitHub API；需从仓库根执行）
 
 ```bash
-swiftc -O Tests/verify_update_e2e.swift.txt -o /tmp/update-e2e && /tmp/update-e2e
+cp Tests/verify_update_e2e.swift.txt /tmp/update-e2e.swift
+swiftc -O /tmp/update-e2e.swift -o /tmp/update-e2e && /tmp/update-e2e
 ```
-覆盖：latest 可达、tag=v3.2.1、附件齐全、normalize 去 v、
-3.2.1 设备不弹 / 3.2.0 与 3.1.13 设备弹（真实比较路径）。
+覆盖：latest 可达、远端 tag 与 `Info.plist` 中的本地版本一致、附件齐全、
+normalize 去 v，以及真实版本比较路径。脚本运行时从仓库根读取
+`ThreeOneOSSix/Info.plist`，不再硬编码某个 tag。
 
 ## 结果（2026-11-12）
 - FileReplace 全流程：PASS 28/28（双跑，自清理验证无残留）
