@@ -35,6 +35,7 @@
 | CacheExtra field editor | 8 types (incl. Array/Dictionary XML fragments), search/add/edit/remove, plist import/export, type-faithful |
 | Region & Siri AI | Region triplet + regulatory model (verified machine table), native Siri AI / experimental mode, anti-bounce protection |
 | Arbitrary file replace | Pick app → browse container directories → pick file → optional backup → replace; persistent log, one-tap restore, saved presets; protected-path rails |
+| Notification sounds | Per-app sound-path table (manual entry), custom audio replacement (aiff/aif/caf/m4a/wav ≤20MB); automatic backup + one-tap restore from the replace log; `.data` picker fallback so side-loaded builds can still select audio |
 | Supervised Mode | ConfigurationProfiles `IsSupervised` toggle (MDM warning + risk confirmation) |
 | App save backups | Documents + Library/Preferences as `.3106save`; restore re-matches the container by bundle ID after reinstall |
 | Backup tab (top level) | Auto-backup explainer, snapshot overview, full backup `.3106fullbackup` (manifest + one-tap restore), save-archive preview, activity timeline |
@@ -51,6 +52,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.2.5 rebuild** | Same-version rebuild: notification sound replacement added; field-plist import is now a patch-style merge (device keys preserved, GestaltX #138/#131/#132 semantics), backup metadata validation (#134), `.3106cfg` import errors surfaced + App Group inbox fallback (#133), explicit edits win over presets (#137), disabled toggles no longer delete keys, issue #3 static regression guard; SHA256 per `dist/SHA256SUMS.txt` |
 | **3.2.4** | Feature completion: dual-app folder migration (merge/replace/exchange, checkpoint resume, config packages) + GestaltX appearance suite (lock screen text, launch artwork, island layout, Siri preservation) + update-check hardening |
 | **3.2.5** | Fixes: `.tendies` import overload-resolution defect (issue #3, the true root cause of all descriptors being skipped), cleaner `/var` symlink rejections (all 56 apps failed), log build stamps, CI artifact sentinel |
 | **3.2.3** | Stable: fixed every on-device `.tendies` import failing with noDescriptors (issue #2: path containment no longer depends on symlink resolution; any /var vs /private/var spelling mix is accepted) |

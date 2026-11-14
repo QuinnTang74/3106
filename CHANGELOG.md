@@ -2,6 +2,32 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.2.5 rebuild] - 2026-11-14
+
+版本号与 build（3.2.5 / 24）保持不变的同版本号重发。新包 SHA256 `aa76f4e5f904fc0eb90a54d35f33c2df8e9ecb54059f526ff880f8dd0ba0fca8`；旧包备份于 `dist/backups/`。新增能力与修复如下（参考 GestaltX v1.1.1 release notes 的问题清单语义）：
+
+### Added
+
+- 应用通知音替换（GestaltX App Audio Library 思路，独立实现）：功能页新增「通知音替换」卡片；维护按应用的容器相对路径表（手动输入，未列出的应用同样可用）；选音频前强制三段风险确认 + 长按确认；替换走任意文件替换管线（自动备份 + 持久记录），记录左滑一键恢复；文件选择器用 `.data` 兜底，侧载包也能选到 `.caf/.m4a` 等音频；格式白名单 aiff/aif/caf/m4a/wav、单文件 ≤20MB；替换后列表立即刷新。
+
+### Fixed
+
+- 字段 plist 导入不再整根覆盖（GestaltX #138）：导入被当作补丁——以设备当前 root 为基准，只合并导入根中显式出现的 `CacheExtra` 键，根级 `CacheData`/`CacheVersion` 等设备专属键全部原值保留，不删除任何键；`CacheUUID` 大小写不敏感比较，不匹配则拒绝导入（#131）；导入完成显示覆盖/跳过/保留计数。
+- 日期与 Data 字段严格解析（GestaltX #132）：ISO8601 日期拒绝尾随文本（往返格式化校验），base64 拒绝非法填充与空白干扰。
+- 备份元数据校验（GestaltX #134）：`.3106save` sidecar 文件名、manifest bundleID、创建时间与归档路径全部先校验再展示/解压；legacy 无 sidecar 存档保留显式兼容分支。
+- `.3106cfg` 导入失败不再静默（GestaltX #133）：增加 App Group 共享收件箱回退（侧载重签名后仍按实际 entitlement 读取），失败时弹 UI 错误。
+- 字段搜索复用一份 preview 快照，键入不再对每个条目重算 preview（GestaltX #136）。
+- 显式编辑的字段不再被预设覆盖（GestaltX #137）：手动编辑过的 `CacheExtra` 键持久记录，预设应用时跳过。
+- plist 精确比较按 CF 类型 + Integer/Real 身份判定（GestaltX #139 语义）：`<true/>` 不再等于 `<integer>1</integer>`，`<integer>1</integer>` 不再等于 `<real>1.0</real>`。
+- 关闭 MobileGestalt 开关不再删键：按原值 CF 类型写同类型假值（Boolean→false / Integer→0 / Real→0.0），与 docs/RISKS.md「不新增不删键」防 iOS 27 重启反弹规则对齐。
+- issue #3 回归护栏：策略门新增静态检查，拒绝 `.allSatisfy(…\.contains)` 形态的裸函数引用；修复 `CleanerView.swift` 残留的同型写法（3.2.5 曾称「全仓唯一一处」失准）。
+- 更新检查删除已废弃的 `AppReleaseDisplayVersion` 读取分支（3.1.8 误报根因残留）；e2e 期望改为从 Info.plist 动态推导，不再硬编码 tag。
+
+### Other
+
+- CI 增加 push/PR 触发（3106/main 分支）；产物哨兵改为从源码动态提取 ≥16 字节特征串，不再手工维护常量。
+- README / README.en 产物说明与 `dist/SHA256SUMS.txt` 修正（只列实际存在的产物，3.3.0 行按文件实算补齐）。
+
 ## [3.2.5] - 2026-11-13
 
 ### Fixed

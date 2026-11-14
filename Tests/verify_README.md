@@ -5,8 +5,9 @@
 ## filereplace 全流程（28 项）
 
 ```bash
-cp Tests/verify_filereplace_main.swift.txt /tmp/fr-main.swift
-swiftc -O /tmp/fr-main.swift \
+# 顶层语句只允许在名为 main.swift 的输入文件里出现，复制名不能改。
+cp Tests/verify_filereplace_main.swift.txt /tmp/main.swift
+swiftc -O /tmp/main.swift \
   ThreeOneOSSix/helpers/FileReplaceService.swift \
   ThreeOneOSSix/helpers/ActivityHistory.swift \
   -o /tmp/filereplace-verify && /tmp/filereplace-verify
