@@ -65,6 +65,7 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/GestaltPlistMerge.swift" \
   "$ROOT/ThreeOneOSSix/helpers/BackupMetadataPolicy.swift" \
   "$ROOT/ThreeOneOSSix/helpers/GestaltEditPolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/NotificationSoundPolicy.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

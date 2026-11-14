@@ -39,6 +39,36 @@ func expectFalse(_ condition: Bool, _ message: String) {
     expect(!condition, message)
 }
 
+/// Asserts a throwing call fails with exactly the expected policy error.
+func expectThrows(
+    _ message: String,
+    expected: NotificationSoundPolicy.ValidationError,
+    body: () throws -> Void
+) {
+    checks += 1
+    do {
+        try body()
+        failures += 1
+        fputs("FAIL: \(message) — no error thrown\n", stderr)
+    } catch let error as NotificationSoundPolicy.ValidationError where error == expected {
+        // pass
+    } catch {
+        failures += 1
+        fputs("FAIL: \(message) — unexpected error \(error)\n", stderr)
+    }
+}
+
+/// Asserts a throwing call succeeds (no error, no value to compare).
+func expectNoThrow(_ message: String, body: () throws -> Void) {
+    checks += 1
+    do {
+        try body()
+    } catch {
+        failures += 1
+        fputs("FAIL: \(message) — threw \(error)\n", stderr)
+    }
+}
+
 // iOS 17 kernel range
 expect(ExploitSupportPolicy.supportsKernelExploit(major: 17, minor: 0, patch: 0), "17.0 kernel")
 expect(ExploitSupportPolicy.supportsKernelExploit(major: 17, minor: 7, patch: 9), "17.7.x kernel")
@@ -1193,6 +1223,68 @@ do {
     let disabledReal = GestaltEditPolicy.disabledValue(for: NSNumber(value: 2.5))
     expect(CFNumberIsFloatType(unsafeBitCast(disabledReal as! NSNumber, to: CFNumber.self)),
            "disabled Real keeps Real CF type")
+}
+
+// MARK: - GestaltX App Audio Library parity: notification sound policy
+
+do {
+    expect(NotificationSoundPolicy.acceptsSourceExtension("CAF"),
+           "notification sound accepts caf case-insensitively")
+    expect(NotificationSoundPolicy.acceptsSourceExtension("m4a"),
+           "notification sound accepts m4a")
+    expectFalse(NotificationSoundPolicy.acceptsSourceExtension("tone.mp3"),
+                "notification sound rejects mp3")
+    expectFalse(NotificationSoundPolicy.acceptsSourceExtension("tone"),
+                "notification sound rejects missing extension")
+
+    expectThrows("notification sound rejects empty source", expected: .emptySource) {
+        try NotificationSoundPolicy.validateSourceSize(0)
+    }
+    expectThrows("notification sound rejects oversized source", expected: .tooLarge) {
+        try NotificationSoundPolicy.validateSourceSize(
+            NotificationSoundPolicy.maximumBytes + 1
+        )
+    }
+    expectNoThrow("notification sound accepts source at the size limit") {
+        try NotificationSoundPolicy.validateSourceSize(
+            NotificationSoundPolicy.maximumBytes
+        )
+    }
+
+    let root = NSTemporaryDirectory() + "3106-ns-verify-\(UUID().uuidString)"
+    let container = root + "/var/containers/app-data"
+    try FileManager.default.createDirectory(
+        atPath: container + "/Library/Sounds", withIntermediateDirectories: true
+    )
+    let sound = container + "/Library/Sounds/local.caf"
+    try Data([1, 2, 3]).write(to: URL(fileURLWithPath: sound))
+
+    expectNoThrow("notification sound accepts an in-container target") {
+        try NotificationSoundPolicy.validateTargetPath(
+            sound, containerRoot: container
+        )
+    }
+    expectThrows("notification sound rejects parent traversal", expected: .unsafePath) {
+        try NotificationSoundPolicy.validateTargetPath(
+            container + "/../../../escape.caf", containerRoot: container
+        )
+    }
+    expectThrows("notification sound rejects absolute targets", expected: .unsafePath) {
+        try NotificationSoundPolicy.validateTargetPath(
+            "/Library/Sounds/local.caf", containerRoot: container
+        )
+    }
+    expectThrows("notification sound rejects backslash paths", expected: .unsafePath) {
+        try NotificationSoundPolicy.validateTargetPath(
+            container + "/Library\\Sounds/local.caf", containerRoot: container
+        )
+    }
+    expectThrows("notification sound rejects missing targets", expected: .targetMissing) {
+        try NotificationSoundPolicy.validateTargetPath(
+            container + "/Library/Sounds/missing.caf", containerRoot: container
+        )
+    }
+    try? FileManager.default.removeItem(at: URL(fileURLWithPath: root))
 }
 
 if failures == 0 {

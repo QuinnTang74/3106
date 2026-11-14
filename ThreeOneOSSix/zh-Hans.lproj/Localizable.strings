@@ -1452,3 +1452,30 @@
 
 // GestaltX v1.1.1 #133 config import errors (3.2.5 rebuild)
 "config.import_error.title" = "配置包导入失败";
+
+// Notification sound replacement (3.2.5 rebuild, GestaltX App Audio Library parity)
+"home.card.sounds" = "通知音替换";
+"home.card.sounds_detail" = "替换应用通知音为自定义音频";
+"notification.sound.title" = "通知音替换";
+"notification.sound.add" = "添加目标";
+"notification.sound.empty" = "暂无目标。点击右上角添加，或替换后自动记录。";
+"notification.sound.targets_header" = "通知音路径";
+"notification.sound.targets_footer" = "路径为应用容器内的相对路径；替换前强制备份原文件。";
+"notification.sound.installed_header" = "替换记录";
+"notification.sound.installed_footer" = "在记录上左滑恢复原音频；恢复使用替换时的备份。";
+"notification.sound.installed_empty" = "暂无替换记录。";
+"notification.sound.replace" = "替换音频";
+"notification.sound.restore" = "恢复原音频";
+"notification.sound.field_bundle" = "Bundle ID";
+"notification.sound.field_name" = "应用名称（可选）";
+"notification.sound.field_path" = "通知音文件相对路径";
+"notification.sound.add_footer" = "常见路径形如 Library/Sounds/local.caf；格式支持 aiff/aif/caf/m4a/wav，单文件 ≤20MB。";
+"notification.sound.risk.title" = "替换通知音";
+"notification.sound.risk.consequence" = "将用所选音频覆盖该应用的通知音文件；替换立即生效，通知播放变为自定义声音。";
+"notification.sound.risk.worst_case" = "音频格式不被应用接受或文件损坏时，该应用可能不再播放通知声，需恢复原文件。";
+"notification.sound.risk.confirm" = "长按确认替换";
+"notification.sound.risk.recovery" = "原文件自动备份；在“替换记录”左滑即可恢复；也可在文件浏览器手动还原。";
+"notification.sound.error.extension" = "不支持的音频格式（仅 aiff/aif/caf/m4a/wav）。";
+"notification.sound.error.container" = "无法解析该应用的容器路径，请确认应用已安装且容器可访问。";
+"notification.sound.error.target" = "目标路径无效。";
+"notification.sound.error.source" = "无法读取所选音频文件。";

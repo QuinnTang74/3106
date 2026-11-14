@@ -1452,3 +1452,30 @@
 
 // GestaltX v1.1.1 #133 config import errors (3.2.5 rebuild)
 "config.import_error.title" = "Config package import failed";
+
+// Notification sound replacement (3.2.5 rebuild, GestaltX App Audio Library parity)
+"home.card.sounds" = "Notification Sounds";
+"home.card.sounds_detail" = "Replace app notification sounds with custom audio";
+"notification.sound.title" = "Notification Sounds";
+"notification.sound.add" = "Add Target";
+"notification.sound.empty" = "No targets yet. Tap + to add one, or replace to record automatically.";
+"notification.sound.targets_header" = "Sound Paths";
+"notification.sound.targets_footer" = "Paths are container-relative; the original file is always backed up before replacement.";
+"notification.sound.installed_header" = "Replacement Records";
+"notification.sound.installed_footer" = "Swipe a record to restore the original audio from its backup.";
+"notification.sound.installed_empty" = "No replacements yet.";
+"notification.sound.replace" = "Replace Audio";
+"notification.sound.restore" = "Restore Original";
+"notification.sound.field_bundle" = "Bundle ID";
+"notification.sound.field_name" = "App name (optional)";
+"notification.sound.field_path" = "Sound file relative path";
+"notification.sound.add_footer" = "Typical paths look like Library/Sounds/local.caf; formats aiff/aif/caf/m4a/wav, max 20MB per file.";
+"notification.sound.risk.title" = "Replace Notification Sound";
+"notification.sound.risk.consequence" = "The selected audio will overwrite the app's notification sound file; the change takes effect immediately.";
+"notification.sound.risk.worst_case" = "If the app rejects the audio format or the file is corrupt, the app may stop playing notification sounds until restored.";
+"notification.sound.risk.confirm" = "Hold to confirm replacement";
+"notification.sound.risk.recovery" = "The original file is backed up automatically; swipe the record to restore, or restore manually in the file browser.";
+"notification.sound.error.extension" = "Unsupported audio format (aiff/aif/caf/m4a/wav only).";
+"notification.sound.error.container" = "Could not resolve the app's container path. Make sure the app is installed and its container is accessible.";
+"notification.sound.error.target" = "Invalid target path.";
+"notification.sound.error.source" = "The selected audio file could not be read.";

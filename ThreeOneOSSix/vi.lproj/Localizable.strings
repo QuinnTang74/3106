@@ -1452,3 +1452,30 @@
 
 // GestaltX v1.1.1 #133 config import errors (3.2.5 rebuild)
 "config.import_error.title" = "Nhập gói cấu hình thất bại";
+
+// Notification sound replacement (3.2.5 rebuild, GestaltX App Audio Library parity)
+"home.card.sounds" = "Thay âm báo";
+"home.card.sounds_detail" = "Thay âm báo của ứng dụng bằng âm thanh tùy chọn";
+"notification.sound.title" = "Thay âm báo";
+"notification.sound.add" = "Thêm mục tiêu";
+"notification.sound.empty" = "Chưa có mục tiêu. Nhấn + để thêm, hoặc thay thế để tự ghi nhận.";
+"notification.sound.targets_header" = "Đường dẫn âm báo";
+"notification.sound.targets_footer" = "Đường dẫn tính relative trong container; tệp gốc luôn được sao lưu trước khi thay.";
+"notification.sound.installed_header" = "Bản ghi thay thế";
+"notification.sound.installed_footer" = "Vuốt bản ghi để khôi phục âm thanh gốc từ bản sao lưu.";
+"notification.sound.installed_empty" = "Chưa có bản ghi thay thế.";
+"notification.sound.replace" = "Thay âm thanh";
+"notification.sound.restore" = "Khôi phục gốc";
+"notification.sound.field_bundle" = "Bundle ID";
+"notification.sound.field_name" = "Tên ứng dụng (không bắt buộc)";
+"notification.sound.field_path" = "Đường dẫn tương đối của tệp âm báo";
+"notification.sound.add_footer" = "Đường dẫn thường dạng Library/Sounds/local.caf; định dạng aiff/aif/caf/m4a/wav, tối đa 20MB mỗi tệp.";
+"notification.sound.risk.title" = "Thay âm báo";
+"notification.sound.risk.consequence" = "Âm thanh đã chọn sẽ ghi đè tệp âm báo của ứng dụng; có hiệu lực ngay lập tức.";
+"notification.sound.risk.worst_case" = "Nếu ứng dụng từ chối định dạng hoặc tệp hỏng, ứng dụng có thể ngừng phát âm báo cho đến khi khôi phục.";
+"notification.sound.risk.confirm" = "Giữ để xác nhận thay thế";
+"notification.sound.risk.recovery" = "Tệp gốc được sao lưu tự động; vuốt bản ghi để khôi phục, hoặc khôi phục thủ công trong trình duyệt tệp.";
+"notification.sound.error.extension" = "Định dạng âm thanh không được hỗ trợ (chỉ aiff/aif/caf/m4a/wav).";
+"notification.sound.error.container" = "Không thể xác định container của ứng dụng. Hãy đảm bảo ứng dụng đã cài và container truy cập được.";
+"notification.sound.error.target" = "Đường dẫn mục tiêu không hợp lệ.";
+"notification.sound.error.source" = "Không thể đọc tệp âm thanh đã chọn.";
