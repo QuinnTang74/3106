@@ -1012,6 +1012,82 @@ do {
     )
 }
 
+// MARK: - GestaltX v1.1.1 #131/#132/#138 field-import integrity
+
+do {
+    let current: [String: Any] = [
+        "CacheUUID": "ABCD-1234",
+        "CacheVersion": NSNumber(value: 7),
+        "CacheData": Data([1, 2, 3]),
+        "PrivateLayout": "device-specific",
+        "CacheExtra": [
+            "keep": "original",
+            "edit": NSNumber(value: false),
+            "camera": NSNumber(value: 1.5),
+        ],
+    ]
+    let imported: [String: Any] = [
+        "CacheUUID": "abcd-1234",
+        "CacheVersion": NSNumber(value: 99),
+        "CacheData": Data([9, 9, 9]),
+        "PrivateLayout": "foreign",
+        "CacheExtra": [
+            "edit": NSNumber(value: true),
+            "unknown": "must-not-be-added",
+        ],
+    ]
+    let result = try GestaltPlistMerge.mergingFieldImport(
+        current: current, imported: imported
+    )
+    let extra = result.root["CacheExtra"] as? [String: Any] ?? [:]
+    expect((result.root["CacheVersion"] as? NSNumber)?.intValue == 7,
+           "field import preserves current CacheVersion")
+    expect((result.root["CacheData"] as? Data) == Data([1, 2, 3]),
+           "field import preserves device-specific CacheData")
+    expect((result.root["PrivateLayout"] as? String) == "device-specific",
+           "field import preserves private root keys")
+    expect((extra["keep"] as? String) == "original",
+           "field import does not remove current CacheExtra keys")
+    expect((extra["edit"] as? NSNumber)?.boolValue == true,
+           "field import overwrites explicit CacheExtra keys")
+    expect(extra["unknown"] == nil,
+           "field import skips keys absent from the device cache")
+    expect(result.overwritten == ["edit"], "field import reports overwritten keys")
+    expect(result.skipped == ["unknown"], "field import reports skipped keys")
+    expect(CFGetTypeID(extra["edit"] as! NSNumber) == CFBooleanGetTypeID(),
+           "field import keeps Boolean CF type")
+    expect((extra["camera"] as? NSNumber)?.doubleValue == 1.5,
+           "field import keeps untouched Real value")
+
+    let mismatched = try? GestaltPlistMerge.mergingFieldImport(
+        current: current,
+        imported: ["CacheUUID": "DIFFERENT", "CacheExtra": ["edit": "x"]]
+    )
+    expect(mismatched == nil, "different CacheUUID rejects field import")
+    let missing = try? GestaltPlistMerge.mergingFieldImport(
+        current: ["CacheExtra": ["a": "b"]], imported: ["Other": "value"]
+    )
+    expect(missing == nil, "missing CacheExtra rejects field import")
+
+    expect(IdentityComparator.caseInsensitiveEqual(" ABCD-1234 ", "abcd-1234"),
+           "cache UUID comparison ignores case and surrounding whitespace")
+    expectFalse(IdentityComparator.caseInsensitiveEqual("ABCD-1234", "ABCD-5678"),
+                "cache UUID comparison still rejects different UUIDs")
+
+    expect(GestaltValueParser.parseDate("2026-11-14T08:30:00Z") != nil,
+           "strict date parser accepts ISO8601")
+    expect(GestaltValueParser.parseDate("2026-11-14T08:30:00.123Z") != nil,
+           "strict date parser accepts fractional seconds")
+    expect(GestaltValueParser.parseDate("2026-11-14T08:30:00Zjunk") == nil,
+           "strict date parser rejects trailing text (#132)")
+    expect(GestaltValueParser.parseData("AQID") == Data([1, 2, 3]),
+           "strict data parser accepts base64")
+    expect(GestaltValueParser.parseData("AQIDjunk!") == nil,
+           "strict data parser rejects malformed base64")
+    expect(GestaltValueParser.parseData("   ") == nil,
+           "strict data parser rejects empty input")
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

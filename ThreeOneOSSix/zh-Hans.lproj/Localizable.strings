@@ -1445,3 +1445,7 @@
 "update.failure.http" = "检查失败：GitHub 返回错误（HTTP %d，可能是限流，稍后再试）。";
 "update.failure.offline" = "检查失败：无法连接 GitHub（设备离线或被墙，需代理/其它网络）。";
 "update.failure.other" = "检查失败：";
+
+// GestaltX v1.1.1 #138 field-import merge (3.2.5 rebuild)
+"gestalt.error.layout_mismatch" = "导入 plist 的设备缓存标识与当前设备不匹配，已拒绝写入。";
+"gestalt.field.import_summary" = "导入完成：覆盖 %d 项，跳过 %d 项未知键，保留 %d 项。";

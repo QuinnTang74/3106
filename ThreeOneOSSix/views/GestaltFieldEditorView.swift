@@ -15,6 +15,7 @@ struct GestaltFieldEditorView: View {
     @State private var showAddSheet = false
     @State private var showImporter = false
     @State private var hasLoaded = false
+    @State private var importSummary: ImportSummary?
 
     private static let plistType = UTType(filenameExtension: "plist") ?? .data
 
@@ -101,7 +102,19 @@ struct GestaltFieldEditorView: View {
         } header: {
             Label(language.text("gestalt.field.title"), systemImage: "list.bullet.rectangle")
         } footer: {
-            Text(language.text("gestalt.field.footer"))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(language.text("gestalt.field.footer"))
+                if let importSummary {
+                    Text(language.text(
+                        "gestalt.field.import_summary",
+                        importSummary.overwritten,
+                        importSummary.skipped,
+                        importSummary.preserved
+                    ))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
@@ -288,24 +301,52 @@ struct GestaltFieldEditorView: View {
                 defer { if secured { url.stopAccessingSecurityScopedResource() } }
                 let data = try Data(contentsOf: url)
                 guard
-                    let root = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
-                    root["CacheExtra"] is [String: Any]
+                    let imported = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+                    imported["CacheExtra"] is [String: Any]
                 else {
                     throw GestaltPresetError.invalidPlist
                 }
-                // Import writes the whole root through the verified pipeline,
-                // so the pre-import state is captured by the automatic backup.
-                try GestaltPlistIO.writeRoot(root, reason: "field-import")
+                // GestaltX #138: the import is a patch. Read, merge and write
+                // under one lock so the four Gestalt pipelines cannot interleave
+                // a stale root between our read and the verified write.
+                let merged = try GestaltPlistIO.withExclusiveAccess {
+                    let snapshot = try GestaltPlistIO.readRootWithFormat()
+                    let result = try GestaltPlistMerge.mergingFieldImport(
+                        current: snapshot.root, imported: imported
+                    )
+                    try GestaltPlistIO.writeRoot(
+                        result.root, reason: "field-import", format: snapshot.format
+                    )
+                    return result
+                }
                 DispatchQueue.main.async {
+                    importSummary = .init(
+                        overwritten: merged.overwritten.count,
+                        skipped: merged.skipped.count,
+                        preserved: merged.preserved
+                    )
                     SoundEffects.play(.success)
                     reload()
                 }
             } catch {
                 DispatchQueue.main.async {
                     SoundEffects.play(.failure)
-                    activeAlert = .message(language.errorText(error))
+                    activeAlert = .message(language.errorText(fieldImportError(error)))
+                    isBusy = false
                 }
             }
+        }
+    }
+
+    private func fieldImportError(_ error: Error) -> Error {
+        guard let mergeError = error as? GestaltMergeError else { return error }
+        switch mergeError {
+        case .missingCacheExtra:
+            return GestaltPresetError.missingCacheExtra
+        case .layoutMismatch:
+            return GestaltFieldImportError.layoutMismatch
+        case .unsupportedValueType:
+            return GestaltPresetError.invalidPlist
         }
     }
 
@@ -319,6 +360,18 @@ struct GestaltFieldEditorView: View {
 }
 
 // MARK: - Supporting types
+
+private struct ImportSummary {
+    let overwritten: Int
+    let skipped: Int
+    let preserved: Int
+}
+
+private enum GestaltFieldImportError: LocalizedError {
+    case layoutMismatch
+
+    var errorDescription: String? { "gestalt.error.layout_mismatch" }
+}
 
 struct GestaltFieldEntry: Identifiable {
     let key: String

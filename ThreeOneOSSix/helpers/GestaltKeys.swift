@@ -89,16 +89,12 @@ enum GestaltValueKind: String, CaseIterable, Identifiable {
                 throw GestaltValueError(kind: self, message: "gestalt.field.error_boolean")
             }
         case .date:
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let value = formatter.date(from: trimmed) { return value }
-            formatter.formatOptions = [.withInternetDateTime]
-            guard let value = formatter.date(from: trimmed) else {
+            guard let value = GestaltValueParser.parseDate(trimmed) else {
                 throw GestaltValueError(kind: self, message: "gestalt.field.error_date")
             }
             return value
         case .data:
-            guard let value = Data(base64Encoded: trimmed.filter { !$0.isWhitespace }) else {
+            guard let value = GestaltValueParser.parseData(trimmed) else {
                 throw GestaltValueError(kind: self, message: "gestalt.field.error_data")
             }
             return value

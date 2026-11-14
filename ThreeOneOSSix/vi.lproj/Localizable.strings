@@ -1445,3 +1445,7 @@
 "update.failure.http" = "Kiểm tra thất bại: GitHub trả về lỗi (HTTP %d, có thể bị giới hạn — thử lại sau).";
 "update.failure.offline" = "Kiểm tra thất bại: không kết nối được GitHub (ngoại tuyến hoặc bị chặn — cần proxy/mạng khác).";
 "update.failure.other" = "Kiểm tra thất bại:";
+
+// GestaltX v1.1.1 #138 field-import merge (3.2.5 rebuild)
+"gestalt.error.layout_mismatch" = "Định danh bộ nhớ đệm trong plist nhập không khớp thiết bị này; đã từ chối ghi.";
+"gestalt.field.import_summary" = "Nhập xong: ghi đè %d, bỏ qua %d khóa không xác định, giữ %d mục.";

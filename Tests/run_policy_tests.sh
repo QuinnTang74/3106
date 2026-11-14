@@ -53,6 +53,9 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/TempSpaceRegistry.swift" \
   "$ROOT/ThreeOneOSSix/helpers/TextPagination.swift" \
   "$ROOT/ThreeOneOSSix/helpers/AppUpdateChecker.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/IdentityComparator.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/GestaltValueParser.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/GestaltPlistMerge.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

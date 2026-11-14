@@ -1445,3 +1445,7 @@
 "update.failure.http" = "Check failed: GitHub returned an error (HTTP %d, possibly rate-limited — try again later).";
 "update.failure.offline" = "Check failed: GitHub unreachable (offline or blocked — needs a proxy or another network).";
 "update.failure.other" = "Check failed:";
+
+// GestaltX v1.1.1 #138 field-import merge (3.2.5 rebuild)
+"gestalt.error.layout_mismatch" = "The imported plist cache identity does not match this device; write rejected.";
+"gestalt.field.import_summary" = "Import complete: %d overwritten, %d unknown keys skipped, %d preserved.";
