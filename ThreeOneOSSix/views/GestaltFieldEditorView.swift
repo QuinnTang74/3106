@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 struct GestaltFieldEditorView: View {
     @Environment(\.appLanguage) private var language
     @State private var entries: [GestaltFieldEntry] = []
+    @State private var previewSnapshot: [GestaltEditPolicy.Field] = []
     @State private var searchText = ""
     @State private var isBusy = false
     @State private var activeAlert: FieldEditorAlert?
@@ -160,13 +161,13 @@ struct GestaltFieldEditorView: View {
         }
     }
 
+    /// GestaltX #136: the preview snapshot is built once by reload(); search
+    /// only filters it, so typing never recomputes previews for plist entries.
     private var filteredEntries: [GestaltFieldEntry] {
-        guard !searchText.isEmpty else { return entries }
-        let query = searchText.lowercased()
-        return entries.filter {
-            $0.key.lowercased().contains(query)
-                || $0.preview.lowercased().contains(query)
-        }
+        let matchedKeys = Set(
+            GestaltEditPolicy.filtered(previewSnapshot, query: searchText).map(\.key)
+        )
+        return entries.filter { matchedKeys.contains($0.key) }
     }
 
     // MARK: - Data
@@ -186,8 +187,12 @@ struct GestaltFieldEditorView: View {
                         )
                     }
                     .sorted { $0.key < $1.key }
+                let snapshot = loaded.map {
+                    GestaltEditPolicy.Field(key: $0.key, preview: $0.preview)
+                }
                 DispatchQueue.main.async {
                     entries = loaded
+                    previewSnapshot = snapshot
                     isBusy = false
                 }
             } catch {
@@ -214,6 +219,7 @@ struct GestaltFieldEditorView: View {
                     cacheExtra[key] = value
                     root["CacheExtra"] = cacheExtra
                     try GestaltPlistIO.writeRoot(root, reason: "field-edit:\(key)")
+                    GestaltExplicitEdits.record(key)
                 }
                 DispatchQueue.main.async {
                     SoundEffects.play(.success)

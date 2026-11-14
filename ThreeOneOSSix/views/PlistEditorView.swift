@@ -145,15 +145,7 @@ final class PlistDocument {
     }
 
     func typeName(_ value: Any) -> String {
-        if let number = value as? NSNumber {
-            return CFGetTypeID(number) == CFBooleanGetTypeID() ? "Boolean" : "Number"
-        }
-        if value is String { return "String" }
-        if value is Data { return "Data" }
-        if value is Date { return "Date" }
-        if value is NSDictionary || value is [String: Any] { return "Dictionary" }
-        if value is NSArray || value is [Any] { return "Array" }
-        return "Value"
+        GestaltValueKind.detect(value).rawValue
     }
 
     func isContainer(_ value: Any) -> Bool {

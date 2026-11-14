@@ -82,6 +82,8 @@
 		3106G202 /* GestaltValueParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106G102; };
 		3106G201 /* IdentityComparator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106G101; };
 		3106G204 /* BackupMetadataPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106G104; };
+		3106G206 /* GestaltExplicitEdits.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106G106; };
+		3106G205 /* GestaltEditPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106G105; };
 		3105E207 /* AppCardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105E107; };
 		3105F200 /* wallpaper_zip.c in Sources */ = {isa = PBXBuildFile; fileRef = 3105F100; };
 		3105F201 /* WallpaperLabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105F102; };
@@ -252,6 +254,8 @@
 		3106G102 /* GestaltValueParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltValueParser.swift; sourceTree = "<group>"; };
 		3106G101 /* IdentityComparator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityComparator.swift; sourceTree = "<group>"; };
 		3106G104 /* BackupMetadataPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupMetadataPolicy.swift; sourceTree = "<group>"; };
+		3106G106 /* GestaltExplicitEdits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltExplicitEdits.swift; sourceTree = "<group>"; };
+		3106G105 /* GestaltEditPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltEditPolicy.swift; sourceTree = "<group>"; };
 		3105E107 /* AppCardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCardList.swift; sourceTree = "<group>"; };
 		3105F100 /* wallpaper_zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = wallpaper_zip.c; sourceTree = "<group>"; };
 		3105F101 /* wallpaper_zip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wallpaper_zip.h; sourceTree = "<group>"; };
@@ -486,6 +490,8 @@
 				3106G102 /* GestaltValueParser.swift */,
 				3106G101 /* IdentityComparator.swift */,
 				3106G104 /* BackupMetadataPolicy.swift */,
+				3106G106 /* GestaltExplicitEdits.swift */,
+				3106G105 /* GestaltEditPolicy.swift */,
 				3105E119 /* FileReplaceService.swift */,
 				3105E103 /* CleanerSafetyPolicy.swift */,
 				3105E104 /* CleanerHistory.swift */,
@@ -757,6 +763,8 @@
 				3106G202,
 				3106G201,
 				3106G204,
+				3106G206,
+				3106G205,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

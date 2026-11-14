@@ -57,6 +57,7 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/GestaltValueParser.swift" \
   "$ROOT/ThreeOneOSSix/helpers/GestaltPlistMerge.swift" \
   "$ROOT/ThreeOneOSSix/helpers/BackupMetadataPolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/GestaltEditPolicy.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

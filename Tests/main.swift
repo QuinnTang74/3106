@@ -1146,6 +1146,55 @@ do {
     ) == .rejected(reason: .futureTimestamp), "clock drift beyond tolerance rejected")
 }
 
+// MARK: - GestaltX v1.1.1 #136/#137/#139 edit precedence and exact plist types
+
+do {
+    let snapshot = [
+        GestaltEditPolicy.Field(key: "camera", preview: "1.5"),
+        GestaltEditPolicy.Field(key: "region", preview: "US"),
+    ]
+    expect(GestaltEditPolicy.filtered(snapshot, query: "1.5").map(\.key) == ["camera"],
+           "field search matches snapshot preview once")
+    expect(GestaltEditPolicy.filtered(snapshot, query: " ").count == 2,
+           "blank field search returns the whole snapshot")
+    expect(GestaltEditPolicy.filtered(snapshot, query: "REGION").map(\.key) == ["region"],
+           "field search is case-insensitive")
+
+    expect(GestaltEditPolicy.keysToApply(
+        presetKeys: ["a", "b", "c"], explicitEdits: ["b"]
+    ) == ["a", "c"], "explicit field edits win over layout presets")
+    expect(GestaltEditPolicy.keysToApply(
+        presetKeys: ["a"], explicitEdits: ["a"]
+    ).isEmpty, "fully explicit preset has no keys to write")
+
+    expect(GestaltEditPolicy.exactlyEqual(NSNumber(value: true), NSNumber(value: true)),
+           "Boolean exact comparison accepts equal values")
+    expectFalse(GestaltEditPolicy.exactlyEqual(NSNumber(value: true), NSNumber(value: 1)),
+                "Boolean never equals Integer 1")
+    expectFalse(GestaltEditPolicy.exactlyEqual(NSNumber(value: 1), NSNumber(value: 1.0)),
+                "Integer never equals Real 1.0")
+    expect(GestaltEditPolicy.exactlyEqual(
+        ["a": NSNumber(value: true), "b": Data([1, 2])] as [String: Any],
+        ["b": Data([1, 2]), "a": NSNumber(value: true)] as [String: Any]
+    ), "nested dictionary exact comparison is order-independent")
+    expectFalse(GestaltEditPolicy.exactlyEqual(
+        ["a": NSNumber(value: true)] as [String: Any],
+        ["a": NSNumber(value: 1)] as [String: Any]
+    ), "nested dictionary compares CF types")
+
+    let disabledBoolean = GestaltEditPolicy.disabledValue(for: NSNumber(value: true))
+    expect(CFGetTypeID(disabledBoolean as! NSNumber) == CFBooleanGetTypeID(),
+           "disabled Boolean keeps Boolean CF type")
+    let disabledInteger = GestaltEditPolicy.disabledValue(for: NSNumber(value: 7))
+    expect(CFGetTypeID(disabledInteger as! NSNumber) != CFBooleanGetTypeID(),
+           "disabled Integer keeps numeric CF type")
+    expect((disabledInteger as? NSNumber)?.intValue == 0,
+           "disabled Integer writes zero instead of deleting the key")
+    let disabledReal = GestaltEditPolicy.disabledValue(for: NSNumber(value: 2.5))
+    expect(CFNumberIsFloatType(unsafeBitCast(disabledReal as! NSNumber, to: CFNumber.self)),
+           "disabled Real keeps Real CF type")
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)
