@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.2.5** (stable) |
-| Current release | **v3.2.5** (build 24, fixes: tendies import overload-resolution defect + cleaner symlink rejections + log build stamps) |
+| Version | **3.2.5** (stable · same-version rebuild) |
+| Current release | **v3.2.5** (build 24, rebuilt 2026-11-14: notification sound replacement added; field-plist imports now merge as patches, backup metadata validation, explicit edits win over presets, disabled toggles no longer delete keys, issue #3 static regression guard; previous package backed up under `dist/backups/`, SHA256 per `dist/SHA256SUMS.txt`) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.3 beta 1 (verified) |
 | Access backend | kernel / `bad_query` / `worse_query` (selected automatically by OS version) |
 | UI languages | Simplified Chinese · English · Vietnamese |
