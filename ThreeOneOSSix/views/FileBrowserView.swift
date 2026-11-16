@@ -1829,7 +1829,10 @@ private struct GrantDiagnosticsBanner: View {
     }
 
     private func copyDiagnostics() {
-        UIPasteboard.general.string = SandboxDiagnostics.exportText(probeResult: nil)
+        UIPasteboard.general.string = SandboxDiagnostics.exportText(
+            probeResult: nil,
+            lsLayoutHit: SandboxDiagnosticsView.lsLayoutSummary()
+        )
     }
 }
 

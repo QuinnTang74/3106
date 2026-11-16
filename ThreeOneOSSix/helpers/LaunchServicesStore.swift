@@ -97,6 +97,23 @@ enum LaunchServicesStore {
         Layout(label: "27.2d", bundleSize: 0x25c, bundleID: 0x10, container: 0x6c,
                name: 0x70, displayName: 0x78, bundlePath: 0x00,
                pluginSize: 0x120, pluginBundleID: 0x00, pluginContainer: 0x58),
+        // iOS 27.3 candidates (spec 02-00-ios27-grant-hardening, F-07):
+        // beta reports have not confirmed a record-size change, so these
+        // assume the 0x25c family holds with plausible bundle-id/plugin-id
+        // offset variants — same spread strategy as the 26.5/27.2 entries.
+        // The layout mapping the most containers still wins automatically,
+        // and if 27.3 records actually grew, a diagnostics export from a
+        // 27.3 device (sandbox diagnostics view) provides the real offsets
+        // for a follow-up calibration.
+        Layout(label: "27.3", bundleSize: 0x25c, bundleID: 0x0c, container: 0x6c,
+               name: 0x70, displayName: 0x78, bundlePath: 0x00,
+               pluginSize: 0x120, pluginBundleID: 0x00, pluginContainer: 0x58),
+        Layout(label: "27.3b", bundleSize: 0x25c, bundleID: 0x14, container: 0x70,
+               name: 0x74, displayName: 0x7c, bundlePath: 0x00,
+               pluginSize: 0x120, pluginBundleID: 0x08, pluginContainer: 0x5c),
+        Layout(label: "27.3c", bundleSize: 0x25c, bundleID: 0x18, container: 0x70,
+               name: 0x74, displayName: 0x7c, bundlePath: 0x00,
+               pluginSize: 0x120, pluginBundleID: 0x0c, pluginContainer: 0x5c),
     ]
 
     static func parse(_ data: Data) -> LaunchServicesSnapshot? {

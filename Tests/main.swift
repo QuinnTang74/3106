@@ -1453,6 +1453,100 @@ do {
     }
 }
 
+// ── LaunchServicesStore: synthetic 27.2/27.3 fixtures (T-008, F-07) ──
+// Builds a minimal binary store with one bundle record and the string-table
+// entries it references, then asserts the winning layout label per OS
+// family. Record format (from LaunchServicesStore): 8-byte header with the
+// record size at +4, body fields at layout offsets; string entries are
+// `u32 id + u32 length + bytes` 4-byte aligned; refs are stringID << 2.
+do {
+    func le32(_ value: UInt32) -> [UInt8] {
+        [UInt8(value & 0xff), UInt8((value >> 8) & 0xff),
+         UInt8((value >> 16) & 0xff), UInt8((value >> 24) & 0xff)]
+    }
+
+    // String entry: u32 id, u32 byte length, payload, zero padding to 4.
+    func stringEntry(id: UInt32, _ text: String) -> [UInt8] {
+        var entry = le32(id) + le32(UInt32(text.utf8.count)) + Array(text.utf8)
+        while entry.count % 4 != 0 { entry.append(0) }
+        return entry
+    }
+
+    // One bundle record for a given layout: header (size at +4) + refs at
+    // the layout's body offsets. Unused fields stay 0 — the parser only
+    // requires a valid bundle-id ref.
+    func bundleRecord(bundleSize: UInt32, bundleID: Int, name: Int,
+                      displayName: Int, container: Int,
+                      refs: (bundleID: UInt32, name: UInt32,
+                             displayName: UInt32, container: UInt32)) -> [UInt8] {
+        var body = [UInt8](repeating: 0, count: Int(bundleSize))
+        func put(_ value: UInt32, at offset: Int) {
+            let bytes = le32(value)
+            for (index, byte) in bytes.enumerated() { body[offset + index] = byte }
+        }
+        put(refs.bundleID, at: bundleID)
+        put(refs.name, at: name)
+        put(refs.displayName, at: displayName)
+        put(refs.container, at: container)
+        return le32(0) + le32(bundleSize) + body
+    }
+
+    let bundleIDText = "com.example.fixture"
+    // isDataContainerPath requires exactly prefix + 36 chars and a
+    // UUID-parseable tail — use the canonical dashed form.
+    let realContainer = "/private/var/mobile/Containers/Data/Application/"
+        + "01234567-89AB-CDEF-0123-456789ABCDEF" // 36-char UUID
+
+    // String IDs: 1 = bundle id, 2 = container path. refs = id << 2.
+    let stringsBlob =
+        stringEntry(id: 1, bundleIDText)
+        + stringEntry(id: 2, realContainer)
+
+    let bundleIDRef: UInt32 = 1 << 2
+    let containerRef: UInt32 = 2 << 2
+
+    // 27.2-family fixture: bundle id at 0x0c → the 27.2 layout maps it.
+    let store272 =
+        Array("bdsl".utf8)
+        + le32(UInt32(0x1000)) // header word
+        + bundleRecord(bundleSize: 0x25c, bundleID: 0x0c, name: 0x70,
+                       displayName: 0x78, container: 0x6c,
+                       refs: (bundleIDRef, 0, 0, containerRef))
+        + stringsBlob
+    var padded272 = store272
+    while padded272.count < 0x1000 { padded272.append(0) }
+
+    if let snapshot = LaunchServicesStore.parse(Data(padded272)) {
+        expect(snapshot.containerBundleIDs.values.contains(bundleIDText),
+               "27.2 fixture: bundle id mapped")
+        expect(["27.2", "27.2b", "27.2c", "27.2d", "27.3"].contains(snapshot.layoutLabel),
+               "27.2 fixture: winning layout is the 0x25c family (got \(snapshot.layoutLabel))")
+    } else {
+        expect(false, "27.2 fixture: store failed to parse")
+    }
+
+    // 27.3 variant fixture: bundle id at 0x14 → only the 27.3b candidate
+    // reads a valid ref there, so the 27.3 family must map the container.
+    let store273 =
+        Array("bdsl".utf8)
+        + le32(UInt32(0x1000))
+        + bundleRecord(bundleSize: 0x25c, bundleID: 0x14, name: 0x74,
+                       displayName: 0x7c, container: 0x70,
+                       refs: (bundleIDRef, 0, 0, containerRef))
+        + stringsBlob
+    var padded273 = store273
+    while padded273.count < 0x1000 { padded273.append(0) }
+
+    if let snapshot = LaunchServicesStore.parse(Data(padded273)) {
+        expect(snapshot.containerBundleIDs.values.contains(bundleIDText),
+               "27.3 fixture: bundle id mapped by a 27.3 candidate")
+        expect(snapshot.layoutLabel == "27.3b",
+               "27.3 fixture: winning layout is 27.3b (got \(snapshot.layoutLabel))")
+    } else {
+        expect(false, "27.3 fixture: store failed to parse")
+    }
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

@@ -91,11 +91,25 @@ struct SandboxDiagnosticsView: View {
     }
 
     private func copyReport() {
-        UIPasteboard.general.string = SandboxDiagnostics.exportText(probeResult: probeResult)
+        UIPasteboard.general.string = SandboxDiagnostics.exportText(
+            probeResult: probeResult,
+            lsLayoutHit: Self.lsLayoutSummary()
+        )
         copied = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             copied = false
         }
+    }
+
+    /// LS-store layout hit + mapped container count + worse_query index
+    /// size (spec F-07): a 27.3 device reporting this line lets an off-site
+    /// calibration distinguish a layout miss from a query-side failure.
+    static func lsLayoutSummary() -> String? {
+        guard let snapshot = ContainerStore.launchServicesSnapshot() else { return nil }
+        let indexCount = worse_query_identifier_paths().count
+        return "layout=\(snapshot.layoutLabel) "
+            + "mapped=\(snapshot.mappedContainerCount) "
+            + "wq-index=\(indexCount)"
     }
 
     private static func timeText(_ date: Date) -> String {
