@@ -17,6 +17,7 @@
 		3105A209 /* bad_query.c in Sources */ = {isa = PBXBuildFile; fileRef = 3105A029; };
 		3106W200 /* worse_query.m in Sources */ = {isa = PBXBuildFile; fileRef = 3106W030; };
 		3106W201 /* SandboxAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106W033; };
+		3106W901 /* SandboxDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106W903; };
 		3105A210 /* mcm_bridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A030; };
 		3105A220 /* kexploit_opa334.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A080; };
 		3105A221 /* offsets.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A081; };
@@ -178,6 +179,7 @@
 		3106W031 /* worse_query.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = worse_query.h; sourceTree = "<group>"; };
 		3106W032 /* ThreeOneOSSix.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ThreeOneOSSix.entitlements; sourceTree = "<group>"; };
 		3106W033 /* SandboxAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxAccess.swift; sourceTree = "<group>"; };
+		3106W903 /* SandboxDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxDiagnostics.swift; sourceTree = "<group>"; };
 		3105A041 /* mcm_bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mcm_bridge.h; sourceTree = "<group>"; };
 		3105A050 /* ThreeOneOSSix-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ThreeOneOSSix-Bridging-Header.h"; sourceTree = "<group>"; };
 		3105A060 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -469,6 +471,7 @@
 				3105L105 /* RepositoryPresentationSupport.swift */,
 				3105A113 /* SupportPolicy.swift */,
 				3106W033 /* SandboxAccess.swift */,
+				3106W903 /* SandboxDiagnostics.swift */,
 				3105B114 /* PatchProjectModels.swift */,
 				3105B115 /* PatchPackageCodec.swift */,
 				3105B116 /* PatchKeyStore.swift */,
@@ -642,6 +645,7 @@
 				3105A205, 3105A206, 3105A207, 3105A209,
 				3106W200,
 				3106W201,
+				3106W901,
 				3105A210, 3105A220, 3105A221, 3105A222, 3105A223,
 				3105A224, 3105A225,
 				3105A226,

@@ -136,17 +136,89 @@ enum SandboxAccess {
 
     static func grant(path: String) -> Int64 {
         let clean = path.hasSuffix("/") && path.count > 1 ? String(path.dropLast()) : path
+        let handle: Int64
         switch backend {
         case .kernel:
-            return -1
+            handle = -1
         case .badQuery:
             var pathC = clean.utf8CString.map { Int8($0) }
-            return bad_query(&pathC, true, nil, false)
+            handle = bad_query(&pathC, true, nil, false)
         case .worseQuery:
             var pathC = clean.utf8CString.map { Int8($0) }
-            return worse_query_grant(&pathC)
+            handle = worse_query_grant(&pathC)
         case .unsupported:
-            return -1
+            handle = -1
+        }
+        // Diagnostics-only side effect (spec 02-00-ios27-grant-hardening):
+        // the ~20 call sites keep treating the return value as opaque, so
+        // failures surface here instead of being swallowed upstream.
+        SandboxDiagnostics.record(code: handle, path: clean, backend: backend.displayName)
+        return handle
+    }
+
+    /// Throwing variant for services that surface grant failures to the user
+    /// instead of letting a negative handle cascade into a generic write error.
+    static func grantOrThrow(path: String, writable: Bool = false) throws -> Int64 {
+        let handle = grant(path: path)
+        guard handle >= 0 else {
+            throw GrantFailure.denied(
+                code: handle,
+                path: path,
+                backend: backend.displayName
+            )
+        }
+        return handle
+    }
+
+    /// Drops every cached worse_query token. Used by the retry path when a
+    /// write hits EPERM/EACCES despite a successful grant — a stale token in
+    /// the LRU cache is the usual suspect.
+    static func invalidateWorseQueryCache() {
+        guard backend == .worseQuery else { return }
+        worse_query_forget_all()
+        log("sandbox: worse_query token cache invalidated")
+    }
+
+    /// Grant → run → on EPERM/EACCES drop the token cache, re-grant and retry
+    /// the body exactly once (spec D-05). Grant-level failures (-254/-8/…)
+    /// are NOT retried here — those belong to the worse_query hardening work;
+    /// this only heals "grant succeeded but the write got permission-denied",
+    /// the read-only-token signature.
+    static func withGrant<T>(
+        directory: String,
+        writable: Bool = false,
+        body: () throws -> T
+    ) throws -> T {
+        _ = try grantOrThrow(path: directory, writable: writable)
+        do {
+            return try body()
+        } catch {
+            let nsError = error as NSError
+            let posixErrno = (error as? POSIXError)?.errorCode
+                ?? (nsError.domain == NSPOSIXErrorDomain ? nsError.code : 0)
+            let cocoaCode = (error as? CocoaError)?.code.rawValue
+            let isPermissionDenied =
+                posixErrno == Int(EPERM) || posixErrno == Int(EACCES) ||
+                cocoaCode == NSFileWriteNoPermissionError ||
+                cocoaCode == NSFileReadNoPermissionError
+            guard isPermissionDenied else { throw error }
+            log("sandbox: write denied (\(error)), re-granting \(directory) and retrying once")
+            invalidateWorseQueryCache()
+            let retryCode = try grantOrThrow(path: directory, writable: writable)
+            do {
+                return try body()
+            } catch {
+                // Second failure: surface the structured cause, not a generic
+                // write error. The original errno is what attribution needs.
+                let retryErrno = (error as NSError).domain == NSPOSIXErrorDomain
+                    ? (error as NSError).code
+                    : ((error as? POSIXError)?.errorCode ?? 0)
+                throw GrantFailure.writeDenied(
+                    errno: Int32(retryErrno),
+                    path: directory,
+                    grantCode: retryCode
+                )
+            }
         }
     }
 
