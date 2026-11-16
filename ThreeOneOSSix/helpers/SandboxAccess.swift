@@ -120,10 +120,12 @@ enum SandboxAccess {
             }
             // Exercise the real query path on our own group container first;
             // the parent container root is not grantable on every iOS 26 build.
-            if grant(path: groupURL.path) >= 0 {
+            // The writable grant runs the T-005 write probe, so a read-only
+            // token no longer passes activation (spec D-04).
+            if grant(path: groupURL.path, writable: true) >= 0 {
                 return true
             }
-            let handle = grant(path: ContainerStore.appDataRoot)
+            let handle = grant(path: ContainerStore.appDataRoot, writable: true)
             if handle >= 0 {
                 return true
             }
@@ -134,7 +136,32 @@ enum SandboxAccess {
         }
     }
 
-    static func grant(path: String) -> Int64 {
+    // MARK: - Cached probe (T-006)
+
+    private static let probeCacheLock = NSLock()
+    private static var probeCache: (value: Bool, at: Date)?
+    private static let probeCacheTTL: TimeInterval = 30
+
+    /// `probe()` with a 30-second TTL cache. `hasSandboxAccess()` runs on
+    /// every listFiles refresh (ContainerStore), so the real grant chain must
+    /// not re-run per refresh. `invalidateWorseQueryCache()` clears this so a
+    /// retry never trusts a stale probe result.
+    static func probeCached() -> Bool {
+        probeCacheLock.lock()
+        if let cached = probeCache, Date().timeIntervalSince(cached.at) < probeCacheTTL {
+            probeCacheLock.unlock()
+            return cached.value
+        }
+        probeCacheLock.unlock()
+
+        let value = probe()
+        probeCacheLock.lock()
+        probeCache = (value, Date())
+        probeCacheLock.unlock()
+        return value
+    }
+
+    static func grant(path: String, writable: Bool = false) -> Int64 {
         let clean = path.hasSuffix("/") && path.count > 1 ? String(path.dropLast()) : path
         let handle: Int64
         switch backend {
@@ -145,7 +172,9 @@ enum SandboxAccess {
             handle = bad_query(&pathC, true, nil, false)
         case .worseQuery:
             var pathC = clean.utf8CString.map { Int8($0) }
-            handle = worse_query_grant(&pathC)
+            // writable=true routes through grant_ex so a read-only token can
+            // no longer fake a successful grant (spec D-03.3/D-04).
+            handle = writable ? worse_query_grant_ex(&pathC, 1) : worse_query_grant(&pathC)
         case .unsupported:
             handle = -1
         }
@@ -159,7 +188,7 @@ enum SandboxAccess {
     /// Throwing variant for services that surface grant failures to the user
     /// instead of letting a negative handle cascade into a generic write error.
     static func grantOrThrow(path: String, writable: Bool = false) throws -> Int64 {
-        let handle = grant(path: path)
+        let handle = grant(path: path, writable: writable)
         guard handle >= 0 else {
             throw GrantFailure.denied(
                 code: handle,
@@ -176,6 +205,9 @@ enum SandboxAccess {
     static func invalidateWorseQueryCache() {
         guard backend == .worseQuery else { return }
         worse_query_forget_all()
+        probeCacheLock.lock()
+        probeCache = nil
+        probeCacheLock.unlock()
         log("sandbox: worse_query token cache invalidated")
     }
 
