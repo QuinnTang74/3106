@@ -51,6 +51,8 @@ struct FileBrowserView: View {
     @State private var selectedEntryIDs = Set<String>()
     @State private var transferSession: FileTransferSession?
     @State private var transferConflict: FileTransferConflict?
+    @State private var transferFailedMessage: String?
+    @State private var grantBannerDismissed = false
     @State private var deleteTargets: [FileEntry] = []
     @State private var viewerRequest: FileViewerRequest?
     @ObservedObject private var favoritesStore = FileFavoritesStore.shared
@@ -300,6 +302,23 @@ struct FileBrowserView: View {
                 }
             }
             .environment(\.appLanguage, language)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            // Grant-chain diagnostics banner (spec F-01): shows the last
+            // failed traversal grant or the latest attributed transfer
+            // failure, without blocking the list (MCM activation may still
+            // have served it). Dismissable; re-appears on the next failure
+            // and hides itself once a later grant succeeds (the condition
+            // reads the live diagnostic ring, so success clears it).
+            if !grantBannerDismissed,
+               transferFailedMessage != nil
+                   || SandboxDiagnostics.lastGrant.map({ $0.code < 0 }) == true {
+                GrantDiagnosticsBanner(
+                    message: transferFailedMessage,
+                    language: language,
+                    onDismiss: { grantBannerDismissed = true }
+                )
+            }
         }
         .overlay {
             ZStack {
@@ -1008,6 +1027,18 @@ struct FileBrowserView: View {
                                 sourceURL.lastPathComponent
                             )
                         )
+                    } else if let failure = error as? GrantFailure {
+                        // Attribution from the retry layer (spec F-01): show
+                        // the structured cause instead of a bare failure count.
+                        transferFailedMessage = "\(language.text(failure.errorDescription ?? "")) — \(failure.diagnosticSummary)"
+                        grantBannerDismissed = false
+                        recordTransferFailure()
+                    } else if GrantRetry.isPermissionDenied(error) {
+                        // A permission denial that never reached the retry
+                        // layer (pre-hardening paths): still attribute it.
+                        transferFailedMessage = "\(language.text("sandbox.error.write_denied")) — errno \(GrantRetry.errno(of: error))"
+                        grantBannerDismissed = false
+                        recordTransferFailure()
                     } else {
                         recordTransferFailure()
                     }
@@ -1348,6 +1379,16 @@ struct FileBrowserView: View {
                 if handle < 0 {
                     handle = ContainerStore.grantContainerAccess(grantPath)
                     log("filebrowser: traversal grant container=\(grantPath) start=\(path) -> \(handle)")
+                    // Surface the failure on the diagnostics banner (spec
+                    // F-01); the record itself is already in the ring via
+                    // SandboxAccess.grant. Banner state lives on the main
+                    // thread, so hop before touching @State. A stale
+                    // attributed message is dropped so the banner shows the
+                    // current grant failure's detail.
+                    DispatchQueue.main.async {
+                        transferFailedMessage = nil
+                        grantBannerDismissed = false
+                    }
                 }
             }
             let loadedEntries = ContainerStore.listFiles(at: path)
@@ -1731,6 +1772,65 @@ private struct FileReplacementNotice: Identifiable {
     let id = UUID()
     let title: String
     let message: String
+}
+
+/// Inline diagnostics banner for the grant chain (spec F-01). Shows the
+/// attributed transfer-failure message when present; otherwise summarizes
+/// the most recent failed traversal grant. Red styling mirrors
+/// BackendNoticeBanner so failure surfaces read consistently.
+private struct GrantDiagnosticsBanner: View {
+    let message: String?
+    let language: AppLanguage
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(
+                language.text("sandbox.banner.title"),
+                systemImage: "exclamationmark.triangle.fill"
+            )
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.red)
+            Text(detailText)
+                .font(.footnote)
+                .foregroundStyle(.red.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+            HStack {
+                Button(language.text("sandbox.banner.copy"), action: copyDiagnostics)
+                    .font(.footnote.weight(.medium))
+                Button(language.text("common.done"), action: onDismiss)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.red.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.red.opacity(0.35), lineWidth: 0.8)
+        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var detailText: String {
+        if let message { return message }
+        guard let last = SandboxDiagnostics.lastGrant, last.code < 0 else {
+            return language.text("sandbox.banner.generic")
+        }
+        return "\(language.text(GrantRetry.failureKey(for: last.code))) — grant=\(last.code) path=\(last.path)"
+    }
+
+    private func copyDiagnostics() {
+        UIPasteboard.general.string = SandboxDiagnostics.exportText(probeResult: nil)
+    }
 }
 
 private enum FileNamePromptAction {

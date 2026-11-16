@@ -19,6 +19,7 @@
 		3106W201 /* SandboxAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106W033; };
 		3106W901 /* SandboxDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106W903; };
 		3106W905 /* GrantRetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106W907; };
+		3106W909 /* SandboxDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106W911; };
 		3105A210 /* mcm_bridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A030; };
 		3105A220 /* kexploit_opa334.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A080; };
 		3105A221 /* offsets.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A081; };
@@ -253,6 +254,7 @@
 		3105E116 /* ActivityHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityHistory.swift; sourceTree = "<group>"; };
 		3105E117 /* AltStoreSourceAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltStoreSourceAdapter.swift; sourceTree = "<group>"; };
 		3105E118 /* BackendNoticeBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendNoticeBanner.swift; sourceTree = "<group>"; };
+		3106W911 /* SandboxDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxDiagnosticsView.swift; sourceTree = "<group>"; };
 		3105E119 /* FileReplaceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileReplaceService.swift; sourceTree = "<group>"; };
 		3105E11A /* FileReplaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileReplaceView.swift; sourceTree = "<group>"; };
 		3105E11B /* GestaltCardsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestaltCardsView.swift; sourceTree = "<group>"; };
@@ -418,6 +420,7 @@
 				3105E106 /* BackupTabView.swift */,
 				3105E108 /* RiskConfirmationView.swift */,
 				3105E118 /* BackendNoticeBanner.swift */,
+				3106W911 /* SandboxDiagnosticsView.swift */,
 				3105E11A /* FileReplaceView.swift */,
 				3105E11B /* GestaltCardsView.swift */,
 				3105E10E /* GestaltFieldEditorView.swift */,
@@ -650,6 +653,7 @@
 				3106W201,
 				3106W901,
 				3106W905,
+				3106W909,
 				3105A210, 3105A220, 3105A221, 3105A222, 3105A223,
 				3105A224, 3105A225,
 				3105A226,
