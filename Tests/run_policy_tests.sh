@@ -40,6 +40,10 @@ if rg -n '\.allSatisfy\([A-Za-z0-9_.]+\.contains\)' "$ROOT/ThreeOneOSSix" --glob
   exit 1
 fi
 
+# iOS 27 grant-chain hardening guardrails (spec 02-00-ios27-grant-hardening):
+# grep-level assertions that lstat/probe/flags/retry hardening stays in place.
+bash "$ROOT/Tests/run_sandbox_static_tests.sh"
+
 swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/SupportPolicy.swift" \
   "$ROOT/ThreeOneOSSix/helpers/GrantRetry.swift" \
