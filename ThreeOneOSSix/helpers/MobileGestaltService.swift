@@ -83,70 +83,72 @@ enum MobileGestaltService {
     static func apply(_ state: MobileGestaltState) throws {
         let path = gestaltPath
         let directory = (path as NSString).deletingLastPathComponent
-        let grant = ContainerStore.grantContainerAccess(directory)
-        defer {
-            if grant >= 0 { SandboxAccess.release(grant) }
-        }
-        guard FileManager.default.fileExists(atPath: path) else {
-            throw MobileGestaltError.unavailable
-        }
 
         // Same exclusive lock as GestaltPlistIO users: this editor and the
-        // preset/field/region editors RMW one shared cache file.
+        // preset/field/region editors RMW one shared cache file. The RMW runs
+        // inside withGrant (spec D-05): the existence probe, the read and the
+        // verified write are grant-covered, and a permission denial drops the
+        // token cache and retries once — the retry body stays inside the
+        // exclusive lock.
         try GestaltPlistIO.withExclusiveAccess {
-            var root = try readRoot()
-        guard var cacheExtra = root[cacheExtraKey] as? [String: Any] else {
-            throw MobileGestaltError.missingCacheExtra
-        }
+            try SandboxAccess.withGrant(directory: directory, writable: true) {
+                guard FileManager.default.fileExists(atPath: path) else {
+                    throw MobileGestaltError.unavailable
+                }
+                var root = try readRoot()
+                guard var cacheExtra = root[cacheExtraKey] as? [String: Any] else {
+                    throw MobileGestaltError.missingCacheExtra
+                }
 
-        var artwork = cacheExtra[artworkKey] as? [String: Any] ?? [:]
-        artwork[subtypeKey] = state.deviceSubtype
-        if state.deviceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            artwork.removeValue(forKey: artworkNameKey)
-        } else {
-            artwork[artworkNameKey] = state.deviceName
-        }
-        cacheExtra[artworkKey] = artwork
-        if state.productType.isEmpty {
-            cacheExtra.removeValue(forKey: productTypeKey)
-        } else {
-            cacheExtra[productTypeKey] = state.productType
-        }
+                var artwork = cacheExtra[artworkKey] as? [String: Any] ?? [:]
+                artwork[subtypeKey] = state.deviceSubtype
+                if state.deviceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    artwork.removeValue(forKey: artworkNameKey)
+                } else {
+                    artwork[artworkNameKey] = state.deviceName
+                }
+                cacheExtra[artworkKey] = artwork
+                if state.productType.isEmpty {
+                    cacheExtra.removeValue(forKey: productTypeKey)
+                } else {
+                    cacheExtra[productTypeKey] = state.productType
+                }
 
-        setFlag(&cacheExtra, key: islandKey, enabled: state.dynamicIsland)
-        setFlag(&cacheExtra, key: aodKey, enabled: state.alwaysOnDisplay)
-        setFlag(&cacheExtra, key: aodTimeKey, enabled: state.alwaysOnDisplay)
-        setFlag(&cacheExtra, key: aodVibrancyKey, enabled: state.aodVibrancy)
-        setFlag(&cacheExtra, key: chargeLimitKey, enabled: state.chargeLimit)
-        setFlag(&cacheExtra, key: bootChimeKey, enabled: state.bootChime)
+                setFlag(&cacheExtra, key: islandKey, enabled: state.dynamicIsland)
+                setFlag(&cacheExtra, key: aodKey, enabled: state.alwaysOnDisplay)
+                setFlag(&cacheExtra, key: aodTimeKey, enabled: state.alwaysOnDisplay)
+                setFlag(&cacheExtra, key: aodVibrancyKey, enabled: state.aodVibrancy)
+                setFlag(&cacheExtra, key: chargeLimitKey, enabled: state.chargeLimit)
+                setFlag(&cacheExtra, key: bootChimeKey, enabled: state.bootChime)
 
-        root[cacheExtraKey] = cacheExtra
+                root[cacheExtraKey] = cacheExtra
 
-        let format = try readFormat()
-        let data: Data
-        do {
-            data = try PropertyListSerialization.data(
-                fromPropertyList: root,
-                format: format,
-                options: 0
-            )
-        } catch {
-            throw MobileGestaltError.invalidPlist
-        }
-        guard !data.isEmpty else {
-            throw MobileGestaltError.invalidPlist
-        }
-        // Read back before writing: a malformed plist must never reach disk.
-        guard (try? PropertyListSerialization.propertyList(from: data, options: [], format: nil)) != nil else {
-            throw MobileGestaltError.invalidPlist
-        }
+                let format = try readFormat()
+                let data: Data
+                do {
+                    data = try PropertyListSerialization.data(
+                        fromPropertyList: root,
+                        format: format,
+                        options: 0
+                    )
+                } catch {
+                    throw MobileGestaltError.invalidPlist
+                }
+                guard !data.isEmpty else {
+                    throw MobileGestaltError.invalidPlist
+                }
+                // Read back before writing: a malformed plist must never reach disk.
+                guard (try? PropertyListSerialization.propertyList(from: data, options: [], format: nil)) != nil else {
+                    throw MobileGestaltError.invalidPlist
+                }
 
-            try VerifiedFileWriter.write(
-                data,
-                to: URL(fileURLWithPath: path),
-                feature: .gestalt,
-                reason: "MobileGestalt safe subset"
-            )
+                try VerifiedFileWriter.write(
+                    data,
+                    to: URL(fileURLWithPath: path),
+                    feature: .gestalt,
+                    reason: "MobileGestalt safe subset"
+                )
+            }
         }
     }
 

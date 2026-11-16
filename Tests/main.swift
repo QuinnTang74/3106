@@ -1287,6 +1287,172 @@ do {
     try? FileManager.default.removeItem(at: URL(fileURLWithPath: root))
 }
 
+// ── GrantRetry: permission classification + retry primitive (T-007) ──
+
+do {
+    // errno extraction across the shapes the write paths produce.
+    expect(GrantRetry.errno(of: POSIXError(POSIXErrorCode.EPERM)) == EPERM, "POSIXError EPERM recognized")
+    expect(
+        GrantRetry.errno(of: NSError(domain: NSPOSIXErrorDomain, code: Int(EACCES))) == EACCES,
+        "NSError POSIX-domain EACCES recognized"
+    )
+    expect(
+        GrantRetry.errno(of: NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError)) == EACCES,
+        "CocoaError 513 folds to EACCES"
+    )
+    expect(
+        GrantRetry.errno(of: NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)) == EACCES,
+        "CocoaError 257 folds to EACCES"
+    )
+    expect(
+        GrantRetry.errno(of: BackupError.writeFailed("open /var/x errno 1")) == EPERM,
+        "BackupError.writeFailed embedded errno parsed"
+    )
+    expect(
+        GrantRetry.errno(of: BackupError.writeFailed("write errno 13")) == EACCES,
+        "BackupError.writeFailed write errno parsed"
+    )
+    expect(
+        GrantRetry.errno(of: BackupError.writeFailed("target changed while opening /x")) == 0,
+        "writeFailed without errno maps to 0"
+    )
+    expectFalse(
+        GrantRetry.isPermissionDenied(BackupError.targetMissing("/x")),
+        "targetMissing is not a permission denial"
+    )
+    expectFalse(
+        GrantRetry.isPermissionDenied(BackupError.writeFailed("target changed while opening /x")),
+        "writeFailed without errno is not a permission denial"
+    )
+
+    // Failure-code → localization key mapping (single source of truth for
+    // GrantFailure.errorDescription and the diagnostics export).
+    expect(GrantRetry.failureKey(for: -1) == "sandbox.error.no_app_group", "code -1 mapped")
+    expect(GrantRetry.failureKey(for: -4) == "sandbox.error.swap_failed", "code -4 mapped")
+    expect(GrantRetry.failureKey(for: -8) == "sandbox.error.token_unopenable", "code -8 mapped")
+    expect(GrantRetry.failureKey(for: -254) == "sandbox.error.lstat_denied", "code -254 mapped")
+    expect(GrantRetry.failureKey(for: -999) == "sandbox.error.unknown", "unknown code mapped")
+
+    // Retry primitive with spy grant/invalidate closures.
+    var grantCalls = 0
+    var invalidateCalls = 0
+    let grant: (String) -> Int64 = { _ in grantCalls += 1; return 42 }
+    let invalidate: () -> Void = { invalidateCalls += 1 }
+
+    var bodyCalls = 0
+    let ok = try GrantRetry.withRetry(
+        directory: "/tmp/x", backend: "worse_query", grant: grant, invalidate: invalidate
+    ) {
+        bodyCalls += 1
+        return "done"
+    }
+    expect(ok == "done", "retry: first-attempt success returns the body result")
+    expect(
+        grantCalls == 1 && invalidateCalls == 0 && bodyCalls == 1,
+        "retry: success path grants once, never invalidates, runs body once"
+    )
+
+    grantCalls = 0
+    invalidateCalls = 0
+    var attempts = 0
+    let healed = try GrantRetry.withRetry(
+        directory: "/tmp/x", backend: "worse_query", grant: grant, invalidate: invalidate
+    ) {
+        attempts += 1
+        if attempts == 1 { throw POSIXError(POSIXErrorCode.EPERM) }
+        return "healed"
+    }
+    expect(healed == "healed", "retry: EPERM then success heals")
+    expect(
+        grantCalls == 2 && invalidateCalls == 1 && attempts == 2,
+        "retry: heals with exactly one re-grant cycle and one retry"
+    )
+
+    grantCalls = 0
+    invalidateCalls = 0
+    struct UnrelatedError: Error {}
+    do {
+        _ = try GrantRetry.withRetry(
+            directory: "/tmp/x", backend: "worse_query", grant: grant, invalidate: invalidate
+        ) {
+            throw UnrelatedError()
+        }
+        expect(false, "retry: non-permission error must propagate")
+    } catch {
+        expect(error is UnrelatedError, "retry: non-permission error propagates untranslated")
+        expect(grantCalls == 1 && invalidateCalls == 0, "retry: non-permission error does not invalidate")
+    }
+
+    grantCalls = 0
+    invalidateCalls = 0
+    do {
+        _ = try GrantRetry.withRetry(
+            directory: "/tmp/x", backend: "worse_query", grant: grant, invalidate: invalidate
+        ) {
+            throw POSIXError(POSIXErrorCode.EPERM)
+        }
+        expect(false, "retry: double EPERM must throw GrantFailure")
+    } catch let failure as GrantFailure {
+        if case .writeDenied(let errno, let path, let grantCode) = failure {
+            expect(errno == EPERM, "writeDenied carries the retried errno")
+            expect(path == "/tmp/x", "writeDenied carries the directory")
+            expect(grantCode == 42, "writeDenied carries the retry grant handle")
+        } else {
+            expect(false, "retry: expected writeDenied, got \(failure)")
+        }
+        expect(
+            grantCalls == 2 && invalidateCalls == 1,
+            "retry: double failure runs exactly one re-grant cycle"
+        )
+    } catch {
+        expect(false, "retry: double EPERM threw an unexpected error type")
+    }
+
+    grantCalls = 0
+    invalidateCalls = 0
+    var bodyRan = false
+    let denyGrant: (String) -> Int64 = { _ in grantCalls += 1; return -8 }
+    do {
+        _ = try GrantRetry.withRetry(
+            directory: "/tmp/x", backend: "worse_query", grant: denyGrant, invalidate: invalidate
+        ) {
+            bodyRan = true
+            return "x"
+        }
+        expect(false, "retry: negative grant must throw GrantFailure.denied")
+    } catch let failure as GrantFailure {
+        if case .denied(let code, _, let backend) = failure {
+            expect(code == -8, "denied carries the failing grant code")
+            expect(backend == "worse_query", "denied carries the backend name")
+        } else {
+            expect(false, "retry: expected denied, got \(failure)")
+        }
+        expect(grantCalls == 1 && invalidateCalls == 0, "denied: no invalidate on fast fail")
+    } catch {
+        expect(false, "retry: negative grant threw an unexpected error type")
+    }
+    expectFalse(bodyRan, "denied: the body never runs")
+
+    var grantSequence: [Int64] = [42, -1]
+    let seqGrant: (String) -> Int64 = { _ in grantSequence.removeFirst() }
+    do {
+        _ = try GrantRetry.withRetry(
+            directory: "/tmp/x", backend: "worse_query", grant: seqGrant, invalidate: {}
+        ) {
+            throw POSIXError(POSIXErrorCode.EACCES)
+        }
+        expect(false, "retry: negative retry grant must throw")
+    } catch let failure as GrantFailure {
+        if case .denied(let code, _, _) = failure {
+            expect(code == -1, "retry-denied carries the retry grant code")
+        } else {
+            expect(false, "retry: expected denied on negative retry grant, got \(failure)")
+        }
+    } catch {
+        expect(false, "retry: negative retry grant threw an unexpected error type")
+    }
+}
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

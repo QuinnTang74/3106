@@ -42,6 +42,7 @@ fi
 
 swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/SupportPolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/GrantRetry.swift" \
   "$ROOT/ThreeOneOSSix/helpers/LaunchServicesStore.swift" \
   "$ROOT/ThreeOneOSSix/helpers/ContainerBrowserLogic.swift" \
   "$ROOT/ThreeOneOSSix/helpers/FileBrowserMetadata.swift" \

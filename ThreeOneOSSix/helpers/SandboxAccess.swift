@@ -211,46 +211,49 @@ enum SandboxAccess {
         log("sandbox: worse_query token cache invalidated")
     }
 
-    /// Grant → run → on EPERM/EACCES drop the token cache, re-grant and retry
-    /// the body exactly once (spec D-05). Grant-level failures (-254/-8/…)
-    /// are NOT retried here — those belong to the worse_query hardening work;
-    /// this only heals "grant succeeded but the write got permission-denied",
-    /// the read-only-token signature.
+    /// Grant → body → on EPERM/EACCES drop the token cache, re-grant and
+    /// retry the body exactly once (spec D-05). Backend split:
+    /// - kernel (iOS 17/18): grants do not exist here (-1 = "not needed"),
+    ///   the body runs bare, exactly like the pre-hardening call sites that
+    ///   ignored the handle.
+    /// - badQuery (26.0–26.6.1): legacy grant-then-run semantics, no retry
+    ///   (that backend has its own, already-verified behavior).
+    /// - worseQuery (26.7+/27): the full retry chain via GrantRetry.withRetry.
+    ///
+    /// macOS harness note: on macOS the backend resolves to worseQuery
+    /// (Darwin 27) but grants are meaningless — grant returns -1 and the
+    /// verify_* harnesses rely on that being non-fatal — so the retry chain
+    /// is iOS-only.
     static func withGrant<T>(
         directory: String,
         writable: Bool = false,
         body: () throws -> T
     ) throws -> T {
-        _ = try grantOrThrow(path: directory, writable: writable)
-        do {
+        switch backend {
+        case .kernel:
             return try body()
-        } catch {
-            let nsError = error as NSError
-            let posixErrno = (error as? POSIXError)?.errorCode
-                ?? (nsError.domain == NSPOSIXErrorDomain ? nsError.code : 0)
-            let cocoaCode = (error as? CocoaError)?.code.rawValue
-            let isPermissionDenied =
-                posixErrno == Int(EPERM) || posixErrno == Int(EACCES) ||
-                cocoaCode == NSFileWriteNoPermissionError ||
-                cocoaCode == NSFileReadNoPermissionError
-            guard isPermissionDenied else { throw error }
-            log("sandbox: write denied (\(error)), re-granting \(directory) and retrying once")
-            invalidateWorseQueryCache()
-            let retryCode = try grantOrThrow(path: directory, writable: writable)
-            do {
-                return try body()
-            } catch {
-                // Second failure: surface the structured cause, not a generic
-                // write error. The original errno is what attribution needs.
-                let retryErrno = (error as NSError).domain == NSPOSIXErrorDomain
-                    ? (error as NSError).code
-                    : ((error as? POSIXError)?.errorCode ?? 0)
-                throw GrantFailure.writeDenied(
-                    errno: Int32(retryErrno),
-                    path: directory,
-                    grantCode: retryCode
-                )
-            }
+        case .badQuery:
+            _ = grant(path: directory)
+            return try body()
+        case .worseQuery:
+#if os(iOS)
+            return try GrantRetry.withRetry(
+                directory: directory,
+                backend: backend.displayName,
+                grant: { grant(path: $0, writable: writable) },
+                invalidate: { invalidateWorseQueryCache() },
+                body: body
+            )
+#else
+            _ = grant(path: directory, writable: writable)
+            return try body()
+#endif
+        case .unsupported:
+            throw GrantFailure.denied(
+                code: -1,
+                path: directory,
+                backend: backend.displayName
+            )
         }
     }
 

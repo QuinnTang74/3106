@@ -222,6 +222,17 @@ enum ContainerStore {
 
 enum SandboxAccess {
     static func release(_ handle: Int64) {}
+
+    /// macOS harness: no sandbox grants exist here, the body runs bare —
+    /// mirrors the device-side "grant succeeded" path the service logic
+    /// assumes.
+    static func withGrant<T>(
+        directory: String,
+        writable: Bool = false,
+        body: () throws -> T
+    ) throws -> T {
+        return try body()
+    }
 }
 
 enum SoundEffects {

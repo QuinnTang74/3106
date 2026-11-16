@@ -310,23 +310,25 @@ enum FileReplaceService {
             throw FileReplaceError.protectedSystemPath(reason: reason)
         }
 
-        let grant = ContainerStore.grantContainerAccess(
-            (targetPath as NSString).deletingLastPathComponent
-        )
-        defer {
-            if grant >= 0 { SandboxAccess.release(grant) }
-        }
-
+        let directory = (targetPath as NSString).deletingLastPathComponent
+        // withGrant (spec D-05): everything that touches the target — the
+        // existence probe, the backup copy, the atomic write — runs inside
+        // the grant; on EPERM/EACCES the token cache is dropped, the
+        // directory re-granted (writable probe) and the body retried once
+        // (the read-only-token signature on tightened 27.x builds). A
+        // successful first-attempt backup is kept: the retry skips re-backup.
         var backupPath: String?
-        if backupRequested {
-            backupPath = try backupTarget(targetPath)
+        var existed = false
+        try SandboxAccess.withGrant(directory: directory, writable: true) {
+            existed = FileManager.default.fileExists(atPath: targetPath)
+            if backupRequested, backupPath == nil {
+                backupPath = try backupTarget(targetPath)
+            }
+            try payload.write(
+                to: URL(fileURLWithPath: targetPath),
+                options: .atomic
+            )
         }
-
-        let existed = FileManager.default.fileExists(atPath: targetPath)
-        try payload.write(
-            to: URL(fileURLWithPath: targetPath),
-            options: .atomic
-        )
 
         let record = ReplaceRecord(
             id: UUID(),
@@ -358,21 +360,25 @@ enum FileReplaceService {
         if let reason = blockedSystemPathReason(for: targetPath) {
             throw FileReplaceError.protectedSystemPath(reason: reason)
         }
-        guard FileManager.default.fileExists(atPath: targetPath) else {
-            throw FileReplaceError.targetMissing
-        }
 
-        let grant = ContainerStore.grantContainerAccess(
-            (targetPath as NSString).deletingLastPathComponent
-        )
-        defer {
-            if grant >= 0 { SandboxAccess.release(grant) }
+        let directory = (targetPath as NSString).deletingLastPathComponent
+        // Same grant coverage as replace: the existence probe, backup and
+        // removal all run inside the grant — on tightened 27.x builds a bare
+        // fileExists outside a grant can be denied by the sandbox and would
+        // report a spurious targetMissing (spec D-05).
+        var backupPath: String?
+        try SandboxAccess.withGrant(directory: directory, writable: true) {
+            guard FileManager.default.fileExists(atPath: targetPath) else {
+                throw FileReplaceError.targetMissing
+            }
+            if backupPath == nil {
+                backupPath = try backupTarget(targetPath)
+            }
+            guard backupPath != nil else {
+                throw FileReplaceError.targetMissing
+            }
+            try FileManager.default.removeItem(at: URL(fileURLWithPath: targetPath))
         }
-
-        guard let backupPath = try backupTarget(targetPath) else {
-            throw FileReplaceError.targetMissing
-        }
-        try FileManager.default.removeItem(at: URL(fileURLWithPath: targetPath))
 
         let record = ReplaceRecord(
             id: UUID(),

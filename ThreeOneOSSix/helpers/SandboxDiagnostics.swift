@@ -63,24 +63,6 @@ enum SandboxDiagnostics {
         last = nil
     }
 
-    // MARK: - Failure mapping
-
-    /// Human-readable semantics for the worse_query failure codes (see
-    /// worse_query.m — the C layer already segments by meaning; this maps
-    /// them to localization keys).
-    static func failureKey(for code: Int64) -> String {
-        switch code {
-        case -1: return "sandbox.error.no_app_group"
-        case -2, -3: return "sandbox.error.query_api"
-        case -4: return "sandbox.error.swap_failed"
-        case -5, -6, -7: return "sandbox.error.token"
-        case -8: return "sandbox.error.token_unopenable"
-        case -9: return "sandbox.error.token_read_only"
-        case -254: return "sandbox.error.lstat_denied"
-        default: return "sandbox.error.unknown"
-        }
-    }
-
     // MARK: - Export
 
     /// Which flags candidate the C layer learned for this OS major, surfaced
@@ -125,42 +107,12 @@ enum SandboxDiagnostics {
             let df = DateFormatter()
             df.dateFormat = "HH:mm:ss"
             for entry in snapshot {
-                let verdict = entry.code >= 0 ? "ok" : "FAIL(\(entry.code) = \(failureKey(for: entry.code)))"
+                let verdict = entry.code >= 0
+                    ? "ok"
+                    : "FAIL(\(entry.code) = \(GrantRetry.failureKey(for: entry.code)))"
                 lines.append("  [\(df.string(from: entry.at))] \(entry.backend) \(verdict) path=\(entry.path)")
             }
         }
         return lines.joined(separator: "\n")
-    }
-}
-
-/// The typed error thrown by `SandboxAccess.grantOrThrow` / `withGrant`.
-///
-/// `errorDescription` carries a localization KEY (services return keys so
-/// alerts translate per language — same pattern as `FileReplaceError`).
-/// The structured payload (code/path/errno) is exposed for UI banners and
-/// diagnostics export.
-enum GrantFailure: Error, LocalizedError {
-    /// Grant-level denial: the grant primitive itself returned a negative handle.
-    case denied(code: Int64, path: String, backend: String)
-    /// Write-level denial: grant succeeded but the write got EPERM/EACCES.
-    case writeDenied(errno: Int32, path: String, grantCode: Int64)
-
-    var errorDescription: String? {
-        switch self {
-        case .denied(let code, _, _):
-            return SandboxDiagnostics.failureKey(for: code)
-        case .writeDenied(let errno, _, _):
-            return errno == Int32(EROFS) ? "sandbox.error.write_denied_ro" : "sandbox.error.write_denied"
-        }
-    }
-
-    /// Compact payload for banners/log lines, e.g. "grant=-8 path=/var/...".
-    var diagnosticSummary: String {
-        switch self {
-        case .denied(let code, let path, let backend):
-            return "grant=\(code) backend=\(backend) path=\(path)"
-        case .writeDenied(let errno, let path, let grantCode):
-            return "errno=\(errno) grant=\(grantCode) path=\(path)"
-        }
     }
 }

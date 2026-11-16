@@ -349,6 +349,10 @@ enum FileManagerService {
                     fileManager: fileManager
                 )
             }
+        } catch let error as GrantFailure {
+            // Attribution from the retry layer (second failure after a
+            // re-grant) must reach the View untranslated.
+            throw error
         } catch let error as FileManagerOperationError {
             throw error
         } catch {
@@ -615,6 +619,52 @@ enum FileManagerService {
         replacing: Bool,
         fileManager: FileManager
     ) throws {
+        // iOS 27 hardening (spec 02-00-ios27-grant-hardening D-05): a
+        // permission denial during a copy usually means a stale or read-only
+        // token for the destination directory. Drop the token cache,
+        // re-grant the destination's parent, retry once; every other error
+        // keeps the existing cannotCopy semantics.
+        do {
+            try copyItemOnce(
+                sourceURL,
+                to: destinationURL,
+                replacing: replacing,
+                fileManager: fileManager
+            )
+        } catch {
+            guard GrantRetry.isPermissionDenied(error),
+                  SandboxAccess.backend == .worseQuery else {
+                throw error is FileManagerOperationError
+                    ? error
+                    : FileManagerOperationError.cannotCopy
+            }
+            SandboxAccess.invalidateWorseQueryCache()
+            let grantCode = ContainerStore.grantContainerAccess(
+                destinationURL.deletingLastPathComponent().path
+            )
+            do {
+                try copyItemOnce(
+                    sourceURL,
+                    to: destinationURL,
+                    replacing: replacing,
+                    fileManager: fileManager
+                )
+            } catch {
+                throw GrantFailure.writeDenied(
+                    errno: GrantRetry.errno(of: error),
+                    path: destinationURL.deletingLastPathComponent().path,
+                    grantCode: grantCode
+                )
+            }
+        }
+    }
+
+    private static func copyItemOnce(
+        _ sourceURL: URL,
+        to destinationURL: URL,
+        replacing: Bool,
+        fileManager: FileManager
+    ) throws {
         let staging = destinationURL.deletingLastPathComponent()
             .appendingPathComponent(".3106-copy-\(UUID().uuidString)")
         defer { try? fileManager.removeItem(at: staging) }
@@ -629,6 +679,10 @@ enum FileManagerService {
         } catch let error as FileManagerOperationError {
             throw error
         } catch {
+            // Permission errors must reach the retry layer in copyItemSafely
+            // unfolded — FileManager reports EPERM/EACCES as CocoaError
+            // 513/257, which the old fold here swallowed into cannotCopy.
+            if GrantRetry.isPermissionDenied(error) { throw error }
             throw FileManagerOperationError.cannotCopy
         }
     }
@@ -653,6 +707,9 @@ enum FileManagerService {
                     )
                     try fileManager.removeItem(at: sourceURL)
                     return
+                } catch let error as GrantFailure {
+                    try? fileManager.removeItem(at: destinationURL)
+                    throw error
                 } catch {
                     try? fileManager.removeItem(at: destinationURL)
                     throw FileManagerOperationError.cannotMove
@@ -660,6 +717,47 @@ enum FileManagerService {
             }
         }
 
+        // iOS 27 hardening (spec D-05): same permission-denial self-heal as
+        // copyItemSafely — the displacement state is fully restored by
+        // moveReplacingOnce before it throws, so the retry starts clean.
+        do {
+            try moveReplacingOnce(
+                sourceURL,
+                to: destinationURL,
+                fileManager: fileManager
+            )
+        } catch {
+            guard GrantRetry.isPermissionDenied(error),
+                  SandboxAccess.backend == .worseQuery else {
+                throw error is FileManagerOperationError
+                    ? error
+                    : FileManagerOperationError.cannotMove
+            }
+            SandboxAccess.invalidateWorseQueryCache()
+            let grantCode = ContainerStore.grantContainerAccess(
+                destinationURL.deletingLastPathComponent().path
+            )
+            do {
+                try moveReplacingOnce(
+                    sourceURL,
+                    to: destinationURL,
+                    fileManager: fileManager
+                )
+            } catch {
+                throw GrantFailure.writeDenied(
+                    errno: GrantRetry.errno(of: error),
+                    path: destinationURL.deletingLastPathComponent().path,
+                    grantCode: grantCode
+                )
+            }
+        }
+    }
+
+    private static func moveReplacingOnce(
+        _ sourceURL: URL,
+        to destinationURL: URL,
+        fileManager: FileManager
+    ) throws {
         let backup = destinationURL.deletingLastPathComponent()
             .appendingPathComponent(".3106-displaced-\(UUID().uuidString)")
         do {
@@ -674,11 +772,14 @@ enum FileManagerService {
                 if !fileManager.fileExists(atPath: destinationURL.path) {
                     try? fileManager.moveItem(at: backup, to: destinationURL)
                 }
+                // Permission errors must reach the retry layer unfolded.
+                if GrantRetry.isPermissionDenied(error) { throw error }
                 throw FileManagerOperationError.cannotMove
             }
         } catch let error as FileManagerOperationError {
             throw error
         } catch {
+            if GrantRetry.isPermissionDenied(error) { throw error }
             throw FileManagerOperationError.cannotMove
         }
     }
