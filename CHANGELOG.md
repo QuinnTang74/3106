@@ -4,7 +4,7 @@ All notable user-facing changes are documented in this file.
 
 ## [3.2.6] - 2026-11-17
 
-iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 27 上文件管理的修改/复制粘贴/替换全部失败时错误被吞、无法归因的问题。授权链四处单点加固 + 失败码诊断透传 + 写入自动重试。真机验证矩阵见下文「验证」。
+iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 27 上文件管理的修改/复制粘贴/替换全部失败时错误被吞、无法归因的问题。授权链四处单点加固 + 失败码诊断透传 + 写入自动重试。新包 SHA256 `8141949c8e57417be0d3e7a32c50d0cdaa5458b68634dd53726f114fba31178d`（`dist/SHA256SUMS.txt` 为准）。真机验证矩阵见下文「验证」。
 
 ### Added
 
