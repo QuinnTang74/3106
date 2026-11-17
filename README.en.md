@@ -18,8 +18,8 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.2.5** (stable · same-version rebuild) |
-| Current release | **v3.2.5** (build 24, rebuilt 2026-11-14: notification sound replacement added; field-plist imports now merge as patches, backup metadata validation, explicit edits win over presets, disabled toggles no longer delete keys, issue #3 static regression guard; previous package backed up under `dist/backups/`, SHA256 per `dist/SHA256SUMS.txt`) |
+| Version | **3.2.6** (stable) |
+| Current release | **v3.2.6** (build 25, 2026-11-17: iOS 27 write-failure fix — grant chain hardened at four single points (non-fatal lstat, 5-candidate flags with versioned preference, token write probe, real probe), failure codes surfaced via an in-app banner and a sandbox diagnostics view with one-tap export, permission-denied writes automatically retry once after re-granting, LS store 27.3 layout candidates; SHA256 per `dist/SHA256SUMS.txt`) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.3 beta 1 (verified) |
 | Access backend | kernel / `bad_query` / `worse_query` (selected automatically by OS version) |
 | UI languages | Simplified Chinese · English · Vietnamese |
@@ -52,6 +52,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.2.6** | iOS 27 write-failure fix: file edits / copy-paste / replace used to fail with swallowed errors and no attribution — grant chain hardened at four single points (non-fatal lstat, 5-candidate flags with versioned preference + full-walk self-heal, token write probe, real activation probe), failure codes surfaced (browser banner + settings sandbox diagnostics view + one-tap export), permission-denied writes automatically retry once after dropping the token cache and re-granting, LS store 27.3 layout candidates added |
 | **3.2.5 rebuild** | Same-version rebuild: notification sound replacement added; field-plist import is now a patch-style merge (device keys preserved, GestaltX #138/#131/#132 semantics), backup metadata validation (#134), `.3106cfg` import errors surfaced + App Group inbox fallback (#133), explicit edits win over presets (#137), disabled toggles no longer delete keys, issue #3 static regression guard; SHA256 per `dist/SHA256SUMS.txt` |
 | **3.2.4** | Feature completion: dual-app folder migration (merge/replace/exchange, checkpoint resume, config packages) + GestaltX appearance suite (lock screen text, launch artwork, island layout, Siri preservation) + update-check hardening |
 | **3.2.5** | Fixes: `.tendies` import overload-resolution defect (issue #3, the true root cause of all descriptors being skipped), cleaner `/var` symlink rejections (all 56 apps failed), log build stamps, CI artifact sentinel |
@@ -105,7 +106,7 @@ The IPA is unsigned and must be signed with your own tool (LCSign / Sideloadly /
 
 **iOS 26.7+ / 27.x must keep the App Group entitlement** (Sideloadly drops it; use Impactor or Xcode).
 
-Current build: `3106-3.2.5-unsigned.ipa` / build 24. This is a same-version rebuild; use the latest SHA256 in `dist/SHA256SUMS.txt` to distinguish it from the previous package, whose backup lives in `dist/backups/`.
+Current build: `3106-3.2.6-unsigned.ipa` / build 25. On iOS 27, if a write still fails, copy the diagnostics from **Settings → Device → Sandbox diagnostics** and report it.
 
 ## License
 
