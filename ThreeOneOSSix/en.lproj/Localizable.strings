@@ -251,6 +251,8 @@
 "status.ok_via" = "OK via %@";
 "status.failed_via" = "FAILED %@ (%lld)";
 "status.unsupported_reason" = "Unsupported: %@";
+"status.unsupported_ios18_patched" = "Unsupported: Apple patched the kernel bug (CVE-2025-43520) that 3106 relies on for iOS 17/18 in iOS 18.7.2, so 18.7.2 and later cannot reach app containers. Options: keep the device on iOS 18.7.1 or lower, use an iOS 26+ device (no kernel exploit needed), or use a root-filesystem file manager on a jailbroken device.";
+"status.unsupported_ios27_build" = "Unsupported: Apple patched the sandbox escape for iOS 27.3; only verified builds work (%@). Do not update to a newer 27.3 build.";
 "method.simulator_preview" = "Simulator preview";
 
 "settings.title" = "Settings";

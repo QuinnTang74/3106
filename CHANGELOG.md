@@ -2,6 +2,26 @@
 
 All notable user-facing changes are documented in this file.
 
+## [Unreleased]
+
+支持策略加固（spec `03-00-ios18x-and-support-policy-hardening`）：修复「声明支持」与「实际可用」脱钩的三处缺陷，并把 iOS 18.7.2+ 的不可支持原因直白展示给用户。
+
+### Fixed
+
+- **iOS 27.3 丢失 build 号白名单**：3106 在加入 27.3 支持时把上游 3105 的 `verifiedIOS27Builds` 白名单替换成了 `minor <= 3`，导致 27.3 beta 2 及之后（`24C5049d` 起，worse_query 已被 Apple 修补）被误判为支持——UI 显示"已激活"但所有写入失败。现恢复为按 build 白名单校验（`24C5037i`），未列出的 27.3 build 一律拒绝。`AppInfo.osBuild` 增加进程级缓存，避免高频路径重复 `sysctl`。
+- **iOS < 26 内核链无条件判定成功**：`sandbox_escape()` 失败时仍返回 `true`，UI 显示"kernel access active"而容器读写持续失败。现要求沙箱逃逸探针（真实创建/读取/删除文件）通过才算成功，失败时明确日志"kernel R/W 已获得但沙箱逃逸未生效"。探针结果只采样一次，避免两次调用跨状态变化。
+- **bad_query 后端无探针恒为 true**：与 worse_query 在 3.2.6 修过的问题同源。现接入 `SandboxAccess.probeCached()`，授权链实际不可用时不显示"已激活"。
+
+### Changed
+
+- **iOS 18.7.2+ 的不支持状态从"沉默"变为"可解释"**：此前只显示 `iOS 18.7.5 (22H311)`，且该消息从未被任何视图渲染，用户只能看到设置页一个红色徽标。现在设置页直接显示原因：Apple 已在 iOS 18.7.2 修补本项目依赖的内核漏洞（CVE-2025-43520 / CVE-2025-43510），并给出三条替代路径（留在 18.7.1 或更低 / 改用 iOS 26+ / 越狱环境用根文件系统管理器）。27.3 未授权 build 同样给出说明与可用 build 号。三语同步。
+- 内核链 4 处无界重试改为有界：`physical_oob_read_mo_with_retry`、icmp6filter 腐蚀循环、`pe_v1` / `pe_v2` 的外层循环。此前在被修补的系统上会无限自旋（App 假死、烧电、最终被看门狗杀掉）；现在超限走 `FAILURE` 长跳转回 Swift 报错，App 保持存活。
+- README 兼容性表与顶表改为按 build 号描述 27.3，并注明 18.7.2 起的不可支持原因。
+
+### Added
+
+- 支持矩阵漂移护栏（`Tests/main.swift`）：断言 `verifiedIOS18Range` / `ios18KernelPatchedAt` 与 `supportsKernelExploit` 的实际边界一致。此前改行为而忘改文案时 CI 不会红；现在 11 条新增断言覆盖 18.7.2 / 18.7.5 / 18.7.12 / 18.8 / 19.0、27.3 白名单与未知 build。
+
 ## [3.2.6] - 2026-11-17
 
 iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 27 上文件管理的修改/复制粘贴/替换全部失败时错误被吞、无法归因的问题。授权链四处单点加固 + 失败码诊断透传 + 写入自动重试。新包 SHA256 `8141949c8e57417be0d3e7a32c50d0cdaa5458b68634dd53726f114fba31178d`（`dist/SHA256SUMS.txt` 为准）。真机验证矩阵见下文「验证」。

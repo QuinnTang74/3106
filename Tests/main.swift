@@ -79,6 +79,31 @@ expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 16, minor: 7, patc
 expect(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 0, patch: 0), "18.0 kernel")
 expect(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 7, patch: 1), "18.7.1 kernel")
 expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 7, patch: 2), "18.7.2 not kernel")
+expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 7, patch: 5), "18.7.5 not kernel")
+expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 7, patch: 12), "18.7.12 not kernel")
+expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 8, patch: 0), "18.8 not kernel")
+expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 19, minor: 0, patch: 0), "19.0 not kernel")
+
+// F-06 drift guard: the user-facing range string and the enforced boundary
+// must describe the same thing. Changing one without the other is exactly the
+// mistake this constant was extracted to prevent.
+expect(ExploitSupportPolicy.verifiedIOS18Range == "18.0–18.7.1",
+       "policy drift: verifiedIOS18Range label is 18.0–18.7.1")
+expect(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 7, patch: 1),
+       "policy drift: the last build named in verifiedIOS18Range must be supported")
+expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 7, patch: 2),
+            "policy drift: the first build past verifiedIOS18Range must be rejected")
+
+// The patch constant drives the user-facing explanation; it must name the same
+// release that closes the window.
+expect(ExploitSupportPolicy.ios18KernelPatchedAt == "18.7.2",
+       "policy drift: ios18KernelPatchedAt is 18.7.2")
+expect(ExploitSupportPolicy.isIOS18KernelPatched(major: 18, minor: 7, patch: 2),
+       "explain: 18.7.2 is the first patched build")
+expectFalse(ExploitSupportPolicy.isIOS18KernelPatched(major: 18, minor: 7, patch: 1),
+            "explain: 18.7.1 is not patched")
+expectFalse(ExploitSupportPolicy.isIOS18KernelPatched(major: 17, minor: 7, patch: 9),
+            "explain: iOS 17 is not an iOS 18 patched build")
 
 // bad_query range
 expect(ExploitSupportPolicy.supportsBadQuery(major: 26, minor: 0, patch: 0), "26.0 bad_query")
@@ -94,7 +119,11 @@ expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 2, patch: 1), "
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 26, minor: 7, patch: 3), "26.7.3 not worse_query")
 expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 0, patch: 0), "27.0 worse_query")
 expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 2, patch: 0), "27.2 worse_query")
-expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0), "27.3 worse_query verified on hardware")
+expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "24C5037i"), "27.3 beta 1 worse_query verified on hardware")
+expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "24C5049d"), "27.3 beta 2 worse_query patched by Apple")
+expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "unknown"), "27.3 unknown build must fail closed")
+expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0), "27.3 without build arg must fail closed")
+expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 4, patch: 0, build: "24C5037i"), "27.4 not worse_query")
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 28, minor: 0, patch: 0), "28.0 not worse_query")
 
 // Experimental + overall support
@@ -103,7 +132,9 @@ expectFalse(ExploitSupportPolicy.isExperimental(major: 27, minor: 2), "27.2 not 
 
 expect(ExploitSupportPolicy.isSupported(major: 26, minor: 7, patch: 2, build: "any"), "26.7.2 supported")
 expect(ExploitSupportPolicy.isSupported(major: 27, minor: 2, patch: 0, build: "any"), "27.2 supported")
-expect(ExploitSupportPolicy.isSupported(major: 27, minor: 3, patch: 0, build: "any"), "27.3 experimental supported")
+expect(ExploitSupportPolicy.isSupported(major: 27, minor: 3, patch: 0, build: "24C5037i"), "27.3 beta 1 supported")
+expectFalse(ExploitSupportPolicy.isSupported(major: 27, minor: 3, patch: 0, build: "24C5049d"), "27.3 beta 2 unsupported after Apple patch")
+expectFalse(ExploitSupportPolicy.isSupported(major: 27, minor: 3, patch: 0, build: "any"), "27.3 unknown build unsupported")
 expectFalse(ExploitSupportPolicy.isSupported(major: 28, minor: 0, patch: 0, build: "any"), "28.0 unsupported")
 expectFalse(ExploitSupportPolicy.isSupported(major: 16, minor: 7, patch: 0, build: "any"), "16.x unsupported")
 
@@ -793,10 +824,12 @@ do {
     expect(AppVersionComparison.isNewer("v4", than: "3.2.1"), "update: major bump detected")
 }
 
-// 3) Support policy flips (27.3 promoted, 26.5 layouts unchanged).
+// 3) Support policy flips (27.3 build-gated, 26.5 layouts unchanged).
 do {
-    expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0),
-           "policy: 27.3 verified & supported")
+    expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "24C5037i"),
+           "policy: 27.3 beta 1 verified & supported")
+    expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "24C5049d"),
+                "policy: 27.3 beta 2 blocked after Apple patch")
     expectFalse(ExploitSupportPolicy.isExperimental(major: 27, minor: 3),
                 "policy: 27.3 no longer experimental")
     expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 26, minor: 7, patch: 3),

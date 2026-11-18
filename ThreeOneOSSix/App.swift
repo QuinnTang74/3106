@@ -175,6 +175,14 @@ struct ThreeOneOSSixApp: App {
 class AppState: ObservableObject {
     @Published var exploitStatus: ExploitStatus = .notStarted
     @Published var unsupportedMessage: String?
+
+    /// Same storage key as the `@AppStorage` in `ThreeOneOSSixApp`. AppState
+    /// is a plain class, so it cannot read the struct's property directly —
+    /// it resolves the language from the shared defaults instead.
+    private var language: AppLanguage {
+        AppLanguage(rawValue: UserDefaults.standard.string(forKey: AppLanguage.storageKey) ?? "")
+            ?? .english
+    }
     @Published var kernelExploitRunning = false
 
     private var autoRunAttempted = false
@@ -204,7 +212,29 @@ class AppState: ObservableObject {
         }
 #endif
 
-        unsupportedMessage = supported ? nil : "iOS \(AppInfo.osVersion) (\(AppInfo.osBuild))"
+        if !supported {
+            // A bare "iOS 18.7.5 (22H311)" told the user nothing about why.
+            // The iOS 18.7.2+ case has a permanent, explainable cause: Apple
+            // patched the kernel bugs this project depends on, so no version
+            // of 3106 can ever support those builds. Surface that instead of
+            // a version string the user cannot act on.
+            if ExploitSupportPolicy.isIOS18KernelPatched(major: v.major, minor: v.minor, patch: v.patch) {
+                unsupportedMessage = language.text(
+                    "status.unsupported_ios18_patched",
+                    ExploitSupportPolicy.ios18KernelPatchedAt
+                )
+            } else if v.major == 27 && v.minor == 3 {
+                // 27.3 is build-gated: the technique was patched mid-cycle, so
+                // an unlisted build is unsupported and the user needs to know
+                // which build to stay on.
+                unsupportedMessage = language.text(
+                    "status.unsupported_ios27_build",
+                    ExploitSupportPolicy.verifiedIOS27Builds.joined(separator: ", ")
+                )
+            } else {
+                unsupportedMessage = "iOS \(AppInfo.osVersion) (\(AppInfo.osBuild))"
+            }
+        }
         if let unsupportedMessage {
             exploitStatus = .unsupported(unsupportedMessage)
             return

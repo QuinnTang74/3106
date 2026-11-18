@@ -214,6 +214,16 @@ struct SettingsView: View {
                         value: "\(ExploitSupportPolicy.verifiedIOS26BadQueryRange) · \(ExploitSupportPolicy.verifiedIOS26WorseQueryRange)"
                     )
                     LabeledContent("iOS 27", value: ExploitSupportPolicy.verifiedIOS27Range)
+                    if let reason = appState.unsupportedMessage {
+                        // The reason was computed at launch but never rendered
+                        // anywhere, so an unsupported device only ever saw a
+                        // red badge with no explanation. Show it here for every
+                        // unsupported case, not just iOS 18.
+                        Text(reason)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 } header: {
                     Text(language.text("settings.verified_versions"))
                 } footer: {

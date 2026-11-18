@@ -20,7 +20,7 @@
 | --- | --- |
 | Version | **3.2.6** (stable) |
 | Current release | **v3.2.6** (build 25, 2026-11-17: iOS 27 write-failure fix — grant chain hardened at four single points (non-fatal lstat, 5-candidate flags with versioned preference, token write probe, real probe), failure codes surfaced via an in-app banner and a sandbox diagnostics view with one-tap export, permission-denied writes automatically retry once after re-granting, LS store 27.3 layout candidates; SHA256 per `dist/SHA256SUMS.txt`) |
-| Supported systems | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.3 beta 1 (verified) |
+| Supported systems | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.2 · 27.3 beta 1 (build-gated, `24C5037i`) |
 | Access backend | kernel / `bad_query` / `worse_query` (selected automatically by OS version) |
 | UI languages | Simplified Chinese · English · Vietnamese |
 | Signing | iOS 26.7+ / 27.x requires an App Group entitlement |

@@ -251,6 +251,8 @@
 "status.ok_via" = "OK qua %@";
 "status.failed_via" = "THẤT BẠI %@ (%lld)";
 "status.unsupported_reason" = "Không hỗ trợ: %@";
+"status.unsupported_ios18_patched" = "Không hỗ trợ: Apple đã vá lỗ hổng kernel (CVE-2025-43520) mà 3106 dựa vào trên iOS 17/18 trong iOS 18.7.2, nên 18.7.2 trở lên không thể truy cập container ứng dụng. Lựa chọn: giữ thiết bị ở iOS 18.7.1 hoặc thấp hơn, dùng thiết bị iOS 26 trở lên (không cần lỗ hổng kernel), hoặc dùng trình quản lý tệp có quyền root trên thiết bị đã jailbreak.";
+"status.unsupported_ios27_build" = "Không hỗ trợ: Apple đã vá sandbox escape cho iOS 27.3; chỉ các build đã xác minh mới hoạt động (%@). Không cập nhật lên build 27.3 mới hơn.";
 "method.simulator_preview" = "bản xem trước Simulator";
 
 "settings.title" = "Cài đặt";

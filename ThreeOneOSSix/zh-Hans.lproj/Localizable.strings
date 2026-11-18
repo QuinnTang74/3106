@@ -251,6 +251,8 @@
 "status.ok_via" = "通过 %@ 成功";
 "status.failed_via" = "%@ 失败（%lld）";
 "status.unsupported_reason" = "不支持：%@";
+"status.unsupported_ios18_patched" = "不支持：iOS 18.7.2 起 Apple 已修补 3106 在 iOS 17/18 上依赖的内核漏洞（CVE-2025-43520），18.7.2 及之后版本无法获得容器访问。可选：设备留在 iOS 18.7.1 或更低、改用 iOS 26 以上设备（无需内核漏洞），或在越狱环境使用支持根文件系统的文件管理器。";
+"status.unsupported_ios27_build" = "不支持：iOS 27.3 的沙箱逃逸已被 Apple 修补，仅已验证的 build 可用（%@）。请勿升级到更新的 27.3 build。";
 "method.simulator_preview" = "模拟器预览";
 
 "settings.title" = "设置";

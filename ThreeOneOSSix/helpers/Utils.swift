@@ -107,6 +107,14 @@ enum AppInfo {
         }
         return String(cString: value)
     }
+
+    /// `osBuild` cached for the process lifetime.
+    ///
+    /// `osBuild` costs two `sysctl` round-trips per call, and it now feeds
+    /// `SandboxAccess.backend`, which is a computed property reached from
+    /// every file-list refresh, grant and probe. The build number cannot
+    /// change while the process lives, so compute it once.
+    static let cachedOSBuild: String = osBuild
     static var machineName: String {
         var s = utsname(); uname(&s)
         return Mirror(reflecting: s.machine).children.reduce("") { id, e in
