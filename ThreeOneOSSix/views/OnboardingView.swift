@@ -230,6 +230,14 @@ struct OnboardingView: View {
                     color: .green
                 )
                 versionRow(icon: "checkmark.circle.fill", title: "iOS 27", value: ExploitSupportPolicy.verifiedIOS27Range, color: .green)
+                // Same reasoning as SettingsView: the 27.3 boundary is a build
+                // number, so it gets its own row with the build spelled out.
+                versionRow(
+                    icon: "checkmark.circle.fill",
+                    title: "iOS 27.3",
+                    value: "\(ExploitSupportPolicy.verifiedIOS27BuildGatedRange) · \(ExploitSupportPolicy.verifiedIOS27Builds.joined(separator: ", "))",
+                    color: .green
+                )
             }
 
             Text(language.text("onboarding.versions_footer", AppInfo.osVersion, AppInfo.osBuild))

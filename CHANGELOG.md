@@ -17,6 +17,14 @@ All notable user-facing changes are documented in this file.
 - **iOS 18.7.2+ 的不支持状态从"沉默"变为"可解释"**：此前只显示 `iOS 18.7.5 (22H311)`，且该消息从未被任何视图渲染，用户只能看到设置页一个红色徽标。现在设置页直接显示原因：Apple 已在 iOS 18.7.2 修补本项目依赖的内核漏洞（CVE-2025-43520 / CVE-2025-43510），并给出三条替代路径（留在 18.7.1 或更低 / 改用 iOS 26+ / 越狱环境用根文件系统管理器）。27.3 未授权 build 同样给出说明与可用 build 号。三语同步。
 - 内核链 4 处无界重试改为有界：`physical_oob_read_mo_with_retry`、icmp6filter 腐蚀循环、`pe_v1` / `pe_v2` 的外层循环。此前在被修补的系统上会无限自旋（App 假死、烧电、最终被看门狗杀掉）；现在超限走 `FAILURE` 长跳转回 Swift 报错，App 保持存活。
 - README 兼容性表与顶表改为按 build 号描述 27.3，并注明 18.7.2 起的不可支持原因。
+- **27.3 边界收紧到 `27.3.0`**：原先 `minor == 3` 分支只查 build 白名单、不校验 patch，理论上 27.3.1 若复用同一 build 字符串会被误放行。现在要求 `patch == 0` 且 build 命中白名单，两条同时成立。
+- **版本号口径逐条写清**：`verifiedIOS27Range` 从 `27.0–27.2.1` 纠正为 `27.0–27.2`（代码接受全部 27.2.x，旧标签虚构了一个 patch 边界）；27.3 独立成常量 `verifiedIOS27BuildGatedRange`，设置页与引导页各增加一行 `iOS 27.3 · 27.3 beta 1 · 24C5037i`，避免「27.3 全部支持」的误读。三语 footer 同步改写，删除三处已废的 beta 键与一处重复版本矩阵死键。
+
+### Removed
+
+- **`ExploitSupportPolicy.isExperimental`**：恒返回 `false`，却仍作为 `SandboxAccess.backend` 选择 `.worseQuery` 的并列条件，阅读时会被误当成存在的实验层级。已删除；`isSupported` 不再有兜底分支，未枚举的组合一律不支持。测试中三条相关断言改为等价的 `isSupported` 断言。
+- **`kexploit_opa334.m` 的 `isA18Device`**：文件作用域 `bool isA18Device = false;` 全仓库无写入点，导致 `pe_v1` 内 5 处 A18 专用分支永不执行——A18 实际经 `gIsA18Above` 走 `pe_v2`。已删除该变量与全部分支，连带不再使用的 `wiredMapping` / `wiredMappingSize`。行为等价（这些分支原本就是死代码）。
+- **`g_kernel_slide`**：只写不读的全局量，无外部读者。已删除，slide 值改为直接打印（诊断用途不变）。
 
 ### Added
 

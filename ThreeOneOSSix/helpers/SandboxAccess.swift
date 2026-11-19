@@ -29,8 +29,7 @@ enum SandboxAccess {
         if ExploitSupportPolicy.supportsKernelExploit(major: v.major, minor: v.minor, patch: v.patch) {
             return .kernel
         }
-        if ExploitSupportPolicy.supportsWorseQuery(major: v.major, minor: v.minor, patch: v.patch, build: AppInfo.cachedOSBuild) ||
-            ExploitSupportPolicy.isExperimental(major: v.major, minor: v.minor) {
+        if ExploitSupportPolicy.supportsWorseQuery(major: v.major, minor: v.minor, patch: v.patch, build: AppInfo.cachedOSBuild) {
             return .worseQuery
         }
         if ExploitSupportPolicy.supportsBadQuery(major: v.major, minor: v.minor, patch: v.patch) {

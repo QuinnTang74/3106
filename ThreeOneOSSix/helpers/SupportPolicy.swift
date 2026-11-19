@@ -14,7 +14,16 @@ enum ExploitSupportPolicy {
     static let ios18KernelPatchedAt = "18.7.2"
     static let verifiedIOS26BadQueryRange = "26.0–26.6.1"
     static let verifiedIOS26WorseQueryRange = "26.7–26.7.2"
-    static let verifiedIOS27Range = "27.0–27.2.1"
+
+    /// Every 27.0–27.2 build is accepted unconditionally, so the range must
+    /// stop at the minor version — writing "27.2.1" here would claim a patch
+    /// boundary that `supportsWorseQuery` does not enforce.
+    static let verifiedIOS27Range = "27.0–27.2"
+
+    /// 27.3 is the only 27.x line that is build-gated, so it gets its own
+    /// label. Rendering it inside `verifiedIOS27Range` would hide the fact
+    /// that the boundary is a build number, not a version number.
+    static let verifiedIOS27BuildGatedRange = "27.3 beta 1"
 
     static func supportsKernelExploit(major: Int, minor: Int, patch: Int) -> Bool {
         guard minor >= 0, patch >= 0 else { return false }
@@ -67,7 +76,11 @@ enum ExploitSupportPolicy {
                 return true
             }
             if minor == 3 {
-                return verifiedIOS27Builds.contains(build)
+                // 27.3.0 only: beta 1 is a 27.3.0 build. Without the patch
+                // check, a hypothetical 27.3.1 that reused a whitelisted
+                // build string would slip through. Build numbers are unique
+                // in practice, but the boundary should not depend on that.
+                return patch == 0 && verifiedIOS27Builds.contains(build)
             }
         }
         return false
@@ -82,16 +95,14 @@ enum ExploitSupportPolicy {
         return minor == 7 && patch >= 2
     }
 
-    /// Kept for the experimental-features gate; no release currently maps
-    /// to an experimental tier.
-    static func isExperimental(major: Int, minor: Int) -> Bool {
-        false
-    }
-
+    /// Every supported combination is enumerated explicitly by the three
+    /// probes above. A fourth "experimental tier" used to short-circuit here
+    /// but always returned false, which made it read as a live escape hatch
+    /// while being dead code. Anything not listed is unsupported, full stop.
     static func isSupported(major: Int, minor: Int, patch: Int, build: String) -> Bool {
         if supportsKernelExploit(major: major, minor: minor, patch: patch) { return true }
         if supportsBadQuery(major: major, minor: minor, patch: patch) { return true }
         if supportsWorseQuery(major: major, minor: minor, patch: patch, build: build) { return true }
-        return isExperimental(major: major, minor: minor)
+        return false
     }
 }

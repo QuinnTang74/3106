@@ -214,6 +214,13 @@ struct SettingsView: View {
                         value: "\(ExploitSupportPolicy.verifiedIOS26BadQueryRange) · \(ExploitSupportPolicy.verifiedIOS26WorseQueryRange)"
                     )
                     LabeledContent("iOS 27", value: ExploitSupportPolicy.verifiedIOS27Range)
+                    // 27.3 is a separate row on purpose: its boundary is a
+                    // build number, not a version number, and folding it into
+                    // the row above would read as "all of 27.3 is supported".
+                    LabeledContent(
+                        "iOS 27.3",
+                        value: "\(ExploitSupportPolicy.verifiedIOS27BuildGatedRange) · \(ExploitSupportPolicy.verifiedIOS27Builds.joined(separator: ", "))"
+                    )
                     if let reason = appState.unsupportedMessage {
                         // The reason was computed at launch but never rendered
                         // anywhere, so an unsupported device only ever saw a

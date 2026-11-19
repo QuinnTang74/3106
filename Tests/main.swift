@@ -105,6 +105,25 @@ expectFalse(ExploitSupportPolicy.isIOS18KernelPatched(major: 18, minor: 7, patch
 expectFalse(ExploitSupportPolicy.isIOS18KernelPatched(major: 17, minor: 7, patch: 9),
             "explain: iOS 17 is not an iOS 18 patched build")
 
+// Same guard for the 27 row. `verifiedIOS27Range` had drifted to "27.0–27.2.1"
+// while the code accepted every 27.2.x: the label claimed a patch boundary
+// that `supportsWorseQuery` never enforced. Both the label and the boundary
+// are pinned here so that mistake cannot come back silently.
+expect(ExploitSupportPolicy.verifiedIOS27Range == "27.0–27.2",
+       "policy drift: verifiedIOS27Range label is 27.0–27.2 (no patch boundary)")
+expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 2, patch: 0),
+       "policy drift: 27.2.0 must be supported")
+expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 2, patch: 9),
+       "policy drift: every 27.2.x patch level is accepted unconditionally")
+
+// The build-gated 27.3 row is a separate constant precisely because its
+// boundary is a build number. Pin it too, so a future edit that folds 27.3
+// back into the contiguous range above cannot pass CI.
+expect(ExploitSupportPolicy.verifiedIOS27BuildGatedRange == "27.3 beta 1",
+       "policy drift: build-gated range label is 27.3 beta 1")
+expect(ExploitSupportPolicy.verifiedIOS27Builds == ["24C5037i"],
+       "policy drift: exactly one 27.3 build is verified (beta 1)")
+
 // bad_query range
 expect(ExploitSupportPolicy.supportsBadQuery(major: 26, minor: 0, patch: 0), "26.0 bad_query")
 expect(ExploitSupportPolicy.supportsBadQuery(major: 26, minor: 6, patch: 1), "26.6.1 bad_query")
@@ -122,14 +141,15 @@ expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 2, patch: 0), "
 expect(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "24C5037i"), "27.3 beta 1 worse_query verified on hardware")
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "24C5049d"), "27.3 beta 2 worse_query patched by Apple")
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "unknown"), "27.3 unknown build must fail closed")
+expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 1, build: "24C5037i"),
+            "27.3.1 must be rejected even with a whitelisted build string: beta 1 is 27.3.0")
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0), "27.3 without build arg must fail closed")
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 4, patch: 0, build: "24C5037i"), "27.4 not worse_query")
 expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 28, minor: 0, patch: 0), "28.0 not worse_query")
 
-// Experimental + overall support
-expectFalse(ExploitSupportPolicy.isExperimental(major: 27, minor: 3), "27.3 is fully supported, not experimental")
-expectFalse(ExploitSupportPolicy.isExperimental(major: 27, minor: 2), "27.2 not experimental")
-
+// Overall support. There is no experimental tier: every accepted combination
+// is one of the three enumerated probes, so an unlisted version must be false
+// rather than falling through to a catch-all.
 expect(ExploitSupportPolicy.isSupported(major: 26, minor: 7, patch: 2, build: "any"), "26.7.2 supported")
 expect(ExploitSupportPolicy.isSupported(major: 27, minor: 2, patch: 0, build: "any"), "27.2 supported")
 expect(ExploitSupportPolicy.isSupported(major: 27, minor: 3, patch: 0, build: "24C5037i"), "27.3 beta 1 supported")
@@ -830,8 +850,8 @@ do {
            "policy: 27.3 beta 1 verified & supported")
     expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 27, minor: 3, patch: 0, build: "24C5049d"),
                 "policy: 27.3 beta 2 blocked after Apple patch")
-    expectFalse(ExploitSupportPolicy.isExperimental(major: 27, minor: 3),
-                "policy: 27.3 no longer experimental")
+    expectFalse(ExploitSupportPolicy.isSupported(major: 27, minor: 3, patch: 0, build: "24C5049d"),
+                "policy: 27.3 beta 2 not supported, no experimental fallback")
     expectFalse(ExploitSupportPolicy.supportsWorseQuery(major: 26, minor: 7, patch: 3),
                 "policy: 26.7.3 beyond worse_query ceiling")
     expect(ExploitSupportPolicy.supportsBadQuery(major: 26, minor: 6, patch: 1),
