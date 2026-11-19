@@ -2,7 +2,7 @@
 
 All notable user-facing changes are documented in this file.
 
-## [未发布]
+## [3.2.8] - 2026-11-20
 
 ### Fixed
 
