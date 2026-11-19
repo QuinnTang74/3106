@@ -21,7 +21,7 @@ All notable user-facing changes are documented in this file.
 - **资产铭牌 `AssetTagInformation`**：与锁屏文字同页，支持读取、写入与清除，写入走原有校验/备份管线。
 - **影像与健康分组**：Audio Mix、FaceTime 空间音频、空间音频录制、Responsive Shutter、高血压趋势。
 - **实验性开关**：快门静音、双麦并发、局部光影、超取景/P3、相机控制、旧机型电池、CarPlay Ultra、120Hz 触控、助听器、呼吸暂停、美版血氧、户外极限。
-- 四语键集增至 1578。
+- 四语键集增至 1579。
 
 ### Changed
 
