@@ -18,11 +18,12 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 当前版本 | **3.2.6**（正式版） |
-| 当前发布 | **v3.2.6**（build 25，2026-11-17：iOS 27 写入失败专项——授权链四处单点加固（lstat 非致命化、flags 5 候选+版本隔离、写探针、真实 probe）、失败码诊断透传（文件页横幅 + 设置页沙盒诊断视图 + 一键导出）、写遇权限拒绝自动清令牌重授权重试一次、LS 布局表 27.3 候选；SHA256 以 `dist/SHA256SUMS.txt` 为准） |
+| 当前版本 | **3.2.7**（正式版） |
+| 当前发布 | **v3.2.7**（build 26，2026-11-19：首次启动压成单页并按本机语言自动选择（覆盖安装不再重弹引导）、新增韩语第五语言（1508 键全量，设置页唯一入口）、SQLite 恢复同步处理 `-wal`/`-shm`、plist 日期不再静默舍入且超大文件拒载、A10 + iOS 17 内核链拒绝、越狱环境检测、`regionInfo` 双键修复、区域 1→15、Wi-Fi HTTP 互传、chmod 权限编辑、显式 Unlock 屏；SHA256 以 `dist/SHA256SUMS.txt` 为准） |
+| 上一版本 | **v3.2.6**（build 25，2026-11-17：iOS 27 写入失败专项——授权链四处单点加固（lstat 非致命化、flags 5 候选+版本隔离、写探针、真实 probe）、失败码诊断透传（文件页横幅 + 设置页沙盒诊断视图 + 一键导出）、写遇权限拒绝自动清令牌重授权重试一次、LS 布局表 27.3 候选；SHA256 以 `dist/SHA256SUMS.txt` 为准） |
 | 支持系统 | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.2 · 27.3 beta 1（按 build 号校验，`24C5037i`） |
 | 访问后端 | kernel / `bad_query` / `worse_query`（按系统版本自动选择） |
-| 界面语言 | 简体中文 · English · Tiếng Việt |
+| 界面语言 | 简体中文 · English · Tiếng Việt · 한국어 |
 | 签名要求 | iOS 26.7+ / 27.x 需要 App Group entitlement |
 | Bundle ID | `com.qingtang.3106` |
 | 仓库 | <https://github.com/QuinnTang74/3106.git> |
@@ -54,12 +55,13 @@
 | siriOnDevice 保护 | 端侧 Siri 预设去 enable 化：出厂设备专属值不提供通用写入，只可恢复原始/删键（GestaltX #102/#98 语义） |
 | 诊断阅读器 | 日志/迁移诊断 6000 字符分页阅读、全文复制（localOnly）与分享；SQLite 完整性检查（quick_check 只读） |
 | 横切治理 | CancellationToken（长任务协作取消）、TempSpaceRegistry（tmp 租约登记 + 保留期清扫）、adhoc 签名到期提醒、无图标应用商店图标回退（可关） |
-| 三语言界面 | 简体中文、English、Tiếng Việt |
+| 四语言界面 | 简体中文、English、Tiếng Việt、한국어 |
 
 ## 最近更新
 
 | 版本 | 主要内容 |
 | --- | --- |
+| **3.2.7** | 首次启动重做（单页引导 + 跟随本机语言 + 覆盖安装不再重弹）、韩语第五语言、SQLite 恢复同步处理 `-wal`/`-shm`、plist 日期不再静默舍入与超大文件拒载、A10 + iOS 17 内核链拒绝、越狱环境检测、`regionInfo` 双键修复、区域 1→15、Wi-Fi HTTP 互传、chmod 权限编辑、显式 Unlock 屏 |
 | **3.2.6** | iOS 27 写入失败专项：修复修改/复制粘贴/替换全部失败且错误被吞、无法归因的问题——授权链四处单点加固（lstat 非致命化、flags 5 候选+版本隔离+轮询自愈、token 写探针、真实 probe）、失败码诊断透传（文件页横幅 + 设置页沙盒诊断 + 一键导出）、写遇权限拒绝自动清令牌重授权重试一次、LS 布局表 27.3 候选 |
 | **3.2.5 rebuild** | 同版本号重发：新增应用通知音替换；字段 plist 导入改为补丁式合并（不丢设备键，GestaltX #138/#131/#132 语义）、备份元数据校验（#134）、`.3106cfg` 导入错误可见 + App Group 收件箱回退（#133）、显式编辑优先于预设（#137）、关闭开关不再删键、issue #3 静态回归护栏；SHA256 以 `dist/SHA256SUMS.txt` 为准 |
 | **3.2.4** | 功能补全：WCMigrate 迁移引擎（双应用文件夹替换/合并/转换 + 检查点续传 + 配置备份包）、GestaltX 外观套件（锁屏文字/启动图/灵动岛布局/端侧 Siri 保护）、更新检查加固（前台切换检查 + 失败原因显示） |
@@ -160,7 +162,7 @@
 | --- | --- |
 | 无签名构建 | `xcodebuild -project ThreeOneOSSix.xcodeproj -scheme 3106 -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build` |
 | 策略测试 | `bash Tests/run_policy_tests.sh` |
-| 产物目录 | `dist/`，当前文件名 `3106-3.2.6-unsigned.ipa`，校验值以 `dist/SHA256SUMS.txt` 为准 |
+| 产物目录 | `dist/`，当前文件名 `3106-3.2.7-unsigned.ipa`，校验值以 `dist/SHA256SUMS.txt` 为准 |
 
 ## 下载
 
@@ -170,7 +172,7 @@
 
 发布资产为未签名 IPA，需要按上面的签名方式自行签名后安装。
 
-当前版本：`3106-3.2.6-unsigned.ipa` / build 25。iOS 27 用户升级后如遇写入失败，可在 **设置 → 设备 → 沙盒诊断** 一键复制诊断信息反馈。
+当前版本：`3106-3.2.7-unsigned.ipa` / build 26。iOS 17/18 首次进入需在主界面顶部点「解锁」手动执行一次内核链；升级覆盖安装后不会再重弹引导页。
 
 ## 开源协议与商用说明
 

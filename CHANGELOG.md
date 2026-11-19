@@ -2,33 +2,66 @@
 
 All notable user-facing changes are documented in this file.
 
-## [Unreleased]
+## [3.2.7] - 2026-11-19
 
-支持策略加固（spec `03-00-ios18x-and-support-policy-hardening`）：修复「声明支持」与「实际可用」脱钩的三处缺陷，并把 iOS 18.7.2+ 的不可支持原因直白展示给用户。
+首次启动重做 + 韩语 + 文件层/内核行为同步。引导页压成单页并跟随本机语言（覆盖安装不再重弹），语言切换只留在设置页；文件层修复 SQLite 旁路文件残留、plist 日期静默舍入与超大文件截断；内核链新增 A10 + iOS 17 拒绝与越狱环境检测；区域信息双键修复并把可选区域从 1 个扩到 15 个；新增 Wi-Fi HTTP 互传、chmod 权限编辑与显式 Unlock 屏。同时完成支持策略加固（spec `03-00-ios18x-and-support-policy-hardening`）：修复「声明支持」与「实际可用」脱钩的三处缺陷，并把 iOS 18.7.2+ 的不可支持原因直白展示给用户。新包 SHA256 `ad902d3a581e36f1df375d0789faf048594bb542f5dbf1cafcdf28f3d0ed3e73`（`dist/SHA256SUMS.txt` 为准）。真机未执行项见下文「验证」。
 
-### Fixed
+### Added
 
-- **iOS 27.3 丢失 build 号白名单**：3106 在加入 27.3 支持时把上游 3105 的 `verifiedIOS27Builds` 白名单替换成了 `minor <= 3`，导致 27.3 beta 2 及之后（`24C5049d` 起，worse_query 已被 Apple 修补）被误判为支持——UI 显示"已激活"但所有写入失败。现恢复为按 build 白名单校验（`24C5037i`），未列出的 27.3 build 一律拒绝。`AppInfo.osBuild` 增加进程级缓存，避免高频路径重复 `sysctl`。
-- **iOS < 26 内核链无条件判定成功**：`sandbox_escape()` 失败时仍返回 `true`，UI 显示"kernel access active"而容器读写持续失败。现要求沙箱逃逸探针（真实创建/读取/删除文件）通过才算成功，失败时明确日志"kernel R/W 已获得但沙箱逃逸未生效"。探针结果只采样一次，避免两次调用跨状态变化。
-- **bad_query 后端无探针恒为 true**：与 worse_query 在 3.2.6 修过的问题同源。现接入 `SandboxAccess.probeCached()`，授权链实际不可用时不显示"已激活"。
+- **韩语（第五语言）**：`ko.lproj` 全量 1508 键，与 `zh-Hans` / `en` / `vi` 逐键对齐（键集、去重、格式符序列三项校验全部通过）。四个注册点同步：`AppLanguage` 的 case 与 `displayName`、`project.pbxproj` 的 `knownRegions` 与 `PBXVariantGroup`。`localizedBundle` 找不到 lproj 时会静默回退 `.main`，所以漏注册的后果是「选项能选中、界面全是英文」——校验脚本因此新增一条「构建产物里 `ko.lproj` 是否真的存在」的检查，补上原先只看 `.strings` 文件、不看 bundle 的结构性盲区。
+- **Wi-Fi HTTP 互传**：本机起一个 LAN 内 HTTP 服务（端口 8080 起，占用时顺延到 8090），用浏览器或 `curl` 就能在电脑与设备之间传文件。6 位随机 PIN 做 HTTP Basic Auth（用户名固定 `3106`），PIN 用 `SecRandomCopyBytes` 配拒绝采样生成——`2^32 % 10 != 0`，直接取模会让尾部数字偏高；比对走常量时间，避免被局域网内按响应时间逐位试探。路由为 `GET /` 目录浏览、`GET /api/download` 单文件、`GET /api/zip` 目录打包、`PUT /api/upload` 分块流式上传；下载与大包走 64 KB 分块流式写出，不在内存里攒整份文件（2 GB 上限下攒内存会先被系统杀掉）。路径一律要求落在 `Documents/3106/Transfer` 内，含 `..` 直接拒绝；重名文件自动改名为 `name 2.ext`，不覆盖。`Info.plist` 增加 `NSLocalNetworkUsageDescription`。
+- **chmod 权限编辑**：文件信息页从只读展示改为可编辑，显示八进制与符号两种写法，提供 `0444` / `0555` / `0644` / `0755` 四个预设，当前值对应的按钮禁用。写入前先经 `BackupCenter` 记一条版本快照（权限也有回滚点），写入后**回读校验**实际权限与目标一致才算成功；符号链接与不存在的目标分别给出各自的原因，不静默跳过。
+- **显式 Unlock 屏**：iOS 17/18 的内核链此前在启动时静默自动运行。内核链失败会重启设备，静默执行让用户既没有同意机会、也读不到发生了什么。现改为：启动不自动跑，主界面顶部显示「需要解锁」横幅，点进去是带实时日志、Unlock 按钮与解锁耗时显示的独立页面。`bad_query` / `worse_query` 从系统 API 取得访问权，不需要这一步，因此不显示横幅。
+- **越狱环境检测**：从已加载镜像里找越狱注入特征（`/usr/lib/libsubstitute`、`/usr/lib/substrate`、`ElleKit`、`libhooker`、`/var/jb/`）。命中且后端为 kernel 时**不跑内核链**，状态置为可解释的「越狱环境不支持」并记录命中的具体特征——在已被 hook 的环境里跑内核链，成功判定会失真。
+- **可选区域 15 个**：此前只能写死 `LL/A`（美版），且要求机型在已核验表内。现在可选 US / JP / CN / HK / TW / KR / GB / DE / FR / CA / AU / SG / IN / VN / AE，写入前走既有全屏风险确认。
+- 支持矩阵漂移护栏（`Tests/main.swift`）：断言 `verifiedIOS18Range` / `ios18KernelPatchedAt` 与 `supportsKernelExploit` 的实际边界一致。此前改行为而忘改文案时 CI 不会红；新增断言覆盖 18.7.2 / 18.7.5 / 18.7.12 / 18.8 / 19.0、27.3 白名单与未知 build。
 
 ### Changed
 
-- **iOS 18.7.2+ 的不支持状态从"沉默"变为"可解释"**：此前只显示 `iOS 18.7.5 (22H311)`，且该消息从未被任何视图渲染，用户只能看到设置页一个红色徽标。现在设置页直接显示原因：Apple 已在 iOS 18.7.2 修补本项目依赖的内核漏洞（CVE-2025-43520 / CVE-2025-43510），并给出三条替代路径（留在 18.7.1 或更低 / 改用 iOS 26+ / 越狱环境用根文件系统管理器）。27.3 未授权 build 同样给出说明与可用 build 号。三语同步。
+- **首次启动只显示一页**：原先四步（语言 → 欢迎 → 安装说明 → 版本矩阵）压成单页——图标、「本机 iOS x (build) · 支持 / 不支持」一行徽标、支持矩阵、签名要求（仅 iOS 26.7+/27.x 显示，其余系统没有 App Group 也能用，显示只是噪音）、一个「下一步」按钮直接进主页。
+- **语言跟随本机，不再让用户选**：`LanguageResolver` 按 `Locale.preferredLanguages` 顺序取**第一个**命中项（用户显式偏好必须比我们的默认顺序优先），`zh` 各变体统一落到简体中文（本项目不发行繁体包，读繁体的人看简体也胜过看一种不认识的语言），`ko` / `vi` / `en` 直落，其余或空列表回落英语。只在键不存在时写入，用户自己在设置里选过的永不被覆盖。
+- **语言切换只留在设置页**：引导页不再出现任何语言选项；设置页的 Picker 从 `.segmented` 改为 `.inline`，四项在 iPhone SE 宽度下 `Tiếng Việt` 已会截断成 `Tiếng…`。
+- **内核链不再在启动时静默执行**（见 Added 的显式 Unlock 屏）。这是一处行为变更：iOS 17/18 用户从「开箱即用」变成「点一次解锁」，换来的是用户知道自己在跑内核 exploit。
+- **`regionInfo` 双键都处理**：iOS 27 引入新键 `zHeENZu+wbg7PUprwNwBWg`，但读写路径全文只认旧键 `yK+xavymRGZ3xWc1tb8XDg`，新键从未被写过，在只有新键的设备上快照会直接报「缺字段」。现在读、写都取设备上**实际存在的那个**；也不主动添加不存在的键——往原始缓存里塞一个原本没有的键会让 iOS 27 在开机时重建整个缓存。
+- 换区域与「启用 Siri AI」解耦：通用换区域只写区域三元组（`regionCode` + 存在的 `regionInfo` 键），**不动 `modelNumber`**。后者是设备的监管申报型号，改它等于改了设备的监管申报地，与「换区域」的诉求无关；Siri AI 路径保留原有行为。
+- **iOS 18.7.2+ 的不支持状态从「沉默」变为「可解释」**：此前只显示 `iOS 18.7.5 (22H311)`，且该消息从未被任何视图渲染，用户只能看到设置页一个红色徽标。现在设置页直接显示原因：Apple 已在 iOS 18.7.2 修补本项目依赖的内核漏洞（CVE-2025-43520 / CVE-2025-43510），并给出三条替代路径（留在 18.7.1 或更低 / 改用 iOS 26+ / 越狱环境用根文件系统管理器）。27.3 未授权 build 同样给出说明与可用 build 号。四语同步。
 - 内核链 4 处无界重试改为有界：`physical_oob_read_mo_with_retry`、icmp6filter 腐蚀循环、`pe_v1` / `pe_v2` 的外层循环。此前在被修补的系统上会无限自旋（App 假死、烧电、最终被看门狗杀掉）；现在超限走 `FAILURE` 长跳转回 Swift 报错，App 保持存活。
 - README 兼容性表与顶表改为按 build 号描述 27.3，并注明 18.7.2 起的不可支持原因。
 - **27.3 边界收紧到 `27.3.0`**：原先 `minor == 3` 分支只查 build 白名单、不校验 patch，理论上 27.3.1 若复用同一 build 字符串会被误放行。现在要求 `patch == 0` 且 build 命中白名单，两条同时成立。
-- **版本号口径逐条写清**：`verifiedIOS27Range` 从 `27.0–27.2.1` 纠正为 `27.0–27.2`（代码接受全部 27.2.x，旧标签虚构了一个 patch 边界）；27.3 独立成常量 `verifiedIOS27BuildGatedRange`，设置页与引导页各增加一行 `iOS 27.3 · 27.3 beta 1 · 24C5037i`，避免「27.3 全部支持」的误读。三语 footer 同步改写，删除三处已废的 beta 键与一处重复版本矩阵死键。
+- **版本号口径逐条写清**：`verifiedIOS27Range` 从 `27.0–27.2.1` 纠正为 `27.0–27.2`（代码接受全部 27.2.x，旧标签虚构了一个 patch 边界）；27.3 独立成常量 `verifiedIOS27BuildGatedRange`，设置页与引导页各增加一行 `iOS 27.3 · 27.3 beta 1 · 24C5037i`，避免「27.3 全部支持」的误读。四语 footer 同步改写。
+
+### Fixed
+
+- **覆盖安装必定重弹引导页**：`OnboardingStore` 的「已完成」判定取的是**可执行文件 mtime**，任何覆盖安装都会刷新 mtime → 指纹变化 → 必弹。而版本升级本就由 `CFBundleVersion` 识别，这个为「同版本号重发」设计的机制在正常升级路径上只会误触发。现改为纯「是否首次安装」判定，并对旧指纹方案下已完成的安装做一次性迁移，升级到 3.2.7 的老用户不会再看一次引导页。
+- **SQLite 恢复后残留 `-wal` / `-shm`**：恢复只写主文件，而陈旧旁路文件会在下次打开数据库时覆盖回旧内容——恢复看起来成功，数据实际是错的。现在写主文件前先判断目标是不是 SQLite（前 16 字节 `SQLite format 3\0`），是则把非空的 `-wal` / `-shm` 先移入备份版本快照再置空。旁路路径若是符号链接或非普通文件，恢复直接失败报错，不静默跳过。
+- **XML plist 日期静默舍入**：编辑日期字段保存时，`ISO8601DateFormatter` 丢掉小数秒后按整秒写入，用户看到的时间与实际写入的不一致，且无任何提示。现在 XML 格式下带小数秒的日期会被明确拒绝并说明原因（二进制格式保留完整精度），而不是悄悄截断。
+- **超大 plist 只解析前缀导致写回截断**：`PlistEditorView` 加载时没有大小上限，超大文件读入后写出会截断。现在加载前检查大小（上限 64 MB），超限直接拒载并给出实际大小与上限。
+- **A10 芯片 + iOS 17 内核链挂死**：内核偏移表在 17.0 / 17.1 / 17.4 / 18.0 / 18.1 / 18.4 / 18.6 七个块里都有 A10 分支，但实测表从未覆盖 A10 + iOS 17；该组合会挂死在链中并触发设备重启。现在由 `DeviceCPU` 读 `hw.cpufamily`，命中 A10 家族且系统为 iOS 17 时直接拒绝，不可支持原因单独成一条（「芯片不支持，不是系统太新」，动作也不同：不要升级系统）。其余芯片与版本组合零改动。
+- **iOS 27.3 丢失 build 号白名单**：加入 27.3 支持时把此前的 `verifiedIOS27Builds` 白名单替换成了 `minor <= 3`，导致 27.3 beta 2 及之后（`24C5049d` 起，worse_query 已被 Apple 修补）被误判为支持——UI 显示「已激活」但所有写入失败。现恢复为按 build 白名单校验（`24C5037i`），未列出的 27.3 build 一律拒绝。`AppInfo.osBuild` 增加进程级缓存，避免高频路径重复 `sysctl`。
+- **iOS < 26 内核链无条件判定成功**：`sandbox_escape()` 失败时仍返回 `true`，UI 显示「kernel access active」而容器读写持续失败。现要求沙箱逃逸探针（真实创建/读取/删除文件）通过才算成功，失败时明确日志「kernel R/W 已获得但沙箱逃逸未生效」。探针结果只采样一次，避免两次调用跨状态变化。
+- **bad_query 后端无探针恒为 true**：与 worse_query 在 3.2.6 修过的问题同源。现接入 `SandboxAccess.probeCached()`，授权链实际不可用时不显示「已激活」。
 
 ### Removed
 
+- **引导页的 17 个失效键**：语言选择页、欢迎页、安装页随四步流程删除而整组失效（`onboarding.language_*`、`welcome_*`、`install_*`、`onboarding.step`），另有三处已废的 beta 标签键与三处仅 `hardware_model` 存活的 `dashboard.unsupported_*`（版本表已过期）。删前逐个核对重写后的视图是否仍读它——`onboarding.install_message` / `install_footer` 名字挂在被删键旁边但仍在用，保留。
 - **`ExploitSupportPolicy.isExperimental`**：恒返回 `false`，却仍作为 `SandboxAccess.backend` 选择 `.worseQuery` 的并列条件，阅读时会被误当成存在的实验层级。已删除；`isSupported` 不再有兜底分支，未枚举的组合一律不支持。测试中三条相关断言改为等价的 `isSupported` 断言。
 - **`kexploit_opa334.m` 的 `isA18Device`**：文件作用域 `bool isA18Device = false;` 全仓库无写入点，导致 `pe_v1` 内 5 处 A18 专用分支永不执行——A18 实际经 `gIsA18Above` 走 `pe_v2`。已删除该变量与全部分支，连带不再使用的 `wiredMapping` / `wiredMappingSize`。行为等价（这些分支原本就是死代码）。
 - **`g_kernel_slide`**：只写不读的全局量，无外部读者。已删除，slide 值改为直接打印（诊断用途不变）。
 
-### Added
+### 验证
 
-- 支持矩阵漂移护栏（`Tests/main.swift`）：断言 `verifiedIOS18Range` / `ios18KernelPatchedAt` 与 `supportsKernelExploit` 的实际边界一致。此前改行为而忘改文案时 CI 不会红；现在 11 条新增断言覆盖 18.7.2 / 18.7.5 / 18.7.12 / 18.8 / 19.0、27.3 白名单与未知 build。
+- macOS 侧：`Tests/run_policy_tests.sh` 全过——四语（`zh-Hans` / `en` / `vi` / `ko`）各 1508 键，键集对齐、去重、格式符序列三项校验通过；沙盒静态护栏通过；489 项策略检查通过。`xcodebuild` Release 构建成功，产物 `3106.app` 内 `en.lproj` / `ko.lproj` / `vi.lproj` / `zh-Hans.lproj` 四个目录齐全（`ls` 实测），`Info.plist` 的版本号 `3.2.7` / build `26` 与 `NSLocalNetworkUsageDescription` 均读回确认。
+- **真机未执行**（需要设备，本轮无法在 macOS 上替代验证）：
+  - 覆盖安装后不再弹引导页（需真实覆盖安装一次；模拟器只能验证判定逻辑，验不了 `UserDefaults` 在覆盖安装后的存活）
+  - 本机语言跟随（需改系统语言后重装；`LanguageResolver.resolve` 的逻辑已有单测，ICU 的 `preferredLanguages` 实际排序只能真机验）
+  - 韩语的系统语言识别（`ko-KR` 设备首启动是否直接进韩语；模拟器 `-AppleLanguages (ko)` 可验界面无原始 key，但验不了设备端的语言列表构造）
+  - App Group token 路径（需 LiveContainer；本轮未做 `mcm_bridge` 反查回退链以外的改动）
+  - SQLite `-wal` 恢复（需一个带活动 `-wal` 的数据库；逻辑有单测，副作用需真机确认）
+  - A10 + iOS 17 拦截（需 A10 设备；这是**阻止**挂死，不验证即无收益，但也无新增风险——非 A10 路径零改动）
+  - 越狱检测（需越狱设备；命中后的「不跑内核链」分支无法在干净设备上触发）
+  - Wi-Fi 互传（需同一局域网 + 浏览器；`NWListener` 的真实 socket 行为与本地网络权限弹窗只能真机验）
+  - 区域切换 15 项（每项需真机写 `CacheExtra` + 重启验证显示是否变化）
+  - 显式 Unlock 屏（需 iOS 17/18 真机；模拟器无内核链）
 
 ## [3.2.6] - 2026-11-17
 
@@ -56,21 +89,21 @@ iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 2
 
 ## [3.2.5 rebuild] - 2026-11-14
 
-版本号与 build（3.2.5 / 24）保持不变的同版本号重发。新包 SHA256 `aa76f4e5f904fc0eb90a54d35f33c2df8e9ecb54059f526ff880f8dd0ba0fca8`；旧包备份于 `dist/backups/`。新增能力与修复如下（参考 GestaltX v1.1.1 release notes 的问题清单语义）：
+版本号与 build（3.2.5 / 24）保持不变的同版本号重发。新包 SHA256 `aa76f4e5f904fc0eb90a54d35f33c2df8e9ecb54059f526ff880f8dd0ba0fca8`；旧包备份于 `dist/backups/`。新增能力与修复如下：
 
 ### Added
 
-- 应用通知音替换（GestaltX App Audio Library 思路，独立实现）：功能页新增「通知音替换」卡片；维护按应用的容器相对路径表（手动输入，未列出的应用同样可用）；选音频前强制三段风险确认 + 长按确认；替换走任意文件替换管线（自动备份 + 持久记录），记录左滑一键恢复；文件选择器用 `.data` 兜底，侧载包也能选到 `.caf/.m4a` 等音频；格式白名单 aiff/aif/caf/m4a/wav、单文件 ≤20MB；替换后列表立即刷新。
+- 应用通知音替换：功能页新增「通知音替换」卡片；维护按应用的容器相对路径表（手动输入，未列出的应用同样可用）；选音频前强制三段风险确认 + 长按确认；替换走任意文件替换管线（自动备份 + 持久记录），记录左滑一键恢复；文件选择器用 `.data` 兜底，侧载包也能选到 `.caf/.m4a` 等音频；格式白名单 aiff/aif/caf/m4a/wav、单文件 ≤20MB；替换后列表立即刷新。
 
 ### Fixed
 
-- 字段 plist 导入不再整根覆盖（GestaltX #138）：导入被当作补丁——以设备当前 root 为基准，只合并导入根中显式出现的 `CacheExtra` 键，根级 `CacheData`/`CacheVersion` 等设备专属键全部原值保留，不删除任何键；`CacheUUID` 大小写不敏感比较，不匹配则拒绝导入（#131）；导入完成显示覆盖/跳过/保留计数。
-- 日期与 Data 字段严格解析（GestaltX #132）：ISO8601 日期拒绝尾随文本（往返格式化校验），base64 拒绝非法填充与空白干扰。
-- 备份元数据校验（GestaltX #134）：`.3106save` sidecar 文件名、manifest bundleID、创建时间与归档路径全部先校验再展示/解压；legacy 无 sidecar 存档保留显式兼容分支。
-- `.3106cfg` 导入失败不再静默（GestaltX #133）：增加 App Group 共享收件箱回退（侧载重签名后仍按实际 entitlement 读取），失败时弹 UI 错误。
-- 字段搜索复用一份 preview 快照，键入不再对每个条目重算 preview（GestaltX #136）。
-- 显式编辑的字段不再被预设覆盖（GestaltX #137）：手动编辑过的 `CacheExtra` 键持久记录，预设应用时跳过。
-- plist 精确比较按 CF 类型 + Integer/Real 身份判定（GestaltX #139 语义）：`<true/>` 不再等于 `<integer>1</integer>`，`<integer>1</integer>` 不再等于 `<real>1.0</real>`。
+- 字段 plist 导入不再整根覆盖：导入被当作补丁——以设备当前 root 为基准，只合并导入根中显式出现的 `CacheExtra` 键，根级 `CacheData`/`CacheVersion` 等设备专属键全部原值保留，不删除任何键；`CacheUUID` 大小写不敏感比较，不匹配则拒绝导入；导入完成显示覆盖/跳过/保留计数。
+- 日期与 Data 字段严格解析：ISO8601 日期拒绝尾随文本（往返格式化校验），base64 拒绝非法填充与空白干扰。
+- 备份元数据校验：`.3106save` sidecar 文件名、manifest bundleID、创建时间与归档路径全部先校验再展示/解压；legacy 无 sidecar 存档保留显式兼容分支。
+- `.3106cfg` 导入失败不再静默：增加 App Group 共享收件箱回退（侧载重签名后仍按实际 entitlement 读取），失败时弹 UI 错误。
+- 字段搜索复用一份 preview 快照，键入不再对每个条目重算 preview。
+- 显式编辑的字段不再被预设覆盖：手动编辑过的 `CacheExtra` 键持久记录，预设应用时跳过。
+- plist 精确比较按 CF 类型 + Integer/Real 身份判定：`<true/>` 不再等于 `<integer>1</integer>`，`<integer>1</integer>` 不再等于 `<real>1.0</real>`。
 - 关闭 MobileGestalt 开关不再删键：按原值 CF 类型写同类型假值（Boolean→false / Integer→0 / Real→0.0），与 docs/RISKS.md「不新增不删键」防 iOS 27 重启反弹规则对齐。
 - issue #3 回归护栏：策略门新增静态检查，拒绝 `.allSatisfy(…\.contains)` 形态的裸函数引用；修复 `CleanerView.swift` 残留的同型写法（3.2.5 曾称「全仓唯一一处」失准）。
 - 更新检查删除已废弃的 `AppReleaseDisplayVersion` 读取分支（3.1.8 误报根因残留）；e2e 期望改为从 Info.plist 动态推导，不再硬编码 tag。
@@ -99,9 +132,9 @@ iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 2
 - 应用迁移（WCMigrate 设计参考，独立实现）：双应用文件夹迁移——合并（同名覆盖、目标独有保留）/ 替换（源完全接管）/ 转换（renamex_np 原子互换）；APFS clone 优先 + 4MB 块流复制 + 边读边算 SHA-256 + 提交前 inode/mtime CAS；映射目标路径可编辑（拒绝越界）；迁移前可选 .3106save 存档作为整包回滚锚点；持久化检查点（每 8 文件/2 秒/64MB 节流 + 破坏性步骤强制落盘）、中断后"检查并继续"（快速/深度两档校验、孤儿临时文件清扫、exchange 中断组人工核对门）、ETA 与屏幕常亮；微信应用置顶标注（仅排序，无业务路径硬编码）；手动输入 Bundle ID 入口。
 - 配置备份包：Preferences 打包 `.3106cfg`（可选仅 plist）分享；导入逐文件 SHA-256 校验；应用到任意应用（走 VerifiedFileWriter）；迁移后 plist 路径引用审计（逐文件批准/拒绝重写）。
 - 锁屏文字：写入系统配置描述文件 LockScreenFootnote（不走 MobileGestalt），单行 ≤256 字符，风险确认 + 自动备份 + 清除还原。
-- 应用启动图：替换 SpringBoard 快照缓存（按原分辨率渲染 PNG、KTX 头解析尺寸、逐文件备份 + 失败逆序回滚、组级恢复；GestaltX 限额 20MB/文件、16 文件、64MB/组）。
+- 应用启动图：替换 SpringBoard 快照缓存（按原分辨率渲染 PNG、KTX 头解析尺寸、逐文件备份 + 失败逆序回滚、组级恢复；限额 20MB/文件、16 文件、64MB/组）。
 - 灵动岛布局：ArtworkDeviceSubType 五机型选择（2556/2796/2736=Air/2622/2868），成员级写入——同字典其余键不动；恢复基于首次观察基线（原不存在则删键）。
-- siriOnDevice 保护（GestaltX #102/#98）：端侧 Siri 预设去 enable 化——设备专属出厂值不提供通用写入（写 true/1 会让 AI Siri 界面回退），只可恢复原始/删除新增键；GestaltBaselineStore 提供逐键基线。
+- siriOnDevice 保护：端侧 Siri 预设去 enable 化——设备专属出厂值不提供通用写入（写 true/1 会让 AI Siri 界面回退），只可恢复原始/删除新增键；GestaltBaselineStore 提供逐键基线。
 - SQLite 完整性检查：只读 PRAGMA quick_check（64 行预算），SQLite 工具区入口。
 - 诊断阅读器：日志/迁移诊断 6000 字符分页、全文复制（localOnly）与分享。
 - 横切治理：CancellationToken（长任务协作取消）、TempSpaceRegistry（tmp 租约 + session/24h/7d 保留期清扫，启动执行）、adhoc 描述文件到期提醒（迁移页）、无图标应用商店图标回退（CN 商店优先，设置可关）。
@@ -143,7 +176,7 @@ iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 2
 - 文件页体积列与排序切换（名称/体积）、索引时间标注（"索引 · X 分钟前更新"）、容器体积后台并行测量；统一 AppCardRow 卡片行组件（主标题 + 等宽 bundleID·体积 副标题）。
 - 全屏红色风险确认组件：三段式风险说明（会发生什么 / 最坏情况 / 怎么恢复）+ 长按 1.2 秒确认；合成音效系统（点击/确认/警告/成功/失败，设置页可关）。
 - 底栏调整：壁纸并入功能页，新增"备份"tab——自动备份说明、快照总览与管理入口、全量备份（`.3106fullbackup`：Gestalt 缓存 + 配置描述文件 + 补丁工作区 + 快照索引，含清单，一键恢复）、应用存档预览、跨功能操作时间线（备份/恢复/清理/写入）。
-- MobileGestalt 预设库：31 条预设覆盖显示 / 设备 / iPad / 智能 / 高级五类（键名与 GestaltX/MGKeys/Nugget/mond 交叉核对）；设备上不存在的键一律禁用并说明原因（防 iOS 27 重启反弹）；Advanced 类强制全屏红色确认。
+- MobileGestalt 预设库：31 条预设覆盖显示 / 设备 / iPad / 智能 / 高级五类（键名与多份公开键表交叉核对）；设备上不存在的键一律禁用并说明原因（防 iOS 27 重启反弹）；Advanced 类强制全屏红色确认。
 - CacheExtra 字段编辑器：搜索/新增/编辑/删除、8 种类型（String/Integer/Real/Boolean/Data/Date/Array/Dictionary）、plist 导入导出；类型保真（`CFBooleanGetTypeID()` / `CFNumberIsFloatType()` 精确分型，布尔保持布尔、浮点保持浮点）。
 - 区域与 Siri AI：区域快照展示；已核实机型表的原生 Siri AI（只改国家码/销售区域/监管型号 + AI 旗标，不伪装硬件）；实验模式（伪装 product/board/CPU + SiriMode=2，仅 iOS 27+，未知机型拒绝写入，默认隐藏在"实验功能"开关后）；LL/A 区域修改。
 - 监管模式（Supervised Mode）开关：读/写 ConfigurationProfiles 容器的 `IsSupervised`，MDM 警告常驻，写入走验证管线并自动备份。
@@ -151,7 +184,7 @@ iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 2
 - 扫描提速：MCM 容器激活并行化（并发 6）、lsd 守护容器目录并行探测、pathleak 动态 inode 上界（按实际分配水位收窄 200 万固定爆破区间）、扫描诊断日志（专用线程 `write(2)` + 5 秒 watchdog 心跳，`Documents/scan-diag-latest.log`）。
 - 结构化 Plist 编辑器类型保真修复：Integer/Real 分型，浮点值（如相机变焦）不再被写回整数。
 - 风险说明体系：每个新功能附带"会发生什么 / 最坏情况 / 怎么恢复"三段说明（功能页 + 风险确认页 + `docs/RISKS.md` 汇总）。
-- 出厂基线保护（同步 Erosion-CN v0.8.5 真机发现）：Audio Intelligence 出厂全为 false，强行开启会断路照片"高质量"消除的云端管线——该预设锁定并说明；Siri AI 实验模式对出厂 false 的 AI 旗标拒绝写入。
+- 出厂基线保护（真机验证）：Audio Intelligence 出厂全为 false，强行开启会断路照片"高质量"消除的云端管线——该预设锁定并说明；Siri AI 实验模式对出厂 false 的 AI 旗标拒绝写入。
 - 体验修复：预设开关从 4-6 次全量 plist 解析降到 1-2 次；文件浏览器目录体积加预算（12k 项/0.5s，超大目录显示截断标记）；清理过程显示逐应用进度（清理中 N/M · 已释放 · 当前应用）；QuickLook 预览加 200MB 上限（原为无限拷贝，大视频假死 30 秒）。
 - 本地化对齐门禁：`Tests/check_strings_alignment.sh` 校验三语键集一致（1108 键 × 3）；全部新功能文案三语补齐。
 - 真机验收清单：`docs/releases/device-checklist-3.2.md`。
@@ -262,9 +295,9 @@ iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 2
 
 ### Fixed
 
-- Wallpaper layout scanning no longer throws when the PosterBoard store has no numeric generation directory; it now falls through to the recursive search and the `61` generation fallback used by Erosion. This unblocks iOS 27.3 layouts where the old early `throw` made both fallbacks unreachable.
+- Wallpaper layout scanning no longer throws when the PosterBoard store has no numeric generation directory; it now falls through to the recursive search and the `61` generation fallback. This unblocks iOS 27.3 layouts where the old early `throw` made both fallbacks unreachable.
 - Wallpaper generation selection now prefers the generation that already contains the provider extensions required by the package instead of always taking the highest numeric generation.
-- Mercury wallpapers keep their original descriptor folder name (matching Erosion); other providers still use a fresh UUID directory.
+- Mercury wallpapers keep their original descriptor folder name (preserving the original folder name); other providers still use a fresh UUID directory.
 - `.tendies` packages whose descriptor files live directly under `descriptors/` are accepted as one descriptor instead of being rejected with “no descriptors”.
 - Descriptor folders containing `VideoCAML` are installed into the Photos provider instead of Collections.
 - Added wallpaper layout and per-descriptor install diagnostics.
@@ -294,7 +327,7 @@ iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 2
 
 - App Data browser no longer hides containers whose bundle identity cannot be resolved. The former `shouldShow` policy dropped every UUID-named container; they now appear in a separate “Unidentified containers” section, are browsable read-only, and are excluded from selection and write actions.
 - Removed the hard-coded `com.apple.mobile.MobileHouseArrest` guard in `MCMActivateContainerPath`. After the 3106 rename to `com.qingtang.3106`, that guard made every MCM enumeration and lookup fail, which was the root cause of the missing app data.
-- Added a LaunchServices `bdsl` CSStore parser (Swift port of WQ Files) that maps container paths to bundle ids directly, without MCM, the container identifier xattr, or the root-owned metadata plist. It reads lsd’s store from the Internal Daemon container and covers the 26 / 27.0 / 27.2 record layouts.
+- Added a LaunchServices `bdsl` CSStore parser that maps container paths to bundle ids directly, without MCM, the container identifier xattr, or the root-owned metadata plist. It reads lsd’s store from the Internal Daemon container and covers the 26 / 27.0 / 27.2 record layouts.
 - Discovery now merges the LaunchServices store’s container list with the filesystem scan, and API/ MCM lookups fall back to the store path instead of dropping apps with an empty or bundle-only container.
 - `installedAppInfo` now merges LaunchServices workspace and MobileInstallation results, and both enumeration selectors (`allApplications` / `allInstalledApplications`) and MobileInstallation option sets are unioned instead of “first non-empty wins”.
 - The progress callback during the MHA candidate scan no longer replaces the list with identified-only entries, so the browser does not visibly shrink while scanning.
@@ -345,7 +378,7 @@ iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 2
 
 - Cleaner now enumerates app-data containers from the filesystem when MCM/LaunchServices return nothing (LiveContainer and similar signing environments).
 - Cleaner resolves container paths through the iOS 27.2+ identifier index and no longer marks an app as scanned before its container was actually measured.
-- Cleaner explicitly grants `Library/Caches` and `tmp` before measuring, matching WQ Files' grant-before-access pattern.
+- Cleaner explicitly grants `Library/Caches` and `tmp` before measuring (grant before access).
 - Wallpaper layout scan, access probe, install, and reset now grant the PosterBoard container and descriptor directories before reading or creating probe files.
 - Added a reverse container-index fallback plus `wallpaper:` / `cleaner:` diagnostics in the app log.
 
@@ -371,7 +404,7 @@ iOS 27 写入失败专项（spec `02-00-ios27-grant-hardening`）：修复 iOS 2
 
 ### Added
 
-- `worse_query` sandbox backend for iOS 26.7–26.7.2 and iOS 27.0–27.2, ported from Taj C (forcequitOS) with the Caches-swap recovery, grant cache, and open verification adapted from WQ Files.
+- `worse_query` sandbox backend for iOS 26.7–26.7.2 and iOS 27.0–27.2, with Caches-swap recovery, a grant cache, and open verification before reporting success.
 - Container identifier fallback through `container_query_iterate_results_sync` for iOS 27.2, where the identifier xattr and metadata plist are unreadable.
 - App Group entitlement and a Settings row showing the active backend and App Group status.
 - `.3106` patch extension for new exports; legacy `.3105` packages remain importable and decrypt with the unchanged `3105PATCH` format.
