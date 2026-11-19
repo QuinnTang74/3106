@@ -18,9 +18,9 @@
 
 | Item | Value |
 | --- | --- |
-| Version | **3.2.7** (stable) |
-| Current release | **v3.2.7** (build 26, 2026-11-19: onboarding collapsed to a single page that follows the system language (overwrite installs no longer replay it), Korean added as a fifth language (1508 keys, selectable only in Settings), SQLite restore now neutralizes `-wal`/`-shm`, plist dates no longer round silently and oversized files are refused, A10 + iOS 17 kernel chain is refused, jailbreak detection added, dual `regionInfo` keys fixed, region list 1→15, Wi-Fi HTTP transfer, chmod permission editor, explicit Unlock screen; SHA256 per `dist/SHA256SUMS.txt`) |
-| Previous release | **v3.2.6** (build 25, 2026-11-17: iOS 27 write-failure fix — grant chain hardened at four single points (non-fatal lstat, 5-candidate flags with versioned preference, token write probe, real probe), failure codes surfaced via an in-app banner and a sandbox diagnostics view with one-tap export, permission-denied writes automatically retry once after re-granting, LS store 27.3 layout candidates; SHA256 per `dist/SHA256SUMS.txt`) |
+| Version | **3.2.8** (stable) |
+| Current release | **v3.2.8** (build 33, 2026-11-20: sandbox access-cache self-heal (fixes unidentified containers / cleaner seeing only itself) plus Settings → Reset Access Cache; region reads RegionInfoFromSysconfig first and shows both keys and the unlock mode; MobileGestalt CacheData slot status and writes for audio/shutter/health/AI toggles; fake-supervision audit and AssetTagInformation; update prompt is Cancel / Update; A10 constant fixed; SHA256 per `dist/SHA256SUMS.txt`) |
+| Previous release | **v3.2.7** (build 26, 2026-11-19: single-page onboarding, Korean, SQLite sidecars, plist date/size guards, A10 + iOS 17 refusal, jailbreak detection, dual regionInfo keys, 15 regions, Wi-Fi transfer, chmod editor, explicit Unlock screen; SHA256 per `dist/SHA256SUMS.txt`) |
 | Supported systems | iOS 17.0–18.7.1 · 26.0–26.6.1 · 26.7–26.7.2 · 27.0–27.2 · 27.3 beta 1 (build-gated, `24C5037i`) |
 | Access backend | kernel / `bad_query` / `worse_query` (selected automatically by OS version) |
 | UI languages | Simplified Chinese · English · Vietnamese · Korean |
@@ -45,7 +45,7 @@
 | Enumeration speedups | LaunchServices DB direct read (incl. iOS 26.5 layouts), parallel MCM activation, dynamic pathleak ceiling, scan diagnostics |
 | Wallpapers & dialer | `.tendies` PosterBoard wallpapers (moved into the feature hub), dialer key themes (per-file backup/restore) |
 | Sources | AltGallery as the sole default source (AltStore-format adapter, 61 apps); IPAs hand off to the share sheet for the user's signing tool |
-| Update check | Automatic at launch + manual in Settings; new versions open GitHub Releases |
+| Update check | Automatic at launch + 5-minute foreground throttle + manual in Settings; the prompt offers Cancel / Update and Cancel does not suppress the next prompt |
 | Risk system | Structured three-part risk copy per write feature + full-screen red confirmation (1.2s hold) + version-limited red banner |
 | Languages | Simplified Chinese · English · Vietnamese · Korean |
 
@@ -53,6 +53,7 @@
 
 | Version | Highlights |
 | --- | --- |
+| **3.2.8** | Sandbox access-cache self-heal (unidentified containers / cleaner seeing only itself), Settings → Reset Access Cache, sysconfig-first region read with both keys shown, CacheData slot status and writes, Media & Health and experimental toggles, fake-supervision audit, AssetTagInformation, Cancel / Update prompt, A10 constant fix |
 | **3.2.7** | Onboarding redone (single page, follows the system language, no replay on overwrite installs), Korean as a fifth language, SQLite restore neutralizes `-wal`/`-shm`, plist dates no longer round silently and oversized files are refused, A10 + iOS 17 kernel chain refused, jailbreak detection, dual `regionInfo` keys fixed, region list 1→15, Wi-Fi HTTP transfer, chmod permission editor, explicit Unlock screen |
 | **3.2.6** | iOS 27 write-failure fix: file edits / copy-paste / replace used to fail with swallowed errors and no attribution — grant chain hardened at four single points (non-fatal lstat, 5-candidate flags with versioned preference + full-walk self-heal, token write probe, real activation probe), failure codes surfaced (browser banner + settings sandbox diagnostics view + one-tap export), permission-denied writes automatically retry once after dropping the token cache and re-granting, LS store 27.3 layout candidates added |
 | **3.2.5 rebuild** | Same-version rebuild: notification sound replacement added; field-plist import is now a patch-style merge (device keys preserved, GestaltX #138/#131/#132 semantics), backup metadata validation (#134), `.3106cfg` import errors surfaced + App Group inbox fallback (#133), explicit edits win over presets (#137), disabled toggles no longer delete keys, issue #3 static regression guard; SHA256 per `dist/SHA256SUMS.txt` |
@@ -100,7 +101,7 @@
 - Cleaner defense in depth: 16-path blacklist, (dev,ino) identity re-check, three-stage confirmation gate; budgeted measurement + incremental cache; per-app progress; cumulative stats.
 - Enumeration speedups: parallel MCM activation, concurrent lsd probes, dynamic pathleak ceiling, scan diagnostics (watchdog).
 - Sources: AltGallery as the sole default source (AltStore-format adapter); downloaded IPAs hand off to the share sheet.
-- Update check: automatic + manual; risk system: structured copy + full-screen red confirmation + version-limited red banner.
+- Update check: automatic at launch + 5-minute foreground throttle + manual; prompt offers Cancel / Update; risk system: structured copy + full-screen red confirmation + version-limited red banner.
 
 ## Install & signing
 
@@ -108,7 +109,7 @@ The IPA is unsigned and must be signed with your own tool (LCSign / Sideloadly /
 
 **iOS 26.7+ / 27.x must keep the App Group entitlement** (Sideloadly drops it; use Impactor or Xcode).
 
-Current build: `3106-3.2.7-unsigned.ipa` / build 26. On iOS 17/18, tap the Unlock banner at the top of the main screen once per launch; overwrite installs no longer replay onboarding.
+Current build: `3106-3.2.8-unsigned.ipa` / build 33. On iOS 17/18, tap the Unlock banner at the top of the main screen once per launch; overwrite installs no longer replay onboarding.
 
 ## License
 
