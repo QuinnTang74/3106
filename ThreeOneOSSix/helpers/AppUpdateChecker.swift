@@ -6,7 +6,7 @@ enum AppUpdateChecker {
     /// Foreground checks are throttled so every app-switch does not hit the
     /// unauthenticated API (60 req/h per IP); 30 minutes matches the typical
     /// session-cadence a user needs to learn about a fresh release.
-    static let foregroundThrottleInterval: TimeInterval = 30 * 60
+    static let foregroundThrottleInterval: TimeInterval = 5 * 60
     // Points at the 3106 fork; a missing repository simply disables update
     // prompts until the final distribution address is provided.
     static let apiURL = URL(string: "https://api.github.com/repos/QuinnTang74/3106/releases/latest")!
@@ -151,9 +151,11 @@ enum AppUpdateChecker {
             }
             let decoded = try JSONDecoder().decode(GitHubRelease.self, from: data)
             let remote = normalize(decoded.tagName)
+            // No per-version suppression: the alert's second button is a
+            // plain Cancel, so a release keeps prompting on the next launch
+            // or foreground until it is installed.
             guard !remote.isEmpty,
-                  isNewer(remote, than: currentVersion),
-                  UserDefaults.standard.string(forKey: dismissedVersionKey) != remote else {
+                  isNewer(remote, than: currentVersion) else {
                 return nil
             }
             let url = URL(string: decoded.htmlURL) ?? fallbackURL

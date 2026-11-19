@@ -16,7 +16,7 @@
 
 "update.title" = "发现新版本";
 "update.message" = "GitHub 上已发布 3106 %@。";
-"update.agree" = "同意";
+"update.agree" = "更新";
 "update.dismiss" = "不再显示";
 "patch.error.wrong_password" = "密码错误。";
 

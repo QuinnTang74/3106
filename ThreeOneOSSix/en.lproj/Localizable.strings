@@ -16,7 +16,7 @@
 
 "update.title" = "Update available";
 "update.message" = "3106 %@ is available on GitHub.";
-"update.agree" = "OK";
+"update.agree" = "Update";
 "update.dismiss" = "Don't show again";
 "patch.error.wrong_password" = "Incorrect password.";
 

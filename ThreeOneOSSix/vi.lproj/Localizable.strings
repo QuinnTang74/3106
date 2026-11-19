@@ -16,7 +16,7 @@
 
 "update.title" = "Có bản cập nhật";
 "update.message" = "3106 %@ đã có trên GitHub.";
-"update.agree" = "Đồng ý";
+"update.agree" = "Cập nhật";
 "update.dismiss" = "Không hiển thị lại";
 "patch.error.wrong_password" = "Sai mật khẩu.";
 

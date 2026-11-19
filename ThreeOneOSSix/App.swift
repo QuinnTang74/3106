@@ -141,9 +141,7 @@ struct ThreeOneOSSixApp: App {
                     primaryButton: .default(Text(language.text("update.agree"))) {
                         UIApplication.shared.open(offer.url)
                     },
-                    secondaryButton: .cancel(Text(language.text("update.dismiss"))) {
-                        AppUpdateChecker.dismiss(version: offer.version)
-                    }
+                    secondaryButton: .cancel(Text(language.text("common.cancel"))) {}
                 )
             }
             .onAppear {
