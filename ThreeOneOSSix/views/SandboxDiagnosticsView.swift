@@ -11,6 +11,8 @@ struct SandboxDiagnosticsView: View {
     @State private var probeResult: Bool?
     @State private var copied = false
     @State private var clearTick = 0
+    @State private var resetRunning = false
+    @State private var resetSummary: String?
 
     var body: some View {
         List {
@@ -34,6 +36,32 @@ struct SandboxDiagnosticsView: View {
                     }
                 }
                 .disabled(probeRunning)
+            }
+
+            Section {
+                Button {
+                    runReset()
+                } label: {
+                    if resetRunning {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text(language.text("sandbox.diag.reset_running"))
+                        }
+                    } else {
+                        Label(
+                            language.text("sandbox.diag.reset_access_cache"),
+                            systemImage: "arrow.counterclockwise"
+                        )
+                    }
+                }
+                .disabled(resetRunning)
+                if let resetSummary {
+                    Text(resetSummary)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
+            } footer: {
+                Text(language.text("sandbox.diag.reset_footer"))
             }
 
             Section {
@@ -86,6 +114,27 @@ struct SandboxDiagnosticsView: View {
             DispatchQueue.main.async {
                 probeResult = result
                 probeRunning = false
+            }
+        }
+    }
+
+    /// Repair path for the "all containers unidentified" state: the App
+    /// Group's Library/Caches is put back to a plain folder (nothing deleted),
+    /// then the probe runs again so the user sees the result immediately.
+    private func runReset() {
+        resetRunning = true
+        resetSummary = nil
+        DispatchQueue.global(qos: .userInitiated).async {
+            let ok = worse_query_reset_access_cache()
+            SandboxAccess.invalidateProbeCache()
+            let result = SandboxAccess.probe()
+            DispatchQueue.main.async {
+                resetSummary = language.text(
+                    ok ? "sandbox.diag.reset_ok" : "sandbox.diag.reset_failed"
+                )
+                probeResult = result
+                resetRunning = false
+                clearTick += 1
             }
         }
     }

@@ -2,6 +2,18 @@
 
 All notable user-facing changes are documented in this file.
 
+## [未发布]
+
+### Fixed
+
+- **worse_query 访问缓存死锁（iOS 26.7+/27.x）**：App Group 的 `Library/Caches` 一旦被上一次中断的交换、旧版本或同组其它程序留下的软链占住，恢复逻辑会一直拒绝，交换无法开始，所有授权返回 -4（日志 `tried=[]`），文件浏览器全部显示未识别、清理器只统计到自身。现在恢复失败会先做一次“挪开障碍物”的修复（删软链、非目录/无法恢复的 preserved 改名到 `.wq-caches-reset-<id>`、重建普通 `Caches`，**不删除数据**），修复后继续交换；授权失败码改为 -5，Swift 层按 60 秒节流自动修复并重试一次。新增「设置 → 沙箱诊断 → 重置访问缓存」手动入口，幂等，修复后立即重跑探测。
+- **启动日志补充芯片家族**：`app: 3106 … cpu=0x…`，便于区分 A10 与其它芯片的启动路径。
+- **A10 家族常量写错**：`DeviceCPU.a10Family` 原为 `0x2C91A47E`（A8 Typhoon），正确值是 `0x67CEEE93`（A10 Hurricane）。错误值让「A10 + iOS 17 拒绝内核链」守卫对真 A10 设备完全失效。现已修正，并在 C 侧 `offsets_init()` 增加同条件的第二道拒绝；测试不再用常量自证，而是分别断言 Hurricane 与 Typhoon。
+
+### Changed
+
+- 四语键集增至 1513（新增 5 个 `sandbox.diag.reset_*` 键）。
+
 ## [3.2.7] - 2026-11-19
 
 首次启动重做 + 韩语 + 文件层/内核行为同步。引导页压成单页并跟随本机语言（覆盖安装不再重弹），语言切换只留在设置页；文件层修复 SQLite 旁路文件残留、plist 日期静默舍入与超大文件截断；内核链新增 A10 + iOS 17 拒绝与越狱环境检测；区域信息双键修复并把可选区域从 1 个扩到 15 个；新增 Wi-Fi HTTP 互传、chmod 权限编辑与显式 Unlock 屏。同时完成支持策略加固（spec `03-00-ios18x-and-support-policy-hardening`）：修复「声明支持」与「实际可用」脱钩的三处缺陷，并把 iOS 18.7.2+ 的不可支持原因直白展示给用户。新包 SHA256 `ad902d3a581e36f1df375d0789faf048594bb542f5dbf1cafcdf28f3d0ed3e73`（`dist/SHA256SUMS.txt` 为准）。真机未执行项见下文「验证」。

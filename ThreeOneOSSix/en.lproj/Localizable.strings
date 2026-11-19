@@ -429,6 +429,11 @@
 "sandbox.diag.probe_not_run" = "Not run";
 "sandbox.diag.probe_running" = "Probing…";
 "sandbox.diag.probe_run" = "Run probe";
+"sandbox.diag.reset_access_cache" = "Reset Access Cache";
+"sandbox.diag.reset_running" = "Resetting…";
+"sandbox.diag.reset_ok" = "Access cache reset. Probe re-run.";
+"sandbox.diag.reset_failed" = "Access cache reset failed. Retry, or reinstall the app.";
+"sandbox.diag.reset_footer" = "Restores the App Group's Library/Caches to a plain folder. Nothing is deleted; anything in the way is renamed aside. Use this when every container shows as unidentified.";
 "sandbox.diag.section_grants" = "Recent grants (newest first)";
 "sandbox.diag.grants_footer" = "Keeps the last 50 grant results for troubleshooting iOS 27 write failures.";
 "sandbox.diag.copy" = "Copy full diagnostics";

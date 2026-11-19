@@ -1807,10 +1807,15 @@ expectFalse(ExploitSupportPolicy.isSupported(major: 17, minor: 7, patch: 9, buil
             "A10 + iOS 17 has no backend left, so it is unsupported")
 
 // DeviceCPU.isA10(family:) is the testable half; the sysctl call is not.
+// The literal must match CPUFAMILY_ARM_HURRICANE in mach/machine.h and in
+// kexploit/machine_info.h — 0x2C91A47E is Typhoon (A8) and would disable the
+// A10 + iOS 17 guard on every real A10 device.
 expect(DeviceCPU.isA10(family: DeviceCPU.a10Family), "A10 family id recognised")
-expectFalse(DeviceCPU.isA10(family: 0x07D34B9F), "A11 family id is not A10")
+expect(DeviceCPU.a10Family == 0x67CEEE93, "A10 family literal is Hurricane")
+expectFalse(DeviceCPU.isA10(family: DeviceCPU.typhoonFamily), "Typhoon (A8) is not A10")
+expect(DeviceCPU.typhoonFamily == 0x2C91A47E, "Typhoon literal matches Apple's header")
+expectFalse(DeviceCPU.isA10(family: 0x07D34B9F), "Vortex/Tempest (A12) is not A10")
 expectFalse(DeviceCPU.isA10(family: nil), "unreadable cpu family is not A10")
-expect(DeviceCPU.a10Family == 0x2C91A47E, "A10 family literal matches the documented value")
 
 // Rejection copy: A10+iOS 17 must produce its own explanation rather than the
 // generic "iOS X is unsupported" text, which would wrongly imply an OS update

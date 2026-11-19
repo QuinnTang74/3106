@@ -25,9 +25,14 @@ enum DeviceCPU {
         return value
     }()
 
-    /// A10 Fusion. The constant lives in `mach/machine.h` and is not always
-    /// visible to Swift, so the literal is used with its documented value.
-    static let a10Family: Int32 = 0x2C91A47E
+    /// A10 Fusion (`CPUFAMILY_ARM_HURRICANE`). The constant lives in
+    /// `mach/machine.h`; the value matches `kexploit/machine_info.h` and
+    /// Apple's header: `0x67CEEE93`.
+    static let a10Family: Int32 = 0x67CEEE93
+
+    /// A8 (`CPUFAMILY_ARM_TYPHOON`). Kept for tests so a regression that
+    /// swaps the two literals fails instead of silently disabling the guard.
+    static let typhoonFamily: Int32 = 0x2C91A47E
 
     static var isA10: Bool {
         cpuFamily == a10Family

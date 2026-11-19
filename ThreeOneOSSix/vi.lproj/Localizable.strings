@@ -429,6 +429,11 @@
 "sandbox.diag.probe_not_run" = "Chưa chạy";
 "sandbox.diag.probe_running" = "Đang dò…";
 "sandbox.diag.probe_run" = "Chạy dò";
+"sandbox.diag.reset_access_cache" = "Đặt lại bộ nhớ truy cập";
+"sandbox.diag.reset_running" = "Đang đặt lại…";
+"sandbox.diag.reset_ok" = "Đã đặt lại bộ nhớ truy cập. Đã chạy lại dò.";
+"sandbox.diag.reset_failed" = "Đặt lại bộ nhớ truy cập thất bại. Hãy thử lại hoặc cài lại ứng dụng.";
+"sandbox.diag.reset_footer" = "Khôi phục Library/Caches của App Group về thư mục thường. Không xóa dữ liệu; mọi thứ cản đường chỉ được đổi tên sang một bên. Dùng khi mọi vùng chứa đều hiện là chưa xác định.";
 "sandbox.diag.section_grants" = "Bản ghi cấp quyền gần đây (mới → cũ)";
 "sandbox.diag.grants_footer" = "Giữ tối đa 50 kết quả cấp quyền gần nhất để xử lý lỗi ghi trên iOS 27.";
 "sandbox.diag.copy" = "Sao chép chẩn đoán đầy đủ";

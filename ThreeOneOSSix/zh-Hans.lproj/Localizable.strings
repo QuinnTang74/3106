@@ -429,6 +429,11 @@
 "sandbox.diag.probe_not_run" = "未运行";
 "sandbox.diag.probe_running" = "探测中…";
 "sandbox.diag.probe_run" = "运行探测";
+"sandbox.diag.reset_access_cache" = "重置访问缓存";
+"sandbox.diag.reset_running" = "正在重置…";
+"sandbox.diag.reset_ok" = "访问缓存已重置，已重新探测。";
+"sandbox.diag.reset_failed" = "访问缓存重置失败，请重试或重新安装应用。";
+"sandbox.diag.reset_footer" = "把 App Group 的 Library/Caches 恢复到普通文件夹。不会删除数据，挡路的内容只会被改名挪开。全部容器显示“未识别”时使用。";
 "sandbox.diag.section_grants" = "最近授权记录（新→旧）";
 "sandbox.diag.grants_footer" = "保留最近 50 条授权结果，用于排查 iOS 27 写入失败。";
 "sandbox.diag.copy" = "复制完整诊断";

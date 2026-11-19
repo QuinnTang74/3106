@@ -414,6 +414,11 @@
 "sandbox.diag.probe_not_run" = "실행 안 됨";
 "sandbox.diag.probe_running" = "프로브 중…";
 "sandbox.diag.probe_run" = "프로브 실행";
+"sandbox.diag.reset_access_cache" = "접근 캐시 재설정";
+"sandbox.diag.reset_running" = "재설정 중…";
+"sandbox.diag.reset_ok" = "접근 캐시를 재설정했습니다. 프로브를 다시 실행했습니다.";
+"sandbox.diag.reset_failed" = "접근 캐시 재설정에 실패했습니다. 다시 시도하거나 앱을 재설치하세요.";
+"sandbox.diag.reset_footer" = "App Group의 Library/Caches를 일반 폴더로 복원합니다. 데이터는 삭제되지 않으며 방해 항목은 이름만 바꿔 옮깁니다. 모든 컨테이너가 '미확인'으로 표시될 때 사용하세요.";
 "sandbox.diag.section_grants" = "최근 권한 부여(최신순)";
 "sandbox.diag.grants_footer" = "iOS 27 쓰기 실패 문제 해결을 위해 최근 50개의 권한 부여 결과를 보관합니다.";
 "sandbox.diag.copy" = "전체 진단 정보 복사";

@@ -95,8 +95,11 @@ enum SandboxAccess {
     /// Heals an interrupted Caches swap. Called once at launch.
     static func prepare() {
         guard backend == .worseQuery else { return }
-        if !worse_query_recover() {
-            log("sandbox: worse_query recovery skipped or needs attention")
+        if worse_query_recover() {
+            invalidateProbeCache()
+        } else {
+            log("sandbox: worse_query recovery failed even after reset — "
+                + "open Settings → Reset Access Cache")
         }
     }
 
@@ -165,9 +168,40 @@ enum SandboxAccess {
         return value
     }
 
+    /// Drops the 30s probe result. Must run after a repair, otherwise probe
+    /// keeps reporting the pre-repair failure and every caller stays blocked.
+    static func invalidateProbeCache() {
+        probeCacheLock.lock()
+        probeCache = nil
+        probeCacheLock.unlock()
+        worse_query_invalidate_caches()
+    }
+
+    private static let repairLock = NSLock()
+    private static var lastRepairAt: Date = .distantPast
+    private static let repairInterval: TimeInterval = 60
+
+    /// Repairs the App Group's access cache at most once a minute. Returns
+    /// true when it was reset, so the caller can retry the grant immediately.
+    @discardableResult
+    static func repairAccessCacheIfNeeded() -> Bool {
+        repairLock.lock()
+        defer { repairLock.unlock() }
+        guard Date().timeIntervalSince(lastRepairAt) >= repairInterval else { return false }
+        lastRepairAt = Date()
+        let ok = worse_query_reset_access_cache()
+        if ok {
+            invalidateProbeCache()
+            log("sandbox: access cache reset — retrying the grant chain")
+        } else {
+            log("sandbox: access cache reset failed — Settings → Reset Access Cache")
+        }
+        return ok
+    }
+
     static func grant(path: String, writable: Bool = false) -> Int64 {
         let clean = path.hasSuffix("/") && path.count > 1 ? String(path.dropLast()) : path
-        let handle: Int64
+        var handle: Int64
         switch backend {
         case .kernel:
             handle = -1
@@ -179,6 +213,12 @@ enum SandboxAccess {
             // writable=true routes through grant_ex so a read-only token can
             // no longer fake a successful grant (spec D-03.3/D-04).
             handle = writable ? worse_query_grant_ex(&pathC, 1) : worse_query_grant(&pathC)
+            // -5 = the App Group's Library/Caches is in a state the swap
+            // cannot start from. Repair once (throttled) and ask again.
+            if handle == -5, repairAccessCacheIfNeeded() {
+                pathC = clean.utf8CString.map { Int8($0) }
+                handle = writable ? worse_query_grant_ex(&pathC, 1) : worse_query_grant(&pathC)
+            }
         case .unsupported:
             handle = -1
         }
