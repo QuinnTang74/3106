@@ -367,14 +367,15 @@ struct GestaltCardsView: View {
             let machine = gestaltDeviceMachine()
             let nativeAI = GestaltRegionService.siriNativeModels.contains { $0.id == machine }
                 || GestaltRegionService.siriIPadModels.contains { $0.id == machine }
-            let audioLocked = GestaltPresets.preset(id: "audioIntelligence") != nil
+            let gate = GestaltPresets.gateSnapshot()
+            let gateOK = gate.greenTea == false
             let regionMatch = snapshot.map {
                 $0.country == "LL" && $0.region == "LL/A"
             } ?? false
             let regulatoryMatch = snapshot.map { snap in
                 GestaltRegionService.siriNativeModels.contains { $0.regulatory == snap.regulatory }
             } ?? false
-            let allGreen = regionMatch && regulatoryMatch && audioLocked && (nativeAI || regulatoryMatch)
+            let allGreen = regionMatch && regulatoryMatch && gateOK && (nativeAI || regulatoryMatch)
 
             // Per-row state: "modified" means the ORIGINAL backup differs
             // from the live value (a write happened); unmodified rows stay
@@ -392,7 +393,7 @@ struct GestaltCardsView: View {
                 : [
                     rowState(gestaltWritten, regionMatch),
                     rowState(gestaltWritten, regulatoryMatch),
-                    rowState(gestaltWritten, audioLocked),
+                    rowState(gestaltWritten, gateOK),
                     .match,  // hardware admission is read-only truth: native or not
                 ]
 
@@ -407,7 +408,11 @@ struct GestaltCardsView: View {
                     snapshot?.regulatory ?? "—",
                     snapshot?.regulatory ?? "—"
                 ),
-                gateLine: language.text("gestalt.cards.checkup_gate_ok"),
+                gateLine: gate.greenTea == nil
+                    ? language.text("gestalt.cards.checkup_gate_unknown")
+                    : (gate.greenTea == false
+                       ? language.text("gestalt.cards.checkup_gate_ok")
+                       : language.text("gestalt.cards.checkup_gate_cn")),
                 admissionLine: nativeAI
                     ? language.text("gestalt.cards.checkup_admission_native", machine)
                     : language.text("gestalt.cards.checkup_admission_unverified"),

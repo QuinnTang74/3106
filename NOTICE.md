@@ -9,7 +9,7 @@
 - **GestaltX**，作者 huamidev，GPL-3.0。MobileGestalt 预设键名与机型映射交叉核对来源。
 - **WCMigrate (XChatTransfer)**，作者 yangokok886，GPL-3.0。双应用文件夹迁移（替换/合并/转换）、持久化检查点续传、配置备份包与重命名审计的**设计参考**——本仓库为独立实现，未复制任何代码；迁移引擎见 `MigrationEngine.swift` 等文件。
 - **YumEdit**，作者 H4CNPE，GPL-3.0。Siri AI 机型映射与区域修改护栏参考。
-- **Erosion-CN**，作者 Kianuni，GPL-3.0。Erosion 简中加固版：防重启反弹规则、类型保真方法与出厂基线发现（Audio Intelligence 真机验证）。v1.0.5 的 Wi-Fi HTTP 互传与 chmod 权限编辑为功能参考，本仓库为独立实现。
+- **Erosion-CN**，作者 Kianuni，GPL-3.0。Erosion 简中加固版：防重启反弹规则、类型保真方法与出厂基线发现（Audio Intelligence 真机验证）。v1.0.5 的 Wi-Fi HTTP 互传与 chmod 权限编辑为功能参考；v1.0.6 的 MobileGestalt `CacheData` 布局解析与运行中 `libMobileGestalt.dylib` 段扫描（`MGCacheLayout.swift` / `MGImageReader.m`）为移植实现。
 - **Regitela**，作者贡献者列表见上游仓库。A10 + iOS 17 内核链挂死判定、从已加载镜像判断越狱环境的方法、`regionInfo` 双键兼容与 15 项区域表为参考来源；本仓库为独立实现，见 `SupportPolicy.swift` / `JailbreakDetector.swift` / `RegionKeyPolicy.swift` / `RegionTargets.swift`。
 - **WQManager**，作者 hseons，GPL-3.0。清理器安全策略与测量预算制设计参考。
 - **WQ Files**，作者 kolbicz，GPL-3.0-or-later。LaunchServices 数据库直读、CSStore2 记录布局（含 iOS 26.5）与扫描诊断日志的参考实现。

@@ -27,6 +27,8 @@
 		3105A223 /* kutils.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A083; };
 		3105A224 /* vnode.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A084; };
 		3105A225 /* sandbox_escape.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A085; };
+		3106C0D3 /* MGImageReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 3106C0D2; };
+		3106C0D5 /* MGCacheLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106C0D4; };
 		3105A226 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A098; };
 		3105A227 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A099; };
 		3105A235 /* AppIconHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 3105A106; };
@@ -207,6 +209,9 @@
 		3105A083 /* kutils.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = kutils.m; sourceTree = "<group>"; };
 		3105A084 /* vnode.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = vnode.m; sourceTree = "<group>"; };
 		3105A085 /* sandbox_escape.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = sandbox_escape.m; sourceTree = "<group>"; };
+		3106C0D1 /* MGImageReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MGImageReader.h; sourceTree = "<group>"; };
+		3106C0D2 /* MGImageReader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MGImageReader.m; sourceTree = "<group>"; };
+		3106C0D4 /* MGCacheLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MGCacheLayout.swift; sourceTree = "<group>"; };
 		3105A090 /* kexploit_opa334.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = kexploit_opa334.h; sourceTree = "<group>"; };
 		3105A091 /* offsets.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = offsets.h; sourceTree = "<group>"; };
 		3105A092 /* krw.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = krw.h; sourceTree = "<group>"; };
@@ -541,6 +546,7 @@
 				3105E10A /* ScanDiagnostics.swift */,
 				3105E10B /* GestaltKeys.swift */,
 				3105E10C /* GestaltPresets.swift */,
+				3106C0D4 /* MGCacheLayout.swift */,
 				3105E10D /* GestaltRegionService.swift */,
 				3105E111 /* SupervisedModeService.swift */,
 				3105E112 /* AppSaveBackupService.swift */,
@@ -622,6 +628,8 @@
 				3105A095 /* sandbox_escape.h */,
 				3105A096 /* machine_info.h */,
 				3105A097 /* xpaci.h */,
+				3106C0D1 /* MGImageReader.h */,
+				3106C0D2 /* MGImageReader.m */,
 			);
 			path = kexploit;
 			sourceTree = "<group>";
@@ -703,6 +711,7 @@
 				3106W909,
 				3105A210, 3105A220, 3105A221, 3105A222, 3105A223,
 				3105A224, 3105A225,
+				3106C0D3, 3106C0D5,
 				3105A226,
 				3105A227,
 				3105A233,
@@ -878,7 +887,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = "ThreeOneOSSix/ThreeOneOSSix.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -894,7 +903,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.2.9;
+				MARKETING_VERSION = 3.2.10;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.qingtang.3106;
 				PRODUCT_NAME = 3106;
@@ -912,7 +921,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = "ThreeOneOSSix/ThreeOneOSSix.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -928,7 +937,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.2.9;
+				MARKETING_VERSION = 3.2.10;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.qingtang.3106;
 				PRODUCT_NAME = 3106;

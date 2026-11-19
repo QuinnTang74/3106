@@ -11,6 +11,10 @@ import Foundation
 /// are shared; identity-level presets add their own overrides.
 enum GestaltPresetCategory: String, CaseIterable, Identifiable {
     case display
+    /// Camera / audio / health capability bits. These live in `CacheData`
+    /// slots, not CacheExtra — the reason they are read through
+    /// GestaltCacheDataBridge.
+    case media
     case device
     case ipad
     case intelligence
@@ -22,6 +26,7 @@ enum GestaltPresetCategory: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .display: return "display"
+        case .media: return "camera"
         case .device: return "iphone"
         case .ipad: return "ipad.landscape"
         case .intelligence: return "sparkles"
@@ -106,7 +111,18 @@ enum GestaltPresets {
         .init(id: "cameraControl", category: .device, titleKey: "gestalt.preset.cameraControl.title", detailKey: "gestalt.preset.cameraControl.detail", keys: ["CwvKxM2cEogD3p+HYgaW0Q", "oOV1jhJbdV3AddkcCg0AEA"], riskLevel: .low),
         .init(id: "actionButton", category: .device, titleKey: "gestalt.preset.actionButton.title", detailKey: "gestalt.preset.actionButton.detail", keys: ["cT44WE1EohiwRzhsZ8xEsw"], riskLevel: .low),
         .init(id: "collisionSOS", category: .device, titleKey: "gestalt.preset.collisionSOS.title", detailKey: "gestalt.preset.collisionSOS.detail", keys: ["HCzWusHQwZDea6nNhaKndw"], riskLevel: .low),
-        .init(id: "spatialFaceTimeAudio", category: .device, titleKey: "gestalt.preset.spatialFaceTimeAudio.title", detailKey: "gestalt.preset.spatialFaceTimeAudio.detail", keys: ["/EVOCjM/Nmb2roP5ebtEFA"], riskLevel: .low),
+        // Media / camera / health — CacheData boolean slots
+        .init(id: "audioMix", category: .media, titleKey: "gestalt.preset.audioMix.title", detailKey: "gestalt.preset.audioMix.detail", keys: [MGCacheDataLayout.audioMixKey], riskLevel: .low),
+        .init(id: "spatialFaceTimeAudio", category: .media, titleKey: "gestalt.preset.spatialFaceTimeAudio.title", detailKey: "gestalt.preset.spatialFaceTimeAudio.detail", keys: [MGCacheDataLayout.spatialFaceTimeAudioKey], riskLevel: .low),
+        .init(id: "spatialAudioRec", category: .media, titleKey: "gestalt.preset.spatialAudioRec.title", detailKey: "gestalt.preset.spatialAudioRec.detail", keys: [MGCacheDataLayout.spatialAudioRecKey], riskLevel: .low),
+        .init(id: "responsiveShutter", category: .media, titleKey: "gestalt.preset.responsiveShutter.title", detailKey: "gestalt.preset.responsiveShutter.detail", keys: [MGCacheDataLayout.responsiveShutterKey], riskLevel: .low),
+        .init(id: "hypertensionNotif", category: .media, titleKey: "gestalt.preset.hypertensionNotif.title", detailKey: "gestalt.preset.hypertensionNotif.detail", keys: [MGCacheDataLayout.hypertensionNotifKey], riskLevel: .medium),
+        .init(id: "shutterMute", category: .media, titleKey: "gestalt.preset.shutterMute.title", detailKey: "gestalt.preset.shutterMute.detail", keys: [MGCacheDataLayout.shutterRelaxationKey, MGCacheDataLayout.shutterKeyboardMutePreserveKey, MGCacheDataLayout.shutterLegacyMutePreserveKey], riskLevel: .medium),
+        .init(id: "concurrentMics", category: .media, titleKey: "gestalt.preset.concurrentMics.title", detailKey: "gestalt.preset.concurrentMics.detail", keys: [MGCacheDataLayout.concurrentHPLPMicsKey], riskLevel: .low),
+        .init(id: "photoRelight", category: .media, titleKey: "gestalt.preset.photoRelight.title", detailKey: "gestalt.preset.photoRelight.detail", keys: [MGCacheDataLayout.photosLocalLightKey, MGCacheDataLayout.toneMappingKey, MGCacheDataLayout.hdrDeferredProcessingKey], riskLevel: .medium),
+        .init(id: "videoOverCapture", category: .media, titleKey: "gestalt.preset.videoOverCapture.title", detailKey: "gestalt.preset.videoOverCapture.detail", keys: [MGCacheDataLayout.spatialOverCaptureKey, MGCacheDataLayout.stereoAudioRecKey, MGCacheDataLayout.p3VideoRecKey], riskLevel: .medium),
+        .init(id: "cameraControlPanel", category: .media, titleKey: "gestalt.preset.cameraControlPanel.title", detailKey: "gestalt.preset.cameraControlPanel.detail", keys: [MGCacheDataLayout.touchSensitiveCamControlKey, MGCacheDataLayout.hardwareDetentsKey, MGCacheDataLayout.cameraHapticsKey], riskLevel: .medium),
+        .init(id: "legacyBattery", category: .media, titleKey: "gestalt.preset.legacyBattery.title", detailKey: "gestalt.preset.legacyBattery.detail", keys: [MGCacheDataLayout.legacyBatteryInfoKey, MGCacheDataLayout.legacyDynamicEndOfChargeKey], riskLevel: .low),
 
         // iPad
         .init(id: "pencil", category: .ipad, titleKey: "gestalt.preset.pencil.title", detailKey: "gestalt.preset.pencil.detail", keys: ["yhHcB0iH0d1XzPO/CFd3ow"], riskLevel: .low),
@@ -131,6 +147,12 @@ enum GestaltPresets {
         .init(id: "internalBuild", category: .advanced, titleKey: "gestalt.preset.internalBuild.title", detailKey: "gestalt.preset.internalBuild.detail", keys: ["LBJfwOEzExRxzlAnSuI7eg"], riskLevel: .high, requiresRiskConfirmation: true),
         .init(id: "internalSettings", category: .advanced, titleKey: "gestalt.preset.internalSettings.title", detailKey: "gestalt.preset.internalSettings.detail", keys: ["Oji6HRoPi7rH7HPdWVakuw"], riskLevel: .high, requiresRiskConfirmation: true),
         .init(id: "srd", category: .advanced, titleKey: "gestalt.preset.srd.title", detailKey: "gestalt.preset.srd.detail", keys: ["XYlJKKkj2hztRP1NWWnhlw"], riskLevel: .high, requiresRiskConfirmation: true),
+        .init(id: "carPlayUltra", category: .advanced, titleKey: "gestalt.preset.carPlayUltra.title", detailKey: "gestalt.preset.carPlayUltra.detail", keys: [MGCacheDataLayout.carPlay2Key], riskLevel: .medium),
+        .init(id: "touch120", category: .advanced, titleKey: "gestalt.preset.touch120.title", detailKey: "gestalt.preset.touch120.detail", keys: [MGCacheDataLayout.touchDelivery120HzKey], riskLevel: .medium),
+        .init(id: "hearingAid", category: .advanced, titleKey: "gestalt.preset.hearingAid.title", detailKey: "gestalt.preset.hearingAid.detail", keys: [MGCacheDataLayout.hearingAidEQKey, MGCacheDataLayout.hearingAidLEKey, MGCacheDataLayout.hearingAidPowerRedKey], riskLevel: .medium),
+        .init(id: "breathingApnea", category: .advanced, titleKey: "gestalt.preset.breathingApnea.title", detailKey: "gestalt.preset.breathingApnea.detail", keys: [MGCacheDataLayout.breathingDisturbancesKey], riskLevel: .medium),
+        .init(id: "usBloodOxygen", category: .advanced, titleKey: "gestalt.preset.usBloodOxygen.title", detailKey: "gestalt.preset.usBloodOxygen.detail", keys: [MGCacheDataLayout.usBloodOxygenKey], riskLevel: .medium),
+        .init(id: "workoutUltra", category: .advanced, titleKey: "gestalt.preset.workoutUltra.title", detailKey: "gestalt.preset.workoutUltra.detail", keys: [MGCacheDataLayout.workoutUltraKey, MGCacheDataLayout.timeInDaylightKey], riskLevel: .medium),
     ]
 
     static func presets(in category: GestaltPresetCategory) -> [GestaltPreset] {
@@ -139,6 +161,22 @@ enum GestaltPresets {
 
     static func preset(id: String) -> GestaltPreset? {
         all.first { $0.id == id }
+    }
+
+    /// Region-gate bits from CacheData (`green-tea` / `not-green-tea` /
+    /// `wapi`). These have no CacheExtra entry, so the old checkup card could
+    /// only show a hardcoded "ok" line. nil = CacheData unavailable.
+    static func gateSnapshot() -> (
+        greenTea: Bool?, notGreenTea: Bool?, wapi: Bool?
+    ) {
+        guard let root = try? GestaltPlistIO.readRoot(),
+              let context = GestaltCacheDataBridge.context(root: root)
+        else { return (nil, nil, nil) }
+        return (
+            GestaltCacheDataBridge.value(MGCacheDataLayout.greenTeaKey, in: context),
+            GestaltCacheDataBridge.value(MGCacheDataLayout.notGreenTeaKey, in: context),
+            GestaltCacheDataBridge.value(MGCacheDataLayout.wapiKey, in: context)
+        )
     }
 }
 
@@ -175,6 +213,52 @@ extension GestaltPresetError: LocalizedError {
 /// Turning a key "on" that the device never had is refused with
 /// `keyNotInOriginalCache` — the UI surfaces this as "not applicable on this
 /// device" instead of a blind write.
+/// Bridge to the binary `CacheData` slots.
+///
+/// MobileGestalt keeps hardware capability bits outside `CacheExtra`: the
+/// key has no dictionary entry, only a validated 8-byte slot in the root's
+/// `CacheData` blob. Reading `CacheExtra` alone therefore reports every
+/// hardware/AI toggle as "not present" — the exact reason those rows used to
+/// show no state.
+enum GestaltCacheDataBridge {
+    struct Context {
+        let layout: MGCacheDataLayout
+        let data: Data
+    }
+
+    static func context(root: [String: Any]) -> Context? {
+        guard case .success(let pair) =
+            MGCacheDataCoordinator.shared.resolveValidated(for: root as NSDictionary)
+        else { return nil }
+        return Context(layout: pair.0, data: pair.1)
+    }
+
+    static func hasSlot(_ key: String, in context: Context?) -> Bool {
+        guard let context else { return false }
+        return context.layout.slotIndex(forKey: key) != nil
+    }
+
+    static func value(_ key: String, in context: Context?) -> Bool? {
+        guard let context,
+              let index = context.layout.slotIndex(forKey: key),
+              index >= 0,
+              context.layout.validateSingleBooleanSlot(index, in: context.data)
+        else { return nil }
+        return context.data[index * 8] == 1
+    }
+
+    @discardableResult
+    static func setValue(
+        _ value: Bool, for key: String, in context: Context, data: inout Data
+    ) -> Bool {
+        guard let index = context.layout.slotIndex(forKey: key),
+              index >= 0,
+              index * 8 < data.count else { return false }
+        data[index * 8] = value ? 1 : 0
+        return true
+    }
+}
+
 enum GestaltPresetEngine {
 
     /// Single-read batch evaluation (one plist read for ALL presets instead
@@ -182,38 +266,58 @@ enum GestaltPresetEngine {
     static func evaluateAll(
         _ presets: [GestaltPreset]
     ) -> (states: [String: Bool], applicability: [String: Bool]) {
-        let cacheExtra = (try? readCacheExtra()) ?? [:]
+        let root = (try? GestaltPlistIO.readRoot()) ?? [:]
+        let cacheExtra = root["CacheExtra"] as? [String: Any] ?? [:]
+        let cacheData = GestaltCacheDataBridge.context(root: root)
         var states: [String: Bool] = [:]
         var applicability: [String: Bool] = [:]
         for preset in presets {
-            applicability[preset.id] = preset.keys.allSatisfy { cacheExtra[$0] != nil }
-            states[preset.id] = currentState(preset, cacheExtra: cacheExtra)
+            applicability[preset.id] = preset.keys.allSatisfy {
+                cacheExtra[$0] != nil || GestaltCacheDataBridge.hasSlot($0, in: cacheData)
+            }
+            states[preset.id] = currentState(
+                preset, cacheExtra: cacheExtra, cacheData: cacheData
+            )
         }
         return (states, applicability)
     }
 
     static func currentState(for preset: GestaltPreset) throws -> Bool {
-        let cacheExtra = try readCacheExtra()
-        return currentState(preset, cacheExtra: cacheExtra)
+        let root = try GestaltPlistIO.readRoot()
+        let cacheExtra = root["CacheExtra"] as? [String: Any] ?? [:]
+        return currentState(
+            preset,
+            cacheExtra: cacheExtra,
+            cacheData: GestaltCacheDataBridge.context(root: root)
+        )
     }
 
     private static func currentState(
-        _ preset: GestaltPreset, cacheExtra: [String: Any]
+        _ preset: GestaltPreset,
+        cacheExtra: [String: Any],
+        cacheData: GestaltCacheDataBridge.Context?
     ) -> Bool {
-        guard let firstKey = preset.keys.first, let current = cacheExtra[firstKey] else {
-            return false
+        guard let firstKey = preset.keys.first else { return false }
+        if let current = cacheExtra[firstKey] {
+            if let custom = preset.values, let desired = custom[firstKey] {
+                return isEqual(current, desired)
+            }
+            return (current as? NSNumber)?.boolValue == true
         }
-        if let custom = preset.values, let desired = custom[firstKey] {
-            return isEqual(current, desired)
-        }
-        return (current as? NSNumber)?.boolValue == true
+        // Hardware capability slots: the key is absent from CacheExtra and
+        // lives only in CacheData.
+        return GestaltCacheDataBridge.value(firstKey, in: cacheData) ?? false
     }
 
-    /// True when every key of the preset already exists in CacheExtra (i.e.
-    /// the preset is applicable on this device).
+    /// True when every key of the preset is readable on this device — either
+    /// as a CacheExtra entry or as a validated CacheData slot.
     static func isApplicable(_ preset: GestaltPreset) -> Bool {
-        guard let cacheExtra = try? readCacheExtra() else { return false }
-        return preset.keys.allSatisfy { cacheExtra[$0] != nil }
+        guard let root = try? GestaltPlistIO.readRoot() else { return false }
+        let cacheExtra = root["CacheExtra"] as? [String: Any] ?? [:]
+        let cacheData = GestaltCacheDataBridge.context(root: root)
+        return preset.keys.allSatisfy {
+            cacheExtra[$0] != nil || GestaltCacheDataBridge.hasSlot($0, in: cacheData)
+        }
     }
 
     /// Apply and report the resulting on/off state computed from the same
@@ -263,14 +367,41 @@ enum GestaltPresetEngine {
                 throw GestaltPresetError.missingCacheExtra
             }
 
+            let cacheDataContext = GestaltCacheDataBridge.context(root: root)
+            var cacheData = cacheDataContext?.data
+            var cacheDataChanged = false
+
             let keys = GestaltEditPolicy.keysToApply(
                 presetKeys: preset.keys,
                 explicitEdits: GestaltExplicitEdits.keys()
             )
             for key in keys {
-                // Anti-bounce guard: the key must already exist on this device.
-                guard cacheExtra[key] != nil else {
+                // Anti-bounce guard: the key must already exist on this
+                // device — as a CacheExtra entry OR a validated CacheData
+                // slot. Hardware/AI bits live only in the latter.
+                let inCacheExtra = cacheExtra[key] != nil
+                let hasSlot = GestaltCacheDataBridge.hasSlot(key, in: cacheDataContext)
+                guard inCacheExtra || hasSlot else {
                     throw GestaltPresetError.keyNotInOriginalCache(key: key)
+                }
+                if hasSlot && !inCacheExtra {
+                    guard let context = cacheDataContext, var data = cacheData else {
+                        throw GestaltPresetError.keyNotInOriginalCache(key: key)
+                    }
+                    // Same factory-baseline rule as CacheExtra: a slot that
+                    // ships false must not be force-enabled.
+                    if enabled, preset.factoryBaselineProtected,
+                       GestaltCacheDataBridge.value(key, in: context) == false {
+                        throw GestaltPresetError.factoryBaselineProtected(key: key)
+                    }
+                    guard GestaltCacheDataBridge.setValue(
+                        enabled, for: key, in: context, data: &data
+                    ) else {
+                        throw GestaltPresetError.keyNotInOriginalCache(key: key)
+                    }
+                    cacheData = data
+                    cacheDataChanged = true
+                    continue
                 }
                 if enabled {
                     // Erosion-CN v0.8.5: slots that ship FALSE at the factory
@@ -328,6 +459,17 @@ enum GestaltPresetEngine {
                 return
             }
             root["CacheExtra"] = cacheExtra
+            if cacheDataChanged {
+                guard let context = cacheDataContext, let data = cacheData else {
+                    throw GestaltPresetError.unsupportedValueType(key: "CacheData")
+                }
+                root["CacheData"] = data
+                // Re-validate the whole blob against the running library
+                // before writing: a bad slot byte must never reach disk.
+                if case .failure = context.layout.validatePlist(root as NSDictionary) {
+                    throw GestaltPresetError.unsupportedValueType(key: "CacheData")
+                }
+            }
             try GestaltPlistIO.writeRoot(root, reason: "preset:\(preset.id)")
         }
         ActivityHistory.log(

@@ -53,7 +53,7 @@
 
 ## 本地化
 
-- 四语键集必须完全一致：`zh-Hans` / `en` / `vi` / `ko`，共 1539 键（3.2.9）。
+- 四语键集必须完全一致：`zh-Hans` / `en` / `vi` / `ko`，共 1578 键（3.2.10）。
 - 带格式符的键（`%@` / `%lld` / `%d` / `%ld` / `%llX`）在四语中**序列必须一致** —— `String(format:)` 按出现顺序消费参数。
 - 新增语言需改四处：`AppLanguage` 的 case 与 `displayName` switch、`project.pbxproj` 的 `knownRegions`、`PBXVariantGroup` 的 children（含 `PBXFileReference`）。
 - `localizedBundle` 在找不到 lproj 时**静默回退 `.main`**，漏注册的后果是「选项能选中、界面全是英文」，不会报错。构建后用 `ls <app>/*.lproj` 核对。

@@ -80,4 +80,16 @@ grep -q 'handle == -5, repairAccessCacheIfNeeded()' "$SRC/helpers/SandboxAccess.
 grep -q 'invalidateProbeCache' "$SRC/helpers/SandboxAccess.swift" \
   || fail "probe cache invalidation missing (T-011 regression)"
 
+# T-012: hardware/AI toggles must read CacheData slots, not CacheExtra.
+test -f "$SRC/helpers/MGCacheLayout.swift" || fail "MGCacheLayout.swift missing (T-012 regression)"
+test -f "$SRC/kexploit/MGImageReader.m" || fail "MGImageReader.m missing (T-012 regression)"
+grep -q 'enum GestaltCacheDataBridge' "$SRC/helpers/GestaltPresets.swift" \
+  || fail "CacheData bridge missing (T-012 regression)"
+grep -q 'MGCacheDataCoordinator.shared.resolveValidated' "$SRC/helpers/GestaltPresets.swift" \
+  || fail "preset state no longer resolves CacheData (T-012 regression)"
+grep -q 'MGImageReader.m in Sources' "$ROOT/ThreeOneOSSix.xcodeproj/project.pbxproj" \
+  || fail "MGImageReader.m not in the build (T-012 regression)"
+grep -q 'MGCacheLayout.swift in Sources' "$ROOT/ThreeOneOSSix.xcodeproj/project.pbxproj" \
+  || fail "MGCacheLayout.swift not in the build (T-012 regression)"
+
 echo "PASS: sandbox static guardrails"

@@ -2,6 +2,19 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.2.10] - 2026-11-20
+
+### Fixed
+
+- **CacheData 状态检测**：MobileGestalt 的硬件与 AI 能力位不在 `CacheExtra`，而在根字典的 `CacheData` 二进制槽位。此前预设页只读 `CacheExtra`，音频、快门、健康等开关全部显示“未检测到 / 不适用”。现在移植运行中 dylib 的布局解析与 `CacheData` 校验，按槽位读取真实状态；写入也改为改槽位字节，不再向 `CacheExtra` 注入不存在的键。
+- **体检卡国行门控**：`green-tea` 改为从 `CacheData` 读取，不再写死“ok”。
+
+### Added
+
+- 影像与健康分组：Audio Mix、FaceTime 空间音频、空间音频录制、Responsive Shutter、高血压趋势。
+- 实验性开关：快门静音、双麦并发、局部光影、超取景/P3、相机控制、旧机型电池、CarPlay Ultra、120Hz 触控、助听器、呼吸暂停、美版血氧、户外极限。
+- 四语键集增至 1578。
+
 ## [3.2.9] - 2026-11-20
 
 ### Fixed
