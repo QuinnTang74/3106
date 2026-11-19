@@ -369,9 +369,11 @@ struct GestaltCardsView: View {
                 || GestaltRegionService.siriIPadModels.contains { $0.id == machine }
             let gate = GestaltPresets.gateSnapshot()
             let gateOK = gate.greenTea == false
-            let regionMatch = snapshot.map {
-                $0.country == "LL" && $0.region == "LL/A"
-            } ?? false
+            // "Region code only" mode keeps the factory sales suffix (CH/A)
+            // while RegionCode becomes LL. The AI gate keys off the country
+            // code, so that mode counts as effective too — requiring LL/A
+            // made a correctly applied code-only unlock show "pending".
+            let regionMatch = snapshot.map { $0.country == "LL" } ?? false
             let regulatoryMatch = snapshot.map { snap in
                 GestaltRegionService.siriNativeModels.contains { $0.regulatory == snap.regulatory }
             } ?? false

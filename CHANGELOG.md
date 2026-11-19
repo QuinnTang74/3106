@@ -2,35 +2,6 @@
 
 All notable user-facing changes are documented in this file.
 
-## [3.2.10] - 2026-11-20
-
-### Fixed
-
-- **CacheData 状态检测**：MobileGestalt 的硬件与 AI 能力位不在 `CacheExtra`，而在根字典的 `CacheData` 二进制槽位。此前预设页只读 `CacheExtra`，音频、快门、健康等开关全部显示“未检测到 / 不适用”。现在移植运行中 dylib 的布局解析与 `CacheData` 校验，按槽位读取真实状态；写入也改为改槽位字节，不再向 `CacheExtra` 注入不存在的键。
-- **体检卡国行门控**：`green-tea` 改为从 `CacheData` 读取，不再写死“ok”。
-
-### Added
-
-- 影像与健康分组：Audio Mix、FaceTime 空间音频、空间音频录制、Responsive Shutter、高血压趋势。
-- 实验性开关：快门静音、双麦并发、局部光影、超取景/P3、相机控制、旧机型电池、CarPlay Ultra、120Hz 触控、助听器、呼吸暂停、美版血氧、户外极限。
-- 四语键集增至 1578。
-
-## [3.2.9] - 2026-11-20
-
-### Fixed
-
-- **地区读取优先级**：`RegionInfoFromSysconfig`（`yK+xavym…`）才是系统读取的键；`RegionInfo`（`zHeENZu…`）在 iOS 27 上是非缓存键，旧工具注入后可能与实际值不一致。此前优先读非缓存键，会把已经改好的 `LL/A` 显示成旧值（或看起来“没生效”）。现在 sysconfig 优先，地区页同时列出两键、当前修改模式（完整美版 / 仅区域代码 / 未切换），并在两键不一致时给出醒目提示。
-
-### Added
-
-- **伪监管残留体检**：识别只含 `IsSupervised` / `OrganizationName`、没有 MDM 证书链的 `CloudConfigurationDetails.plist`；可先备份再单独清除，真实 MDM 配置不会被改动。
-- **资产铭牌 `AssetTagInformation`**：与锁屏文字同页，支持读取、写入与清除，写入走原有校验/备份管线。
-- 四语键集增至 1539。
-
-### Changed
-
-- 地区快照新增 `RegionInfoFromSysconfig` / 非缓存 `RegionInfo` 两行与“修改模式”行；旧的“销售区域”一行仍显示系统实际生效值。
-
 ## [3.2.8] - 2026-11-20
 
 ### Fixed
@@ -38,10 +9,22 @@ All notable user-facing changes are documented in this file.
 - **worse_query 访问缓存死锁（iOS 26.7+/27.x）**：App Group 的 `Library/Caches` 一旦被上一次中断的交换、旧版本或同组其它程序留下的软链占住，恢复逻辑会一直拒绝，交换无法开始，所有授权返回 -4（日志 `tried=[]`），文件浏览器全部显示未识别、清理器只统计到自身。现在恢复失败会先做一次“挪开障碍物”的修复（删软链、非目录/无法恢复的 preserved 改名到 `.wq-caches-reset-<id>`、重建普通 `Caches`，**不删除数据**），修复后继续交换；授权失败码改为 -5，Swift 层按 60 秒节流自动修复并重试一次。新增「设置 → 沙箱诊断 → 重置访问缓存」手动入口，幂等，修复后立即重跑探测。
 - **启动日志补充芯片家族**：`app: 3106 … cpu=0x…`，便于区分 A10 与其它芯片的启动路径。
 - **A10 家族常量写错**：`DeviceCPU.a10Family` 原为 `0x2C91A47E`（A8 Typhoon），正确值是 `0x67CEEE93`（A10 Hurricane）。错误值让「A10 + iOS 17 拒绝内核链」守卫对真 A10 设备完全失效。现已修正，并在 C 侧 `offsets_init()` 增加同条件的第二道拒绝；测试不再用常量自证，而是分别断言 Hurricane 与 Typhoon。
+- **地区读取优先级**：`RegionInfoFromSysconfig`（`yK+xavym…`）才是系统读取的键；`RegionInfo`（`zHeENZu…`）在 iOS 27 上是非缓存键，旧工具注入后可能与实际值不一致。此前优先读非缓存键，会把已经改好的 `LL/A` 显示成旧值（或看起来“没生效”）。现在 sysconfig 优先，地区页同时列出两键、当前修改模式（完整美版 / 仅区域代码 / 未切换），并在两键不一致时给出醒目提示。
+- **地区生效判定**：仅改区域代码 `LL`（保留 `CH/A` 后缀）现在也算真机生效，不再因为销售后缀不是 `LL/A` 而显示“待应用生效”。
+- **CacheData 状态检测**：MobileGestalt 的硬件与 AI 能力位不在 `CacheExtra`，而在根字典的 `CacheData` 二进制槽位。此前预设页只读 `CacheExtra`，音频、快门、健康等开关全部显示“未检测到 / 不适用”。现在移植运行中 dylib 的布局解析与 `CacheData` 校验，按槽位读取真实状态；写入也改为改槽位字节，不再向 `CacheExtra` 注入不存在的键。
+- **体检卡国行门控**：`green-tea` 改为从 `CacheData` 读取，不再写死“ok”。
+
+### Added
+
+- **伪监管残留体检**：识别只含 `IsSupervised` / `OrganizationName`、没有 MDM 证书链的 `CloudConfigurationDetails.plist`；可先备份再单独清除，真实 MDM 配置不会被改动。
+- **资产铭牌 `AssetTagInformation`**：与锁屏文字同页，支持读取、写入与清除，写入走原有校验/备份管线。
+- **影像与健康分组**：Audio Mix、FaceTime 空间音频、空间音频录制、Responsive Shutter、高血压趋势。
+- **实验性开关**：快门静音、双麦并发、局部光影、超取景/P3、相机控制、旧机型电池、CarPlay Ultra、120Hz 触控、助听器、呼吸暂停、美版血氧、户外极限。
+- 四语键集增至 1578。
 
 ### Changed
 
-- 四语键集增至 1513（新增 5 个 `sandbox.diag.reset_*` 键）。
+- 地区快照新增 `RegionInfoFromSysconfig` / 非缓存 `RegionInfo` 两行与“修改模式”行；旧的“销售区域”一行仍显示系统实际生效值。
 
 ## [3.2.7] - 2026-11-19
 
