@@ -66,13 +66,17 @@ struct SettingsView: View {
                 }
 
                 Section(language.text("settings.language")) {
+                    // Inline, not segmented: with four languages the segmented
+                    // control truncates "Tiếng Việt" to "Tiếng…" on a narrow
+                    // device. Inline renders one row per language under the
+                    // section header, which is also the platform idiom for a
+                    // list this long.
                     Picker(language.text("settings.language"), selection: $languageCode) {
                         ForEach(AppLanguage.allCases) { option in
                             Text(option.displayName).tag(option.rawValue)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+                    .pickerStyle(.inline)
                 }
 
                 Section {

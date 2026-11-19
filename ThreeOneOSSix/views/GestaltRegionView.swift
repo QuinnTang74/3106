@@ -11,6 +11,9 @@ struct GestaltRegionView: View {
     @State private var isBusy = false
     @State private var showNativeConfirmation = false
     @State private var showExperimentalConfirmation = false
+    @State private var showRegionSwitchConfirmation = false
+    @State private var pendingRegion: RegionTarget?
+    @State private var selectedRegionCode: String = "LL"
     @State private var activeAlert: RegionAlert?
     @State private var hasLoaded = false
     // Observable via SwiftUI: a plain UserDefaults read inside body would
@@ -31,6 +34,7 @@ struct GestaltRegionView: View {
         List {
             BackendNoticeBanner(unavailableKey: "backend.notice.region")
             snapshotSection
+            switchRegionSection
             nativeSection
             experimentalSection
         }
@@ -60,7 +64,67 @@ struct GestaltRegionView: View {
                 applyExperimental()
             }
         }
+        .sheet(isPresented: $showRegionSwitchConfirmation) {
+            RiskConfirmationView(
+                titleKey: "gestalt.region.switch_confirm_title",
+                riskKey: "risk.gestalt.regionSwitch",
+                confirmActionKey: "gestalt.region.switch_apply",
+                // Declared before the trailing closure: the initializer lists
+                // `onCancel` ahead of `onConfirm`, so multiple trailing
+                // closures would bind in the wrong order.
+                onCancel: { pendingRegion = nil }
+            ) {
+                applySelectedRegion()
+            }
+        }
         .alert(item: $activeAlert, content: alertContent)
+    }
+
+    /// Only offered when the snapshot loaded — without it there is no
+    /// current-region value to seed the picker with, and an unseeded picker
+    /// would show a region the device does not actually have.
+    @ViewBuilder
+    private var switchRegionSection: some View {
+        if let snapshot {
+            Section {
+                Picker(language.text("gestalt.region.switch_header"), selection: $selectedRegionCode) {
+                    ForEach(RegionTargets.all) { target in
+                        Text(target.displayName).tag(target.code)
+                    }
+                    // The device may sit on a region outside this list; keep it
+                    // selectable so the picker never lies about the current value.
+                    if RegionTargets.target(forRegionText: snapshot.region) == nil {
+                        Text(language.text("gestalt.region.switch_unknown"))
+                            .tag(RegionTargets.target(forRegionText: snapshot.region)?.code ?? snapshot.region)
+                    }
+                }
+                .disabled(isBusy)
+                Button {
+                    guard let target = selectedTarget else { return }
+                    pendingRegion = target
+                    showRegionSwitchConfirmation = true
+                } label: {
+                    Label(language.text("gestalt.region.switch_apply"), systemImage: "globe.asia.australia")
+                }
+                // Applying the region the device already has changes nothing
+                // but still rewrites the cache and forces a restart. A region
+                // outside the list has no target to write, so it is disabled
+                // too rather than failing after the confirmation.
+                .disabled(isBusy || selectedTarget == nil || selectedTarget?.code == currentRegionCode)
+            } header: {
+                Label(language.text("gestalt.region.switch_header"), systemImage: "globe")
+            } footer: {
+                Text(language.text("gestalt.region.switch_footer"))
+            }
+            .onAppear {
+                // Seed once; afterwards the user's own selection must not be
+                // reset by a reload.
+                if shouldSeedSelection,
+                   let target = RegionTargets.target(forRegionText: snapshot.region) {
+                    selectedRegionCode = target.code
+                }
+            }
+        }
     }
 
     // MARK: - Sections
@@ -163,6 +227,53 @@ struct GestaltRegionView: View {
             DispatchQueue.main.async {
                 snapshot = loaded
                 isBusy = false
+            }
+        }
+    }
+
+    /// Seeds the picker from the live snapshot without clobbering a selection
+    /// the user already made. `selectedRegionCode` starts as `"LL"`, so the
+    /// seed only fires while the picker still holds that default and the
+    /// device reports a different, known region.
+    private var shouldSeedSelection: Bool {
+        guard let snapshot,
+              selectedRegionCode == "LL",
+              let current = RegionTargets.target(forRegionText: snapshot.region) else { return false }
+        return current.code != "LL"
+    }
+
+    /// Region text as stored on the device, e.g. `CH/A`.
+    private var currentRegionCode: String? {
+        guard let snapshot else { return nil }
+        return RegionTargets.target(forRegionText: snapshot.region)?.code
+    }
+
+    /// The picker's selection resolved back to a target. Nil when the device
+    /// sits on a region outside `RegionTargets.all`.
+    private var selectedTarget: RegionTarget? {
+        RegionTargets.all.first { $0.code == selectedRegionCode }
+    }
+
+    /// Applies the pending region through the risk-confirmed path.
+    private func applySelectedRegion() {
+        guard let target = pendingRegion else { return }
+        pendingRegion = nil
+        isBusy = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                try GestaltRegionService.applyRegion(target: target)
+                let loaded = try? GestaltRegionService.snapshot()
+                DispatchQueue.main.async {
+                    snapshot = loaded
+                    isBusy = false
+                    SoundEffects.play(.success)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    isBusy = false
+                    SoundEffects.play(.failure)
+                    activeAlert = .message(language.errorText(error))
+                }
             }
         }
     }

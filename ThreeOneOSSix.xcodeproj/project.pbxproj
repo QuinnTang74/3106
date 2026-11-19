@@ -40,6 +40,21 @@
 		3105A239 /* FileManagerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A111; };
 		3105A240 /* FileBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A112; };
 		3105A241 /* SupportPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105A113; };
+		3105D240 /* LanguageResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D140; };
+		3105D241 /* OnboardingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D141; };
+		3105D242 /* SQLiteSidecarPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D142; };
+		3105D243 /* PlistDatePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D143; };
+		3105D244 /* PermissionPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D144; };
+		3105D245 /* DeviceCPU.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D145; };
+		3105D246 /* JailbreakDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D146; };
+		3105D247 /* RegionKeyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D147; };
+		3105D248 /* RegionTargets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D148; };
+		3105D249 /* WiFiSharePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D149; };
+		3105D24A /* WiFiShareServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D14A; };
+		3105D24B /* WiFiShareConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D14B; };
+		3105D24C /* WiFiShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D14C; };
+		3105D24D /* UnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D14D; };
+		3105D24E /* UnlockBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105D14E; };
 		3106Q101 /* LaunchServicesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3106Q100; };
 		3105B214 /* PatchProjectModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105B114; };
 		3105B215 /* PatchPackageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105B115; };
@@ -217,6 +232,21 @@
 		3105A111 /* FileManagerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManagerService.swift; sourceTree = "<group>"; };
 		3105A112 /* FileBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileBrowserView.swift; sourceTree = "<group>"; };
 		3105A113 /* SupportPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportPolicy.swift; sourceTree = "<group>"; };
+		3105D140 /* LanguageResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageResolver.swift; sourceTree = "<group>"; };
+		3105D141 /* OnboardingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStore.swift; sourceTree = "<group>"; };
+		3105D142 /* SQLiteSidecarPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteSidecarPolicy.swift; sourceTree = "<group>"; };
+		3105D143 /* PlistDatePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlistDatePolicy.swift; sourceTree = "<group>"; };
+		3105D144 /* PermissionPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionPolicy.swift; sourceTree = "<group>"; };
+		3105D145 /* DeviceCPU.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCPU.swift; sourceTree = "<group>"; };
+		3105D146 /* JailbreakDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JailbreakDetector.swift; sourceTree = "<group>"; };
+		3105D147 /* RegionKeyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionKeyPolicy.swift; sourceTree = "<group>"; };
+		3105D148 /* RegionTargets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionTargets.swift; sourceTree = "<group>"; };
+		3105D149 /* WiFiSharePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiSharePolicy.swift; sourceTree = "<group>"; };
+		3105D14A /* WiFiShareServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiShareServer.swift; sourceTree = "<group>"; };
+		3105D14B /* WiFiShareConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiShareConnection.swift; sourceTree = "<group>"; };
+		3105D14C /* WiFiShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiShareView.swift; sourceTree = "<group>"; };
+		3105D14D /* UnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockView.swift; sourceTree = "<group>"; };
+		3105D14E /* UnlockBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockBanner.swift; sourceTree = "<group>"; };
 		3106Q100 /* LaunchServicesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesStore.swift; sourceTree = "<group>"; };
 		3105B114 /* PatchProjectModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatchProjectModels.swift; sourceTree = "<group>"; };
 		3105B115 /* PatchPackageCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatchPackageCodec.swift; sourceTree = "<group>"; };
@@ -294,6 +324,7 @@
 		3105A121 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3105A122 /* vi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = vi; path = vi.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3105B123 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+			3105C124 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3106B100 /* BackupCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenter.swift; sourceTree = "<group>"; };
 		3106B101 /* BackupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenterView.swift; sourceTree = "<group>"; };
 		3106H101 /* FeatureHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureHubView.swift; sourceTree = "<group>"; };
@@ -453,6 +484,9 @@
 				3106T314 /* MigrationResumeView.swift */,
 				3106T315 /* MigrationConfigBackupView.swift */,
 				3106N101 /* NotificationSoundView.swift */,
+				3105D14C /* WiFiShareView.swift */,
+				3105D14D /* UnlockView.swift */,
+				3105D14E /* UnlockBanner.swift */,
 			);
 			path = views;
 			sourceTree = "<group>";
@@ -475,6 +509,18 @@
 				3105L101 /* PackageRepositoryStore.swift */,
 				3105L105 /* RepositoryPresentationSupport.swift */,
 				3105A113 /* SupportPolicy.swift */,
+				3105D140 /* LanguageResolver.swift */,
+				3105D141 /* OnboardingStore.swift */,
+				3105D142 /* SQLiteSidecarPolicy.swift */,
+				3105D143 /* PlistDatePolicy.swift */,
+				3105D144 /* PermissionPolicy.swift */,
+				3105D145 /* DeviceCPU.swift */,
+				3105D146 /* JailbreakDetector.swift */,
+				3105D147 /* RegionKeyPolicy.swift */,
+				3105D148 /* RegionTargets.swift */,
+				3105D149 /* WiFiSharePolicy.swift */,
+				3105D14A /* WiFiShareServer.swift */,
+				3105D14B /* WiFiShareConnection.swift */,
 				3106W033 /* SandboxAccess.swift */,
 				3106W903 /* SandboxDiagnostics.swift */,
 				3106W907 /* GrantRetry.swift */,
@@ -618,6 +664,7 @@
 				en,
 				vi,
 				"zh-Hans",
+				ko,
 				Base,
 			);
 			mainGroup = 3105A400;
@@ -789,6 +836,21 @@
 				3106G208,
 				3106G207,
 				3106G205,
+				3105D240,
+				3105D241,
+				3105D242,
+				3105D243,
+				3105D244,
+				3105D245,
+				3105D246,
+				3105D247,
+				3105D248,
+				3105D249,
+				3105D24A,
+				3105D24B,
+				3105D24C,
+				3105D24D,
+				3105D24E,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -801,6 +863,7 @@
 				3105A121 /* en */,
 				3105A122 /* vi */,
 				3105B123 /* zh-Hans */,
+				3105C124 /* ko */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -815,7 +878,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = "ThreeOneOSSix/ThreeOneOSSix.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -831,7 +894,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.2.6;
+				MARKETING_VERSION = 3.2.7;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.qingtang.3106;
 				PRODUCT_NAME = 3106;
@@ -849,7 +912,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = "ThreeOneOSSix/ThreeOneOSSix.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -865,7 +928,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.2.6;
+				MARKETING_VERSION = 3.2.7;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.qingtang.3106;
 				PRODUCT_NAME = 3106;

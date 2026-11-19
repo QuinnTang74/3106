@@ -27,24 +27,10 @@
 "attribution.open" = "Open link";
 "attribution.share" = "Share link";
 
-"onboarding.step" = "Step %@ of %@";
-"onboarding.language_title" = "Choose your language";
-"onboarding.language_subtitle" = "You can change this later in Settings.";
-"onboarding.language_hint" = "Selected: %@";
-"onboarding.welcome_title" = "Welcome to 3106";
-"onboarding.welcome_message" = "3106";
-"onboarding.welcome_badge" = "Official 3106 identity";
 "onboarding.versions_title" = "Supported iOS versions";
 "onboarding.versions_subtitle" = "3106 is verified on the ranges below. Unsupported builds are blocked.";
 "onboarding.versions_footer" = "This device: iOS %@ (%@)";
-"onboarding.beta" = "Beta";
-"onboarding.developer_beta" = "Developer Beta %@";
-"onboarding.public_beta" = "Public Beta %@";
-"onboarding.install_title" = "Certificate requirements";
 "onboarding.install_message" = "3106 uses worse_query on iOS 26.7+ and 27.x. That needs an App Group entitlement: sign with AltStore, SideStore or Sideloadly (a free Apple ID works), or an explicit App ID with App Groups.";
-"onboarding.install_ok" = "Works with enterprise certificates, including eSign and similar enterprise installs.";
-"onboarding.install_bad" = "Does not work with SideStore, AltStore, 3uTools or LiveContainer.";
-"onboarding.install_jailbreak" = "On iOS 17 through iOS 18.7.1, 3106 will not work if the device is jailbroken.";
 "onboarding.install_footer" = "Use a supported certificate on a non-jailbroken device before continuing.";
 
 "dashboard.exploit_access" = "Exploit access";
@@ -60,14 +46,11 @@
 "dashboard.device_name" = "Device name";
 "dashboard.hardware_model" = "Hardware model";
 "dashboard.access_footer" = "Access is reported as successful only after the system file opens for reading and writing.";
-"dashboard.unsupported_footer" = "iOS %@ (%@) is outside the verified range. Supported: iOS 17.0–17.7.x, iOS 18.0–18.7.1, iOS 26.0–26.6.1, iOS 27.0 Developer Beta 1–4 and Public Beta 1–2.";
 "dashboard.app_browser" = "App Data Browser";
 "dashboard.browser" = "File Browser";
 "dashboard.open_browser" = "Open File Browser";
 "dashboard.browser_footer" = "Browse and read data from every app and system container on this device.";
 "dashboard.device_actions_warning" = "Save pending changes before restarting the device.";
-"dashboard.unsupported_device" = "Unsupported Device";
-"dashboard.unsupported_message" = "iOS %@ is not yet supported.\n\nCurrently supported:\n• iOS 17.0–17.7.x\n• iOS 18.0–18.7.1\n• iOS 26.0–26.6.1\n• iOS 27.0 Developer Beta 1–4\n• iOS 27.0 Public Beta 1–2";
 "dashboard.installation" = "Installation";
 "dashboard.kernel_status" = "Kernel status";
 "dashboard.kernel_running" = "Activating…";
@@ -250,6 +233,8 @@
 "status.not_attempted" = "Not attempted";
 "status.ok_via" = "OK via %@";
 "status.failed_via" = "FAILED %@ (%lld)";
+"status.unsupported_a10_ios17" = "Not supported: on A10 chips (iPhone 7, iPad 6/7) the kernel chain hangs and reboots the device on iOS 17, so it is not enabled here. The OS version itself is supported — this is not a request to update; this particular chip cannot gain container access on iOS 17. The same device on iOS 18 or later is not affected.";
+"{{SECRET_hisgwbph}}" = "Not supported: a jailbroken environment was detected. Tweaks can patch the sandbox on their own, so the kernel chain's success or failure cannot be attributed to 3106 — it is not run here. Use a non-jailbroken device.";
 "status.unsupported_reason" = "Unsupported: %@";
 "status.unsupported_ios18_patched" = "Unsupported: Apple patched the kernel bug (CVE-2025-43520) that 3106 relies on for iOS 17/18 in iOS 18.7.2, so 18.7.2 and later cannot reach app containers. Options: keep the device on iOS 18.7.1 or lower, use an iOS 26+ device (no kernel exploit needed), or use a root-filesystem file manager on a jailbroken device.";
 "status.unsupported_ios27_build" = "Unsupported: Apple patched the sandbox escape for iOS 27.3; only verified builds work (%@). Do not update to a newer 27.3 build.";
@@ -770,6 +755,8 @@
 "home.card.wallpapers_detail" = "Install .tendies wallpapers";
 "home.card.backups" = "Backup Center";
 "home.card.backups_detail" = "Originals, automatic backups and restore";
+"home.card.wifishare" = "Wi-Fi Transfer";
+"home.card.wifishare_detail" = "Send and receive files over the local network from any browser";
 "home.card.logs" = "Runtime Log";
 "home.card.logs_detail" = "Inspect actions and errors";
 "home.card.settings" = "Settings";
@@ -921,6 +908,14 @@
 "fileinfo.owner" = "Owner";
 "fileinfo.group" = "Group";
 "fileinfo.symlink" = "Symbolic link";
+"fileinfo.section.permissions" = "Permissions";
+"fileinfo.permissions.footer" = "Changing permissions can stop an app from reading or writing its own container. Make sure you know what this file is for.";
+"fileinfo.permissions.read_only" = "Currently read-only: no write bit is set for anyone.";
+"fileinfo.permissions.symlink" = "This is a symbolic link. Permissions apply to its target, so they cannot be edited here.";
+"fileinfo.permissions.presets" = "Permission presets";
+"fileinfo.permissions.applied_title" = "Permissions updated";
+"fileinfo.permissions.applied_message" = "Current mode: %@. A backup version was recorded first, so this can be rolled back from the backup list.";
+"fileinfo.permissions.failed_title" = "Permission change failed";
 "fileinfo.type.folder" = "Folder";
 "fileinfo.type.file" = "File";
 "cleaner.crash.section" = "Crash Logs";
@@ -994,6 +989,16 @@
 "gestalt.region.title" = "Region & Siri AI";
 "gestalt.region.snapshot_header" = "Current region";
 "gestalt.region.snapshot_footer" = "Shows only keys that exist on this device. Writes touch existing keys only, preventing an iOS 27 cache rebuild.";
+"gestalt.region.switch_header" = "Switch region";
+"gestalt.region.switch_footer" = "Changes the country code and sales region only, not the regulatory model number — that value is the device's type-approval filing, and editing it belongs to the Siri AI flow. Requires a restart.";
+"gestalt.region.switch_current" = "Current region";
+"gestalt.region.switch_apply" = "Apply region";
+"gestalt.region.switch_confirm_title" = "Switch region";
+"gestalt.region.switch_other" = "Other";
+"gestalt.region.switch_unknown" = "Not in list";
+"risk.gestalt.regionSwitch.consequence" = "Rewrites the country code and sales region in the MobileGestalt cache to the chosen region, taking a backup snapshot first. Needs a restart to apply.";
+"risk.gestalt.regionSwitch.worst_case" = "After restarting, region-dependent store content, Siri language and some system features may change. The regulatory model number is left untouched, so the type-approval filing is not affected.";
+"risk.gestalt.regionSwitch.recovery" = "Restore the pre-write snapshot from the backup list and restart to return to the original region.";
 "gestalt.region.machine" = "Machine";
 "gestalt.region.country" = "Country code";
 "gestalt.region.sales" = "Sales region";
@@ -1155,7 +1160,6 @@
 "settings.experimental" = "Experimental features";
 "settings.experimental_header" = "Experimental features";
 "settings.experimental_footer" = "Shows high-risk experimental flows (e.g. Siri AI experimental mode). These flows are not fully verified on hardware; the worst case may require a device restore.";
-"gestalt.presets.factory_protected" = "This capability ships OFF at the factory (Erosion-CN v0.8.5, device-verified): force-enabling it breaks the generative-model pipeline check and photos' high-quality Clean Up errors out. Locked.";
 "gestalt.region.error.factory_baseline" = "The AI capability flag ships OFF at the factory; the write is refused under the factory-baseline rule (photos high-quality Clean Up would break).";
 "cleaner.progress" = "Cleaning %lld/%lld · freed %@ · now: %@";
 "preview.too_large" = "The file exceeds 200 MB and was not preloaded to avoid a long wait. Open it directly instead.";
@@ -1210,6 +1214,7 @@
 "filereplace.error.target_missing" = "The target file does not exist.";
 "filereplace.error.source_missing" = "The backup file is missing or was deleted.";
 "filereplace.error.backup_failed" = "Backup failed (target may be a directory or the container unwritable).";
+"filereplace.error.sidecar_not_regular" = "The database -wal/-shm sidecar is not a regular file; restore was aborted to protect your data.";
 "filereplace.blocked.file_name" = "Core system files (Gestalt cache, configuration profiles, keychain…) have dedicated pages; raw replacement is refused.";
 "filereplace.blocked.prefix" = "System security directories (/System, /usr, keychains…) refuse raw replacement.";
 "backend.notice.filereplace" = "Replaces inside app containers work on both iOS 26 and 27 (the exploit is picked by version). Only targets inside system group containers are unwritable on iOS 26.0–26.6.1.";
@@ -1468,14 +1473,14 @@
 "update.failure.offline" = "Check failed: GitHub unreachable (offline or blocked — needs a proxy or another network).";
 "update.failure.other" = "Check failed:";
 
-// GestaltX v1.1.1 #138 field-import merge (3.2.5 rebuild)
+// Field-import merge (3.2.5 rebuild)
 "gestalt.error.layout_mismatch" = "The imported plist cache identity does not match this device; write rejected.";
 "gestalt.field.import_summary" = "Import complete: %d overwritten, %d unknown keys skipped, %d preserved.";
 
-// GestaltX v1.1.1 #133 config import errors (3.2.5 rebuild)
+// Config import errors (3.2.5 rebuild)
 "config.import_error.title" = "Config package import failed";
 
-// Notification sound replacement (3.2.5 rebuild, GestaltX App Audio Library parity)
+// Notification sound replacement (3.2.5 rebuild)
 "home.card.sounds" = "Notification Sounds";
 "home.card.sounds_detail" = "Replace app notification sounds with custom audio";
 "notification.sound.title" = "Notification Sounds";
@@ -1501,3 +1506,38 @@
 "notification.sound.error.container" = "Could not resolve the app's container path. Make sure the app is installed and its container is accessible.";
 "notification.sound.error.target" = "Invalid target path.";
 "notification.sound.error.source" = "The selected audio file could not be read.";
+"onboarding.support_ok" = "This device is supported";
+"onboarding.support_no" = "This device is not supported";
+"onboarding.app_group_note" = "App Group required";
+"wifishare.title" = "Wi-Fi Transfer";
+"wifishare.enable" = "Enable server";
+"wifishare.stopped" = "Server stopped. Once enabled, a browser on the same Wi-Fi can reach this device's files.";
+"wifishare.starting" = "Starting…";
+"wifishare.address" = "Address";
+"wifishare.connections" = "Connections";
+"wifishare.footer" = "Access is local-network only; nothing is relayed through any server. Works from any browser on a computer or another phone.";
+"wifishare.credentials" = "Credentials";
+"wifishare.user" = "Username";
+"wifishare.pin" = "PIN";
+"wifishare.folder" = "Shared folder";
+"wifishare.pin_footer" = "The PIN is regenerated every time the server starts, and stopping the server invalidates it. Enter both values in the browser's login prompt.";
+"wifishare.requests" = "Recent requests";
+"wifishare.usage" = "Command line";
+"wifishare.usage_curl" = "Upload: curl -u 3106:PIN -T ./file \"http://ADDRESS:PORT/api/upload?path=file\"";
+"wifishare.usage_footer" = "Download one file with /api/download?path=name, or a whole folder with /api/zip?path=folder. Uploads that would collide are renamed, never overwritten.";
+"wifishare.entry" = "Wi-Fi Transfer";
+"wifishare.entry_footer" = "Move files to and from this device over the local network, no cable or cloud drive.";
+"unlock.title" = "Unlock";
+"unlock.backend" = "Backend";
+"unlock.os" = "System";
+"unlock.footer" = "Unlocking runs the kernel chain to obtain container read/write access. It has to be repeated after every launch — kernel state does not persist.";
+"unlock.status" = "Status";
+"unlock.result" = "Result";
+"unlock.duration" = "Duration";
+"unlock.run" = "Unlock now";
+"unlock.running" = "Unlocking…";
+"unlock.warning" = "The chain takes 10–30 seconds and the device may freeze briefly; if a race is lost the device can reboot on its own. You can retry after a failure, but let any restart finish first.";
+"unlock.log" = "Live log";
+"unlock.log_empty" = "No log yet. Press the button above and each stage of the chain appears here.";
+"unlock.banner_title" = "Unlock required";
+"unlock.banner_detail" = "Tap to run the kernel chain and gain container access";

@@ -1600,6 +1600,483 @@ do {
     }
 }
 
+// MARK: - LanguageResolver (F-01)
+//
+// The resolver is the first thing that runs on a fresh install, and a wrong
+// answer is invisible in testing (the UI just renders in the wrong language),
+// so every documented branch gets an explicit case.
+expect(LanguageResolver.resolve(preferred: ["zh-Hans-CN"]) == "zh-Hans", "zh-Hans-CN → zh-Hans")
+expect(LanguageResolver.resolve(preferred: ["zh-Hant-TW"]) == "zh-Hans",
+       "zh-Hant-TW → zh-Hans (no Traditional bundle ships)")
+expect(LanguageResolver.resolve(preferred: ["zh-CN"]) == "zh-Hans", "lowercase/region zh-CN → zh-Hans")
+expect(LanguageResolver.resolve(preferred: ["ko-KR"]) == "ko", "ko-KR → ko")
+expect(LanguageResolver.resolve(preferred: ["ko"]) == "ko", "bare ko → ko")
+expect(LanguageResolver.resolve(preferred: ["vi-VN"]) == "vi", "vi-VN → vi")
+expect(LanguageResolver.resolve(preferred: ["en-US"]) == "en", "en-US → en")
+expect(LanguageResolver.resolve(preferred: ["ja-JP"]) == "en", "unsupported language ja-JP → en")
+expect(LanguageResolver.resolve(preferred: []) == "en", "empty preference list → en")
+
+// Order matters: preferredLanguages puts the current system language first.
+expect(LanguageResolver.resolve(preferred: ["en-US", "ko-KR"]) == "en",
+       "first match wins: en-US before ko-KR → en")
+expect(LanguageResolver.resolve(preferred: ["ko-KR", "en-US"]) == "ko",
+       "first match wins: ko-KR before en-US → ko")
+expect(LanguageResolver.resolve(preferred: ["ja-JP", "vi-VN"]) == "vi",
+       "unknown first entry falls through to the next known one")
+
+// seedIfNeeded must never overwrite an explicit choice made in Settings.
+let resolverDefaults = UserDefaults(suiteName: "languageResolverTest")!
+resolverDefaults.removePersistentDomain(forName: "languageResolverTest")
+LanguageResolver.seedIfNeeded(defaults: resolverDefaults, preferred: ["ko-KR"], storageKey: "appLanguage")
+expect(resolverDefaults.string(forKey: "appLanguage") == "ko", "seed writes the resolved language")
+resolverDefaults.set("vi", forKey: "appLanguage")
+LanguageResolver.seedIfNeeded(defaults: resolverDefaults, preferred: ["ko-KR"], storageKey: "appLanguage")
+expect(resolverDefaults.string(forKey: "appLanguage") == "vi",
+       "seed does not overwrite an existing explicit choice")
+resolverDefaults.removePersistentDomain(forName: "languageResolverTest")
+
+// MARK: - OnboardingStore (F-03)
+//
+// The regression this guards: an overwrite install of the same version must
+// not replay onboarding. The old fingerprint compared executable mtime, which
+// changes on every overwrite, so this test would have failed by design there.
+expect(OnboardingStore.shouldShow(hasCompleted: false), "first install shows onboarding")
+expectFalse(OnboardingStore.shouldShow(hasCompleted: true), "completed install hides onboarding")
+
+let onboardingDefaults = UserDefaults(suiteName: "onboardingStoreTest")!
+onboardingDefaults.removePersistentDomain(forName: "onboardingStoreTest")
+expect(OnboardingStore.shouldShow(defaults: onboardingDefaults), "clean defaults → show")
+
+onboardingDefaults.set(true, forKey: OnboardingStore.completedKey)
+expectFalse(OnboardingStore.shouldShow(defaults: onboardingDefaults),
+            "completed flag alone suppresses onboarding")
+
+// Migration: a 3.2.6 install only has the legacy keys.
+onboardingDefaults.removePersistentDomain(forName: "onboardingStoreTest")
+onboardingDefaults.set("3.2.6 (25)", forKey: OnboardingStore.legacyVersionKey)
+expectFalse(OnboardingStore.shouldShow(defaults: onboardingDefaults),
+            "legacy completedVersion suppresses onboarding on upgrade")
+expect(onboardingDefaults.bool(forKey: OnboardingStore.completedKey),
+       "legacy migration writes the new completed flag")
+
+onboardingDefaults.removePersistentDomain(forName: "onboardingStoreTest")
+onboardingDefaults.set("3.2.6 (25)#1700000000", forKey: OnboardingStore.legacyFingerprintKey)
+expectFalse(OnboardingStore.shouldShow(defaults: onboardingDefaults),
+            "legacy completedFingerprint suppresses onboarding on upgrade")
+
+// Empty legacy values are not evidence of completion — a key that exists but
+// holds "" must still show onboarding, or a corrupted defaults file would skip
+// the screen forever.
+onboardingDefaults.removePersistentDomain(forName: "onboardingStoreTest")
+onboardingDefaults.set("", forKey: OnboardingStore.legacyVersionKey)
+expect(OnboardingStore.shouldShow(defaults: onboardingDefaults),
+       "empty legacy value does not count as completed")
+
+onboardingDefaults.removePersistentDomain(forName: "onboardingStoreTest")
+OnboardingStore.markCompleted(defaults: onboardingDefaults)
+expectFalse(OnboardingStore.shouldShow(defaults: onboardingDefaults), "markCompleted suppresses onboarding")
+expect(onboardingDefaults.string(forKey: OnboardingStore.legacyVersionKey)?.isEmpty == false,
+       "markCompleted keeps the legacy key readable for downgrades")
+onboardingDefaults.removePersistentDomain(forName: "onboardingStoreTest")
+
+// MARK: - SQLiteSidecarPolicy (F-06)
+//
+// The regression this guards: restoring a SQLite database wrote only the main
+// file and left the live -wal in place, so the next open replayed the WAL over
+// the restored database — the restore silently reverted.
+let sqliteHeader = Data("SQLite format 3\0".utf8)
+expect(SQLiteSidecarPolicy.hasSQLiteHeader(sqliteHeader), "exact 16-byte header matches")
+expect(SQLiteSidecarPolicy.hasSQLiteHeader(sqliteHeader + Data([0x00, 0x01])),
+       "header followed by page data still matches (prefix check)")
+expectFalse(SQLiteSidecarPolicy.hasSQLiteHeader(Data("SQLite format 2\0".utf8)),
+            "version 2 header is not SQLite 3")
+expectFalse(SQLiteSidecarPolicy.hasSQLiteHeader(Data("SQLite for".utf8)),
+            "truncated prefix does not match")
+expectFalse(SQLiteSidecarPolicy.hasSQLiteHeader(Data()), "empty prefix does not match")
+
+expect(SQLiteSidecarPolicy.sidecars(for: "/a/b.sqlite") == ["/a/b.sqlite-wal", "/a/b.sqlite-shm"],
+       "sidecars are appended in -wal then -shm order")
+expect(SQLiteSidecarPolicy.sidecars(for: "/a/b.sqlite").count == 2, "exactly two sidecars")
+
+// Real-file detection: write a header-prefixed file, then a non-SQLite one.
+let sqliteDir = URL(fileURLWithPath: NSTemporaryDirectory())
+    .appendingPathComponent("sqliteSidecarTest-\(UUID().uuidString)")
+try? FileManager.default.createDirectory(at: sqliteDir, withIntermediateDirectories: true)
+let dbURL = sqliteDir.appendingPathComponent("test.sqlite")
+try? (sqliteHeader + Data(repeating: 0x00, count: 100)).write(to: dbURL)
+expect(SQLiteSidecarPolicy.isSQLiteFile(path: dbURL.path), "file with SQLite header detected")
+let textURL = sqliteDir.appendingPathComponent("not-a-db.txt")
+try? Data("hello world, definitely not sqlite".utf8).write(to: textURL)
+expectFalse(SQLiteSidecarPolicy.isSQLiteFile(path: textURL.path), "plain text is not SQLite")
+expectFalse(SQLiteSidecarPolicy.isSQLiteFile(path: sqliteDir.appendingPathComponent("missing.db").path),
+            "missing file is not SQLite")
+try? FileManager.default.removeItem(at: sqliteDir)
+
+// MARK: - PlistDatePolicy (F-07)
+//
+// Two silent-loss regressions: XML plists round fractional seconds away on
+// write, and an oversized file parses only its prefix, so the save truncates.
+let wholeSecond = Date(timeIntervalSince1970: 1_763_546_400)   // 2025-11-19T00:00:00Z
+let fractional = Date(timeIntervalSince1970: 1_763_546_400.5)
+
+expect(PlistDatePolicy.hasFractionalSeconds(fractional), "fractional date detected")
+expectFalse(PlistDatePolicy.hasFractionalSeconds(wholeSecond), "whole-second date is clean")
+expect(PlistDatePolicy.truncateToWholeSecond(fractional).timeIntervalSince1970 == 1_763_546_400,
+       "truncation floors to the whole second")
+expect(PlistDatePolicy.truncateToWholeSecond(wholeSecond) == wholeSecond,
+       "truncating an already-whole date is a no-op")
+
+// XML rejects fractional input; binary keeps it.
+expectFalse(PlistDatePolicy.canRepresentText("2025-11-19T10:00:00.500Z", format: .xml),
+            "XML rejects fractional seconds")
+expect(PlistDatePolicy.canRepresentText("2025-11-19T10:00:00Z", format: .xml),
+       "XML accepts whole seconds")
+expect(PlistDatePolicy.canRepresentText("2025-11-19T10:00:00.500Z", format: .binary),
+       "binary keeps fractional seconds")
+// A non-date string is a parse error, not a precision problem — don't mask it.
+expect(PlistDatePolicy.canRepresentText("not a date", format: .xml),
+       "unparseable text passes the precision check")
+
+// Size limit.
+expect(PlistDatePolicy.maximumBytes == 64 * 1024 * 1024, "limit is 64 MB")
+expectFalse(PlistDatePolicy.exceedsSizeLimit(byteCount: 64 * 1024 * 1024), "exactly 64 MB allowed")
+expect(PlistDatePolicy.exceedsSizeLimit(byteCount: 64 * 1024 * 1024 + 1), "64 MB + 1 byte refused")
+
+let sizeDir = URL(fileURLWithPath: NSTemporaryDirectory())
+    .appendingPathComponent("plistDatePolicyTest-\(UUID().uuidString)")
+try? FileManager.default.createDirectory(at: sizeDir, withIntermediateDirectories: true)
+let smallURL = sizeDir.appendingPathComponent("small.plist")
+try? Data(repeating: 0x41, count: 1024).write(to: smallURL)
+expectFalse(PlistDatePolicy.exceedsSizeLimit(fileAt: smallURL), "1 KB file allowed")
+expectFalse(PlistDatePolicy.exceedsSizeLimit(fileAt: sizeDir.appendingPathComponent("nope.plist")),
+            "missing file is not treated as oversized")
+try? FileManager.default.removeItem(at: sizeDir)
+
+// MARK: - PermissionPolicy (F-13)
+//
+// The octal and symbolic renderings must agree; a mismatch would show one mode
+// and write another. The bit math is also the only place the preset ladder is
+// defined, so a typo here ships a wrong chmod.
+expect(PermissionPolicy.masked(0o10755) == 0o755, "setuid bit is stripped from the mask")
+expect(PermissionPolicy.octalString(0o755) == "0755", "0755 renders four digits")
+expect(PermissionPolicy.octalString(0o644) == "0644", "0644 renders four digits")
+expect(PermissionPolicy.octalString(0o4777) == "0777", "setuid is masked out of the display")
+expect(PermissionPolicy.symbolicString(0o755) == "rwxr-xr-x", "0755 symbolic form")
+expect(PermissionPolicy.symbolicString(0o644) == "rw-r--r--", "0644 symbolic form")
+expect(PermissionPolicy.symbolicString(0o444) == "r--r--r--", "0444 symbolic form")
+expect(PermissionPolicy.symbolicString(0o555) == "r-xr-xr-x", "0555 symbolic form")
+expect(PermissionPolicy.symbolicString(0o000) == "---------", "0000 has no bits set")
+
+expect(PermissionPolicy.isReadOnly(0o444), "0444 is read-only")
+expect(PermissionPolicy.isReadOnly(0o555), "0555 has no write bits, so read-only")
+expectFalse(PermissionPolicy.isReadOnly(0o644), "0644 is writable by owner")
+expectFalse(PermissionPolicy.isReadOnly(0o755), "0755 is writable by owner")
+
+expect(PermissionPolicy.presets == [0o444, 0o555, 0o644, 0o755],
+       "presets run least to most permissive")
+expect(PermissionPolicy.isCurrent(0o755, preset: 0o755), "identical mode is current")
+expectFalse(PermissionPolicy.isCurrent(0o755, preset: 0o555), "different mode is not current")
+expect(PermissionPolicy.isCurrent(0o10755, preset: 0o755),
+       "current comparison ignores bits above 0777")
+expect(PermissionPolicy.presetLabel(0o555) == "0555 · r-xr-xr-x",
+       "label shows octal and symbolic together")
+
+// MARK: - A10 chip gate (F-08)
+//
+// A10 Fusion hangs inside the kernel chain on iOS 17. This is a chip gate, not
+// an OS gate: the same iOS 17 version works on every other chip family, so the
+// guard must be narrow enough not to shadow the existing version rules.
+expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 17, minor: 7, patch: 9, isA10: true),
+            "A10 + iOS 17.7 is refused")
+expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 17, minor: 0, patch: 0, isA10: true),
+            "A10 + iOS 17.0 is refused")
+expect(ExploitSupportPolicy.supportsKernelExploit(major: 17, minor: 7, patch: 9),
+       "non-A10 + iOS 17.7 still allowed (default arg preserved)")
+expect(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 0, patch: 0, isA10: true),
+       "A10 + iOS 18.0 follows the normal rule")
+expect(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 7, patch: 1, isA10: true),
+       "A10 + iOS 18.7.1 follows the normal rule")
+expectFalse(ExploitSupportPolicy.supportsKernelExploit(major: 18, minor: 7, patch: 2, isA10: true),
+            "A10 + iOS 18.7.2 refused by the version rule, not the chip rule")
+
+// The A10 gate only removes kernel access; 26.x backends are unaffected
+// because they never use the kernel chain.
+expect(ExploitSupportPolicy.isSupported(major: 26, minor: 0, patch: 0, build: "any", isA10: true),
+       "A10 does not lose bad_query on 26.0")
+expectFalse(ExploitSupportPolicy.isSupported(major: 17, minor: 7, patch: 9, build: "any", isA10: true),
+            "A10 + iOS 17 has no backend left, so it is unsupported")
+
+// DeviceCPU.isA10(family:) is the testable half; the sysctl call is not.
+expect(DeviceCPU.isA10(family: DeviceCPU.a10Family), "A10 family id recognised")
+expectFalse(DeviceCPU.isA10(family: 0x07D34B9F), "A11 family id is not A10")
+expectFalse(DeviceCPU.isA10(family: nil), "unreadable cpu family is not A10")
+expect(DeviceCPU.a10Family == 0x2C91A47E, "A10 family literal matches the documented value")
+
+// Rejection copy: A10+iOS 17 must produce its own explanation rather than the
+// generic "iOS X is unsupported" text, which would wrongly imply an OS update
+// is the fix.
+let a10Reason = RejectionReason.make(
+    major: 17, minor: 7, patch: 9, build: "21H16", osVersion: "iOS 17.7.9 (21H16)", isA10: true
+)
+expect(a10Reason != nil, "A10 + iOS 17 yields a rejection reason")
+expect(a10Reason?.arguments.isEmpty == true, "the A10 copy needs no version interpolation")
+expect(a10Reason?.key != "status.unsupported_reason",
+       "A10 rejection uses its own key, not the generic OS one")
+expect(RejectionReason.make(
+    major: 17, minor: 7, patch: 9, build: "21H16", osVersion: "iOS 17.7.9 (21H16)"
+) == nil, "non-A10 + iOS 17.7 has no rejection")
+
+// MARK: - JailbreakDetector (F-09)
+//
+// Substring matching, not path equality: rootless jailbreaks remap the
+// bootstrap under /var/jb, so exact paths would miss the common case.
+expect(JailbreakDetector.isJailbroken(imagePaths: ["/usr/lib/libsubstitute.dylib"]),
+       "Substitute detected")
+expect(JailbreakDetector.isJailbroken(imagePaths: ["/usr/lib/substrate/SubstrateLoader.dylib"]),
+       "Cydia Substrate detected")
+expect(JailbreakDetector.isJailbroken(
+    imagePaths: ["/var/jb/Library/MobileSubstrate/DynamicLibraries/ElleKit.dylib"]
+), "ElleKit under /var/jb detected")
+expect(JailbreakDetector.isJailbroken(imagePaths: ["/usr/lib/libhooker.dylib"]),
+       "libhooker detected")
+expect(JailbreakDetector.isJailbroken(imagePaths: ["/var/jb/usr/lib/libpthread.dylib"]),
+       "bare /var/jb prefix detected")
+expectFalse(JailbreakDetector.isJailbroken(imagePaths: []),
+            "empty image list is not jailbroken")
+expectFalse(JailbreakDetector.isJailbroken(imagePaths: [
+    "/System/Library/Frameworks/Foundation.framework/Foundation",
+    "/usr/lib/libSystem.B.dylib",
+    "/private/var/containers/Bundle/Application/3106.app/3106",
+]), "stock system images are clean")
+
+// Substring matching has a known false-positive shape: any path containing an
+// indicator string matches. That is accepted deliberately — a false positive
+// costs one capability on a device that is probably jailbroken anyway, while a
+// false negative reports a verdict it cannot stand behind.
+expect(JailbreakDetector.isJailbroken(imagePaths: ["/usr/lib/libsubstitute_helper"]),
+       "substring match is intentionally broad")
+expectFalse(JailbreakDetector.isJailbroken(imagePaths: ["/usr/lib/libobjc.A.dylib"]),
+            "unrelated system library is clean")
+
+expect(JailbreakDetector.matchedIndicator(imagePaths: ["/usr/lib/libobjc.A.dylib",
+                                                     "/var/jb/Library/ElleKit.dylib"]) != nil,
+       "matchedIndicator reports the hit")
+expect(JailbreakDetector.matchedIndicator(imagePaths: ["/usr/lib/libobjc.A.dylib"]) == nil,
+       "matchedIndicator is nil on a clean list")
+
+// The refusal rule is scoped to the kernel backend.
+expect(JailbreakDetector.refusesKernelChain(isJailbroken: true, isKernelBackend: true),
+       "jailbroken + kernel → refuse")
+expectFalse(JailbreakDetector.refusesKernelChain(isJailbroken: false, isKernelBackend: true),
+            "clean + kernel → run")
+expectFalse(JailbreakDetector.refusesKernelChain(isJailbroken: true, isKernelBackend: false),
+            "jailbroken + system backend → still run (verdict stays attributable)")
+expectFalse(JailbreakDetector.refusesKernelChain(isJailbroken: false, isKernelBackend: false),
+            "clean + system backend → run")
+
+// MARK: - RegionKeyPolicy (F-10)
+//
+// iOS 27 units carry `regionInfo`; older ones carry `legacyRegionInfo`. The old
+// code hardcoded the legacy key on read and write, so every iOS 27 device threw
+// missingRegionFields and could never be read or changed.
+let newKey = "new-region-info"
+let legacyKey = "legacy-region-info"
+let codeKey = "region-code"
+
+var bothKeys: [String: Any] = [newKey: "LL/A", legacyKey: "CH/A", codeKey: "LL"]
+expect(RegionKeyPolicy.infoKey(in: bothKeys, regionInfo: newKey, legacyRegionInfo: legacyKey) == newKey,
+       "when both exist the newer key wins (it is what iOS 27 reads)")
+expect(RegionKeyPolicy.regionValue(in: bothKeys, regionInfo: newKey, legacyRegionInfo: legacyKey) == "LL/A",
+       "the value comes from the same key infoKey chose")
+
+var onlyNew: [String: Any] = [newKey: "JP/", codeKey: "J"]
+expect(RegionKeyPolicy.infoKey(in: onlyNew, regionInfo: newKey, legacyRegionInfo: legacyKey) == newKey,
+       "device with only the newer key is readable")
+expect(RegionKeyPolicy.regionValue(in: onlyNew, regionInfo: newKey, legacyRegionInfo: legacyKey) == "JP/",
+       "value read from the newer key")
+var onlyLegacy: [String: Any] = [legacyKey: "TA/A", codeKey: "TA"]
+expect(RegionKeyPolicy.infoKey(in: onlyLegacy, regionInfo: newKey, legacyRegionInfo: legacyKey) == legacyKey,
+       "device with only the legacy key is readable")
+expect(RegionKeyPolicy.infoKey(in: [codeKey: "LL"], regionInfo: newKey, legacyRegionInfo: legacyKey) == nil,
+       "no -info key at all is reported as missing")
+expect(RegionKeyPolicy.regionValue(in: [codeKey: "LL"], regionInfo: newKey, legacyRegionInfo: legacyKey) == nil,
+       "regionValue is nil when no -info key exists")
+
+expect(RegionKeyPolicy.regionText(for: "LL") == "LL/A", "region text is code + /A")
+expect(RegionKeyPolicy.regionText(for: "ZP") == "ZP/A", "region text for Hong Kong")
+
+// apply: writes only keys that already exist, and never invents one.
+var target: [String: Any] = [newKey: "CH/A", legacyKey: "CH/A", codeKey: "CH"]
+let written = RegionKeyPolicy.apply(
+    code: "LL", to: &target, regionCode: codeKey, regionInfo: newKey, legacyRegionInfo: legacyKey
+)
+expect(target[newKey] as? String == "LL/A", "newer key updated")
+expect(target[legacyKey] as? String == "LL/A", "legacy key kept in sync")
+expect(target[codeKey] as? String == "LL", "country code updated")
+expect(written.count == 3, "three keys reported written when all exist")
+
+var legacyOnlyTarget: [String: Any] = [legacyKey: "CH/A", codeKey: "CH"]
+_ = RegionKeyPolicy.apply(
+    code: "J", to: &legacyOnlyTarget, regionCode: codeKey, regionInfo: newKey, legacyRegionInfo: legacyKey
+)
+expect(legacyOnlyTarget[newKey] == nil, "a key the device never had is NOT invented")
+expect(legacyOnlyTarget[legacyKey] as? String == "J/A", "the existing key is updated")
+
+var newOnlyTarget: [String: Any] = [newKey: "CH/A", codeKey: "CH"]
+_ = RegionKeyPolicy.apply(
+    code: "TA", to: &newOnlyTarget, regionCode: codeKey, regionInfo: newKey, legacyRegionInfo: legacyKey
+)
+expect(newOnlyTarget[legacyKey] == nil, "legacy key is not injected on an iOS 27-only cache")
+expect(newOnlyTarget[newKey] as? String == "TA/A", "the newer key is updated")
+
+// MARK: - RegionTargets (F-11)
+//
+// The region list is data, so the failure mode is a duplicate or missing code
+// rather than a crash — writing the wrong prefix silently moves the device to
+// a different country rather than erroring.
+expect(RegionTargets.all.count == 15, "fifteen region targets")
+let codes = RegionTargets.all.map(\.code)
+expect(Set(codes).count == codes.count, "region codes are unique")
+let countries = RegionTargets.all.map(\.country)
+expect(Set(countries).count == countries.count, "country codes are unique")
+expect(RegionTargets.all.allSatisfy { !$0.code.isEmpty && !$0.country.isEmpty },
+       "no empty code or country")
+
+// Every expected market is present, so a future edit cannot silently drop one.
+let expected: Set<String> = ["US","JP","CN","HK","TW","KR","GB","DE","FR","CA","AU","SG","IN","VN","AE"]
+expect(Set(countries) == expected, "all fifteen markets present")
+expect(RegionTargets.all.first?.country == "US", "US leads the list")
+expect(RegionTargets.all.first?.code == "LL", "US region prefix is LL")
+
+expect(RegionTargets.all.first { $0.country == "JP" }?.regionText == "J/A",
+       "Japan region text is J/A")
+expect(RegionTargets.all.first { $0.country == "CN" }?.regionText == "CH/A",
+       "China region text is CH/A")
+expect(RegionTargets.all.first { $0.country == "VN" }?.regionText == "VN/A",
+       "Vietnam region text is VN/A")
+
+// Round trip: whatever the device reports resolves back to the same target.
+for target in RegionTargets.all {
+    let resolved = RegionTargets.target(forRegionText: target.regionText)
+    expect(resolved?.code == target.code,
+           "\(target.country) region text round-trips to its own target")
+}
+// Unknown regions must not resolve — the picker shows them as "not in list".
+expect(RegionTargets.target(forRegionText: "ZZ/A") == nil, "unknown region does not resolve")
+expect(RegionTargets.target(forRegionText: "ZZ") == nil, "bare unknown code does not resolve")
+expect(RegionTargets.target(forRegionText: "LL")?.code == "LL",
+       "a region text without the /A suffix still resolves")
+
+expect(RegionTargets.target(country: "KR")?.code == "KH", "country lookup returns Korea")
+expect(RegionTargets.target(country: "ZZ") == nil, "unknown country lookup is nil")
+
+// MARK: - WiFiSharePolicy (F-12)
+//
+// The server hands a stranger on the LAN access to the user's container behind
+// one 6-digit PIN, so the auth comparison, path containment and overwrite rules
+// are the security surface. None of them need a socket to test.
+
+// PIN: six digits, uniform by rejection.
+expect(WiFiSharePolicy.generatePIN(uniform: { 0 }).count == 6, "PIN has six digits")
+expect(WiFiSharePolicy.generatePIN(uniform: { 0 }) == "000000", "zero draws yield all zeros")
+expect(WiFiSharePolicy.generatePIN(uniform: { 9 }) == "999999", "max drawn digit repeats")
+expect(Set(WiFiSharePolicy.generatePIN().unicodeScalars).allSatisfy { $0.value >= 48 && $0.value <= 57 },
+       "a generated PIN is all decimal digits")
+// Rejection: values at or above the limit are discarded, not folded in.
+var draws: [UInt32] = [UInt32.max, 11, 12, 13, 14, 15, 16]
+expect(WiFiSharePolicy.generatePIN(uniform: { draws.removeFirst() }) == "123456",
+       "out-of-range draws are rejected, then digits taken in order")
+
+// Basic Auth.
+expect(WiFiSharePolicy.expectedAuthorization(pin: "123456").hasPrefix("Basic "),
+       "authorization value is a Basic credential")
+expect(WiFiSharePolicy.isAuthorized(
+    header: WiFiSharePolicy.expectedAuthorization(pin: "123456"), pin: "123456"
+), "the correct credential is accepted")
+expectFalse(WiFiSharePolicy.isAuthorized(
+    header: WiFiSharePolicy.expectedAuthorization(pin: "123456"), pin: "123457"
+), "a different PIN is rejected")
+expectFalse(WiFiSharePolicy.isAuthorized(header: nil, pin: "123456"),
+            "a missing header is rejected (no anonymous access)")
+expectFalse(WiFiSharePolicy.isAuthorized(header: "Basic ", pin: "123456"),
+            "an empty credential is rejected")
+expectFalse(WiFiSharePolicy.isAuthorized(header: "Bearer \(WiFiSharePolicy.expectedAuthorization(pin: "123456").dropFirst(6))", pin: "123456"),
+            "the scheme must match exactly")
+
+// Header parsing is case-insensitive on the name, as HTTP requires.
+let headers = "Host: 1.2.3.4\r\nAuthorization: Basic abc\r\nContent-Length: 42\r\n"
+expect(WiFiSharePolicy.authorizationHeader(in: headers) == "Basic abc",
+       "Authorization extracted")
+expect(WiFiSharePolicy.contentLength(in: headers) == 42, "Content-Length extracted")
+expect(WiFiSharePolicy.authorizationHeader(in: "authorization: Basic xyz") == "Basic xyz",
+       "header name is matched case-insensitively")
+expect(WiFiSharePolicy.contentLength(in: "Host: x") == nil, "absent Content-Length is nil")
+
+// Request line.
+let line = WiFiSharePolicy.parseRequestLine("GET /api/download?path=a%2Fb.txt HTTP/1.1")
+expect(line?.method == "GET", "method parsed")
+expect(line?.path == "/api/download", "path separated from query")
+expect(line?.query == "path=a%2Fb.txt", "query preserved")
+expect(WiFiSharePolicy.parseRequestLine("PUT /api/upload HTTP/1.0")?.query == "",
+       "absent query is empty, not nil")
+expect(WiFiSharePolicy.parseRequestLine("garbage") == nil, "malformed request line is nil")
+expect(WiFiSharePolicy.parseRequestLine("GET relative/path HTTP/1.1") == nil,
+       "a non-absolute target is rejected")
+expect(WiFiSharePolicy.queryParameter("path", in: "path=a%2Fb.txt&x=1") == "a/b.txt",
+       "query parameter percent-decoded")
+expect(WiFiSharePolicy.queryParameter("missing", in: "a=1") == nil,
+       "absent parameter is nil")
+
+// Path containment: the whole point is that nothing escapes the root.
+let shareRoot = URL(fileURLWithPath: "/var/mobile/Documents/3106/Transfer")
+expect(WiFiSharePolicy.containedPath("/photo.jpg", within: shareRoot)?.lastPathComponent == "photo.jpg",
+       "a plain name resolves inside the root")
+expect(WiFiSharePolicy.containedPath("/sub/photo.jpg", within: shareRoot)?.lastPathComponent == "photo.jpg",
+       "a nested path resolves inside the root")
+expect(WiFiSharePolicy.containedPath("/../escape.txt", within: shareRoot) == nil,
+       "traversal is refused")
+expect(WiFiSharePolicy.containedPath("/sub/../../escape.txt", within: shareRoot) == nil,
+       "nested traversal is refused")
+expect(WiFiSharePolicy.containedPath("/%2e%2e/escape.txt", within: shareRoot) == nil,
+       "percent-encoded traversal is refused before decoding")
+expect(WiFiSharePolicy.containedPath("photo.jpg", within: shareRoot) == nil,
+       "a relative target is refused (no leading slash)")
+
+// Upload naming: never overwrite.
+let taken: Set<String> = ["report.txt"]
+expect(WiFiSharePolicy.uniqueDestination(for: "new.txt", existing: { taken.contains($0) }) == "new.txt",
+       "a free name is kept as-is")
+expect(WiFiSharePolicy.uniqueDestination(for: "report.txt", existing: { taken.contains($0) }) == "report 2.txt",
+       "a colliding name climbs to 2")
+let busy: Set<String> = ["report.txt", "report 2.txt", "report 3.txt"]
+expect(WiFiSharePolicy.uniqueDestination(for: "report.txt", existing: { busy.contains($0) }) == "report 4.txt",
+       "climbing skips every taken name")
+expect(WiFiSharePolicy.uniqueDestination(for: "README", existing: { $0 == "README" }) == "README 2",
+       "an extension-less name climbs without a dot")
+expect(WiFiSharePolicy.uniqueDestination(for: "a.tar.gz", existing: { $0 == "a.tar.gz" }) == "a.tar 2.gz",
+       "only the last extension is preserved")
+
+// Port ladder.
+expect(WiFiSharePolicy.portRange.first == 8080, "starts at 8080")
+expect(WiFiSharePolicy.portRange.last == 8090, "spans eleven ports")
+expect(WiFiSharePolicy.maximumZipBytes == 2 * 1024 * 1024 * 1024, "zip cap is 2 GB")
+
+// MARK: - Explicit unlock predicate (F-14)
+//
+// The kernel chain used to run at launch. The rule that replaced it must stay
+// narrow: only the kernel backend needs an unlock event, because bad_query and
+// worse_query grant access through system APIs that need no exploit. If this
+// predicate widened, every iOS 26/27 user would see a banner for a step that
+// does nothing.
+expect(ExploitSupportPolicy.requiresExplicitUnlock(isKernelBackend: true, hasAccess: false),
+       "kernel backend without access needs an unlock")
+expectFalse(ExploitSupportPolicy.requiresExplicitUnlock(isKernelBackend: true, hasAccess: true),
+            "an already-unlocked kernel device shows no banner")
+expectFalse(ExploitSupportPolicy.requiresExplicitUnlock(isKernelBackend: false, hasAccess: false),
+            "bad_query / worse_query never need an unlock")
+expectFalse(ExploitSupportPolicy.requiresExplicitUnlock(isKernelBackend: false, hasAccess: true),
+            "a working system backend needs no unlock either")
+
 if failures == 0 {
     print("PASS: \(checks) policy checks")
     exit(0)

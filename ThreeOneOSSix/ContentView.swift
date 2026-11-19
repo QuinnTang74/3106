@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var showLogs = false
     @State private var showAppGroupAlert = false
     @StateObject private var scanCoordinator = ScanCoordinator()
+    @EnvironmentObject private var appState: AppState
 
     init() {
 #if targetEnvironment(simulator)
@@ -85,6 +86,22 @@ struct ContentView: View {
                 ScanRunningBanner()
                     .environmentObject(scanCoordinator)
                     .environment(\.appLanguage, language)
+            }
+        }
+        .overlay(alignment: .top) {
+            // Kernel devices need a ran-once-per-launch unlock. The banner is
+            // top-aligned so it reads before any list content, and only shows
+            // while the chain has not succeeded — a settled failure stays
+            // visible through the Unlock screen rather than nagging here.
+            if appState.needsUnlock {
+                NavigationLink {
+                    UnlockView()
+                } label: {
+                    UnlockBanner()
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.top, 6)
             }
         }
         .patchStorePresentation(patchStore)

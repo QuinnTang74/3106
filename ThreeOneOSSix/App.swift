@@ -18,6 +18,10 @@ struct ThreeOneOSSixApp: App {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init() {
+        // Seed the UI language before the first view body runs. `@AppStorage`
+        // reads UserDefaults on every access, so a write here is visible to
+        // the first render. A stored value always wins — see seedIfNeeded.
+        LanguageResolver.seedIfNeeded()
         setupLogCapture()
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let appBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
@@ -185,14 +189,13 @@ class AppState: ObservableObject {
     }
     @Published var kernelExploitRunning = false
 
-    private var autoRunAttempted = false
-
     var kernelExploitApplicable: Bool {
         KernelExploit.isApplicable(
             major: AppInfo.versionTuple.major,
             minor: AppInfo.versionTuple.minor,
             patch: AppInfo.versionTuple.patch,
-            build: AppInfo.osBuild
+            build: AppInfo.osBuild,
+            isA10: DeviceCPU.isA10
         )
     }
 
@@ -204,7 +207,8 @@ class AppState: ObservableObject {
             major: v.major,
             minor: v.minor,
             patch: v.patch,
-            build: AppInfo.osBuild
+            build: AppInfo.osBuild,
+            isA10: DeviceCPU.isA10
         )
 #if targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("--simulate-access") {
@@ -213,26 +217,18 @@ class AppState: ObservableObject {
 #endif
 
         if !supported {
-            // A bare "iOS 18.7.5 (22H311)" told the user nothing about why.
-            // The iOS 18.7.2+ case has a permanent, explainable cause: Apple
-            // patched the kernel bugs this project depends on, so no version
-            // of 3106 can ever support those builds. Surface that instead of
-            // a version string the user cannot act on.
-            if ExploitSupportPolicy.isIOS18KernelPatched(major: v.major, minor: v.minor, patch: v.patch) {
-                unsupportedMessage = language.text(
-                    "status.unsupported_ios18_patched",
-                    ExploitSupportPolicy.ios18KernelPatchedAt
-                )
-            } else if v.major == 27 && v.minor == 3 {
-                // 27.3 is build-gated: the technique was patched mid-cycle, so
-                // an unlisted build is unsupported and the user needs to know
-                // which build to stay on.
-                unsupportedMessage = language.text(
-                    "status.unsupported_ios27_build",
-                    ExploitSupportPolicy.verifiedIOS27Builds.joined(separator: ", ")
-                )
-            } else {
-                unsupportedMessage = "iOS \(AppInfo.osVersion) (\(AppInfo.osBuild))"
+            // The explanation lives in RejectionReason so onboarding can show
+            // the identical copy without a second hand-maintained copy drifting
+            // the moment a version boundary moves.
+            if let reason = RejectionReason.make(
+                major: v.major,
+                minor: v.minor,
+                patch: v.patch,
+                build: AppInfo.osBuild,
+                osVersion: "iOS \(AppInfo.osVersion) (\(AppInfo.osBuild))",
+                isA10: DeviceCPU.isA10
+            ) {
+                unsupportedMessage = language.text(reason.key, reason.arguments)
             }
         }
         if let unsupportedMessage {
@@ -244,22 +240,28 @@ class AppState: ObservableObject {
             major: v.major,
             minor: v.minor,
             patch: v.patch,
-            build: AppInfo.osBuild
+            build: AppInfo.osBuild,
+            isA10: DeviceCPU.isA10
         )
         guard applicable else { return }
 
         refreshKernelExploitStatus()
-        maybeAutoRunKernelExploit()
+        // Deliberately no auto-run. The kernel chain reboots the device when it
+        // goes wrong, and a process that quietly executes an exploit at launch
+        // gives the user no chance to consent or to read what happened. The
+        // Unlock screen is the only entry point now; `kernelExploitRunning`,
+        // `exploitStatus` and the banner state drive it.
     }
 
-    private func maybeAutoRunKernelExploit() {
-        guard !kernelExploitRunning,
-              !exploitStatus.isSuccess,
-              !exploitStatus.isFailed,
-              !autoRunAttempted else { return }
-        autoRunAttempted = true
-        log("app: starting kernel exploit automatically")
-        runKernelExploitIfNeeded()
+    /// True when the app should offer the Unlock screen: a kernel backend that
+    /// has not succeeded yet. Deliberately excludes a settled failure — retrying
+    /// automatically after a failure would recreate the silent loop this change
+    /// removed. The user re-opens Unlock explicitly to try again.
+    var needsUnlock: Bool {
+        ExploitSupportPolicy.requiresExplicitUnlock(
+            isKernelBackend: SandboxAccess.backend == .kernel,
+            hasAccess: exploitStatus.isSuccess
+        )
     }
 
     private func refreshKernelExploitStatus() {

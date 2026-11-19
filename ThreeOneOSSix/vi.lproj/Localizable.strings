@@ -27,24 +27,10 @@
 "attribution.open" = "Mở liên kết";
 "attribution.share" = "Chia sẻ liên kết";
 
-"onboarding.step" = "Bước %@ / %@";
-"onboarding.language_title" = "Chọn ngôn ngữ";
-"onboarding.language_subtitle" = "Bạn có thể đổi lại trong Cài đặt.";
-"onboarding.language_hint" = "Đã chọn: %@";
-"onboarding.welcome_title" = "Chào mừng đến với 3106";
-"onboarding.welcome_message" = "3106";
-"onboarding.welcome_badge" = "Định danh chính thức 3106";
 "onboarding.versions_title" = "Phiên bản iOS được hỗ trợ";
 "onboarding.versions_subtitle" = "3106 đã được xác minh trên các khoảng bên dưới. Build ngoài phạm vi sẽ bị chặn.";
 "onboarding.versions_footer" = "Thiết bị này: iOS %@ (%@)";
-"onboarding.beta" = "Beta";
-"onboarding.developer_beta" = "Beta nhà phát triển %@";
-"onboarding.public_beta" = "Beta công khai %@";
-"onboarding.install_title" = "Yêu cầu chứng chỉ";
 "onboarding.install_message" = "3106 dùng worse_query trên iOS 26.7+ và 27.x. Cần App Group entitlement: ký bằng AltStore, SideStore hoặc Sideloadly (Apple ID miễn phí là đủ), hoặc App ID rõ ràng có App Groups.";
-"onboarding.install_ok" = "Hoạt động với chứng chỉ doanh nghiệp, bao gồm eSign và các bản cài enterprise tương tự.";
-"onboarding.install_bad" = "Không hoạt động với SideStore, AltStore, 3uTools hoặc LiveContainer.";
-"onboarding.install_jailbreak" = "Trên iOS 17 đến iOS 18.7.1, 3106 sẽ không hoạt động nếu thiết bị đã jailbreak.";
 "onboarding.install_footer" = "Hãy dùng chứng chỉ được hỗ trợ trên thiết bị chưa jailbreak trước khi tiếp tục.";
 
 "dashboard.exploit_access" = "Quyền exploit";
@@ -60,14 +46,11 @@
 "dashboard.device_name" = "Tên thiết bị";
 "dashboard.hardware_model" = "Model phần cứng";
 "dashboard.access_footer" = "App chỉ báo thành công sau khi tệp hệ thống thực sự mở được ở chế độ đọc và ghi.";
-"dashboard.unsupported_footer" = "iOS %@ (%@) nằm ngoài phạm vi đã xác minh. Hỗ trợ: iOS 17.0–17.7.x, iOS 18.0–18.7.1, iOS 26.0–26.6.1, iOS 27.0 Developer Beta 1–4 và Public Beta 1–2.";
 "dashboard.app_browser" = "Duyệt dữ liệu ứng dụng";
 "dashboard.browser" = "Trình duyệt file";
 "dashboard.open_browser" = "Mở trình duyệt file";
 "dashboard.browser_footer" = "Duyệt và đọc dữ liệu từ mọi ứng dụng và system container trên thiết bị.";
 "dashboard.device_actions_warning" = "Hãy lưu thay đổi trước khi khởi động lại thiết bị.";
-"dashboard.unsupported_device" = "Thiết bị không được hỗ trợ";
-"dashboard.unsupported_message" = "iOS %@ chưa được hỗ trợ.\n\nCác phiên bản hiện được hỗ trợ:\n• iOS 17.0–17.7.x\n• iOS 18.0–18.7.1\n• iOS 26.0–26.6.1\n• iOS 27.0 Developer Beta 1–4\n• iOS 27.0 Public Beta 1–2";
 "dashboard.installation" = "Cài đặt ứng dụng";
 "dashboard.kernel_status" = "Trạng thái kernel";
 "dashboard.kernel_running" = "Đang kích hoạt…";
@@ -250,6 +233,8 @@
 "status.not_attempted" = "Chưa thử";
 "status.ok_via" = "OK qua %@";
 "status.failed_via" = "THẤT BẠI %@ (%lld)";
+"status.unsupported_a10_ios17" = "Không hỗ trợ: trên chip A10 (iPhone 7, iPad 6/7) chuỗi khai thác nhân bị treo và khởi động lại thiết bị trên iOS 17, nên tính năng này không được bật. Bản thân phiên bản hệ điều hành vẫn được hỗ trợ — đây không phải yêu cầu cập nhật; riêng chip này không thể giành quyền truy cập vùng chứa trên iOS 17. Cùng thiết bị đó trên iOS 18 trở lên không bị ảnh hưởng.";
+"{{SECRET_hisgwbph}}" = "Không hỗ trợ: phát hiện môi trường đã bẻ khóa. Trên thiết bị bẻ khóa, hộp cát có thể đã bị tweak sửa đổi nên không thể quy kết thành công hay thất bại của chuỗi khai thác nhân cho ứng dụng — vì vậy chuỗi này không được chạy. Hãy dùng thiết bị chưa bẻ khóa.";
 "status.unsupported_reason" = "Không hỗ trợ: %@";
 "status.unsupported_ios18_patched" = "Không hỗ trợ: Apple đã vá lỗ hổng kernel (CVE-2025-43520) mà 3106 dựa vào trên iOS 17/18 trong iOS 18.7.2, nên 18.7.2 trở lên không thể truy cập container ứng dụng. Lựa chọn: giữ thiết bị ở iOS 18.7.1 hoặc thấp hơn, dùng thiết bị iOS 26 trở lên (không cần lỗ hổng kernel), hoặc dùng trình quản lý tệp có quyền root trên thiết bị đã jailbreak.";
 "status.unsupported_ios27_build" = "Không hỗ trợ: Apple đã vá sandbox escape cho iOS 27.3; chỉ các build đã xác minh mới hoạt động (%@). Không cập nhật lên build 27.3 mới hơn.";
@@ -770,6 +755,8 @@
 "home.card.wallpapers_detail" = "Cài hình nền .tendies";
 "home.card.backups" = "Trung tâm sao lưu";
 "home.card.backups_detail" = "Bản gốc, sao lưu tự động và khôi phục";
+"home.card.wifishare" = "Truyền qua Wi-Fi";
+"home.card.wifishare_detail" = "Gửi nhận tệp qua mạng cục bộ bằng trình duyệt";
 "home.card.logs" = "Nhật ký chạy";
 "home.card.logs_detail" = "Xem thao tác và lỗi";
 "home.card.settings" = "Cài đặt";
@@ -921,6 +908,14 @@
 "fileinfo.owner" = "Chủ sở hữu";
 "fileinfo.group" = "Nhóm";
 "fileinfo.symlink" = "Liên kết tượng trưng";
+"fileinfo.section.permissions" = "Quyền";
+"fileinfo.permissions.footer" = "Thay đổi quyền có thể khiến ứng dụng không đọc hoặc ghi được vùng chứa của chính nó. Hãy chắc bạn biết tệp này dùng để làm gì.";
+"fileinfo.permissions.read_only" = "Hiện chỉ đọc: không có quyền ghi nào được bật.";
+"fileinfo.permissions.symlink" = "Đây là một liên kết tượng trưng. Quyền áp dụng cho tệp đích nên không thể sửa tại đây.";
+"fileinfo.permissions.presets" = "Quyền đặt trước";
+"fileinfo.permissions.applied_title" = "Đã cập nhật quyền";
+"fileinfo.permissions.applied_message" = "Chế độ hiện tại: %@. Một bản sao lưu đã được ghi lại trước đó nên có thể khôi phục từ danh sách sao lưu.";
+"fileinfo.permissions.failed_title" = "Đổi quyền thất bại";
 "fileinfo.type.folder" = "Thư mục";
 "fileinfo.type.file" = "Tệp";
 "cleaner.crash.section" = "Nhật ký sự cố";
@@ -994,6 +989,16 @@
 "gestalt.region.title" = "Vùng & Siri AI";
 "gestalt.region.snapshot_header" = "Vùng hiện tại";
 "gestalt.region.snapshot_footer" = "Chỉ hiển thị khóa có trên máy. Ghi chỉ đụng khóa sẵn có, tránh xây lại bộ nhớ đệm trên iOS 27.";
+"gestalt.region.switch_header" = "Chuyển vùng";
+"gestalt.region.switch_footer" = "Chỉ đổi mã quốc gia và vùng bán hàng, không đổi số hiệu quản lý — giá trị đó là hồ sơ phê duyệt kiểu mẫu của thiết bị và thuộc luồng Siri AI. Cần khởi động lại.";
+"gestalt.region.switch_current" = "Vùng hiện tại";
+"gestalt.region.switch_apply" = "Áp dụng vùng";
+"gestalt.region.switch_confirm_title" = "Chuyển vùng";
+"gestalt.region.switch_other" = "Khác";
+"gestalt.region.switch_unknown" = "Không có trong danh sách";
+"risk.gestalt.regionSwitch.consequence" = "Ghi lại mã quốc gia và vùng bán hàng trong bộ nhớ đệm MobileGestalt thành vùng đã chọn, đồng thời tạo bản sao lưu trước khi ghi. Cần khởi động lại để áp dụng.";
+"risk.gestalt.regionSwitch.worst_case" = "Sau khi khởi động lại, nội dung cửa hàng, ngôn ngữ Siri và một số tính năng hệ thống phụ thuộc vùng có thể thay đổi. Số hiệu quản lý được giữ nguyên nên không ảnh hưởng hồ sơ phê duyệt kiểu mẫu.";
+"risk.gestalt.regionSwitch.recovery" = "Khôi phục bản sao lưu trước khi ghi từ danh sách sao lưu rồi khởi động lại để trở về vùng ban đầu.";
 "gestalt.region.machine" = "Máy";
 "gestalt.region.country" = "Mã quốc gia";
 "gestalt.region.sales" = "Vùng bán hàng";
@@ -1155,7 +1160,6 @@
 "settings.experimental" = "Tính năng thử nghiệm";
 "settings.experimental_header" = "Tính năng thử nghiệm";
 "settings.experimental_footer" = "Hiện các luồng thử nghiệm rủi ro cao (ví dụ chế độ Siri AI thử nghiệm). Các luồng này chưa được xác minh đầy đủ trên máy thật; trường hợp xấu nhất có thể cần khôi phục máy.";
-"gestalt.presets.factory_protected" = "Năng lực này tắt sẵn tại nhà máy (Erosion-CN v0.8.5, đã xác minh trên máy): bật ép sẽ làm gãy kiểm tra pipeline mô hình tạo sinh và tính năng Clean Up chất lượng cao của Ảnh báo lỗi. Đã khóa.";
 "gestalt.region.error.factory_baseline" = "Cờ khả năng AI tắt sẵn tại nhà máy; việc ghi bị từ chối theo quy tắc baseline nhà máy (Clean Up chất lượng cao của Ảnh sẽ lỗi).";
 "cleaner.progress" = "Đang dọn %lld/%lld · đã giải phóng %@ · đang: %@";
 "preview.too_large" = "Tệp vượt 200 MB nên không tải trước để tránh chờ lâu. Hãy mở trực tiếp.";
@@ -1210,6 +1214,7 @@
 "filereplace.error.target_missing" = "Tệp đích không tồn tại.";
 "filereplace.error.source_missing" = "Tệp sao lưu bị mất hoặc đã xóa.";
 "filereplace.error.backup_failed" = "Sao lưu thất bại (đích có thể là thư mục hoặc vùng chứa không ghi được).";
+"filereplace.error.sidecar_not_regular" = "Tệp phụ -wal/-shm của cơ sở dữ liệu không phải tệp thường; khôi phục đã bị hủy để bảo vệ dữ liệu.";
 "filereplace.blocked.file_name" = "Tệp hệ thống lõi (bộ nhớ đệm Gestalt, cấu hình mô tả, keychain…) có trang riêng; cấm thay thô.";
 "filereplace.blocked.prefix" = "Thư mục bảo mật hệ thống (/System, /usr, keychains…) cấm thay thô.";
 "backend.notice.filereplace" = "Thay thế trong vùng chứa ứng dụng dùng được trên cả iOS 26 và 27 (lỗ hổng được chọn theo phiên bản). Chỉ đích trong vùng chứa nhóm hệ thống là không ghi được trên iOS 26.0–26.6.1.";
@@ -1468,14 +1473,14 @@
 "update.failure.offline" = "Kiểm tra thất bại: không kết nối được GitHub (ngoại tuyến hoặc bị chặn — cần proxy/mạng khác).";
 "update.failure.other" = "Kiểm tra thất bại:";
 
-// GestaltX v1.1.1 #138 field-import merge (3.2.5 rebuild)
+// Field-import merge (3.2.5 rebuild)
 "gestalt.error.layout_mismatch" = "Định danh bộ nhớ đệm trong plist nhập không khớp thiết bị này; đã từ chối ghi.";
 "gestalt.field.import_summary" = "Nhập xong: ghi đè %d, bỏ qua %d khóa không xác định, giữ %d mục.";
 
-// GestaltX v1.1.1 #133 config import errors (3.2.5 rebuild)
+// Config import errors (3.2.5 rebuild)
 "config.import_error.title" = "Nhập gói cấu hình thất bại";
 
-// Notification sound replacement (3.2.5 rebuild, GestaltX App Audio Library parity)
+// Notification sound replacement (3.2.5 rebuild)
 "home.card.sounds" = "Thay âm báo";
 "home.card.sounds_detail" = "Thay âm báo của ứng dụng bằng âm thanh tùy chọn";
 "notification.sound.title" = "Thay âm báo";
@@ -1501,3 +1506,38 @@
 "notification.sound.error.container" = "Không thể xác định container của ứng dụng. Hãy đảm bảo ứng dụng đã cài và container truy cập được.";
 "notification.sound.error.target" = "Đường dẫn mục tiêu không hợp lệ.";
 "notification.sound.error.source" = "Không thể đọc tệp âm thanh đã chọn.";
+"onboarding.support_ok" = "Thiết bị này được hỗ trợ";
+"onboarding.support_no" = "Thiết bị này không được hỗ trợ";
+"onboarding.app_group_note" = "Cần quyền App Group";
+"wifishare.title" = "Truyền qua Wi-Fi";
+"wifishare.enable" = "Bật máy chủ";
+"wifishare.stopped" = "Máy chủ đã dừng. Khi bật, trình duyệt trong cùng mạng Wi-Fi có thể truy cập tệp trên thiết bị này.";
+"wifishare.starting" = "Đang khởi động…";
+"wifishare.address" = "Địa chỉ";
+"wifishare.connections" = "Kết nối";
+"wifishare.footer" = "Chỉ truy cập trong mạng cục bộ, không qua bất kỳ máy chủ nào. Dùng được từ trình duyệt trên máy tính hoặc điện thoại khác.";
+"wifishare.credentials" = "Thông tin đăng nhập";
+"wifishare.user" = "Tên người dùng";
+"wifishare.pin" = "Mã PIN";
+"wifishare.folder" = "Thư mục chia sẻ";
+"wifishare.pin_footer" = "Mã PIN được tạo lại mỗi lần khởi động và mất hiệu lực khi dừng máy chủ. Nhập cả hai giá trị vào hộp đăng nhập của trình duyệt.";
+"wifishare.requests" = "Yêu cầu gần đây";
+"wifishare.usage" = "Dòng lệnh";
+"wifishare.usage_curl" = "Tải lên: curl -u 3106:PIN -T ./file \"http://ĐỊA_CHỈ:CỔNG/api/upload?path=file\"";
+"wifishare.usage_footer" = "Tải một tệp bằng /api/download?path=tên, hoặc cả thư mục bằng /api/zip?path=thư_mục. Tệp tải lên trùng tên sẽ được đổi tên chứ không ghi đè.";
+"wifishare.entry" = "Truyền qua Wi-Fi";
+"wifishare.entry_footer" = "Truyền tệp trong cùng mạng Wi-Fi, không cần cáp hay ổ đĩa đám mây.";
+"unlock.title" = "Mở khóa";
+"unlock.backend" = "Phần phụ trợ";
+"unlock.os" = "Hệ thống";
+"unlock.footer" = "Mở khóa sẽ chạy chuỗi khai thác nhân để có quyền đọc ghi vùng chứa. Phải lặp lại sau mỗi lần khởi động vì trạng thái nhân không được giữ lại.";
+"unlock.status" = "Trạng thái";
+"unlock.result" = "Kết quả";
+"unlock.duration" = "Thời gian";
+"unlock.run" = "Mở khóa ngay";
+"unlock.running" = "Đang mở khóa…";
+"unlock.warning" = "Chuỗi khai thác mất 10–30 giây và thiết bị có thể đứng hình trong chốc lát; nếu thua cuộc đua, thiết bị có thể tự khởi động lại. Có thể thử lại sau khi thất bại, nhưng hãy để lần khởi động lại hoàn tất trước.";
+"unlock.log" = "Nhật ký trực tiếp";
+"unlock.log_empty" = "Chưa có nhật ký. Nhấn nút phía trên, từng bước của chuỗi sẽ hiện ở đây.";
+"unlock.banner_title" = "Cần mở khóa";
+"unlock.banner_detail" = "Nhấn để chạy chuỗi khai thác nhân và có quyền truy cập vùng chứa";

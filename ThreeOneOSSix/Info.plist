@@ -44,7 +44,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.2.6</string>
+	<string>3.2.7</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -58,7 +58,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>25</string>
+	<string>26</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
@@ -67,6 +67,8 @@
 	<string>16.0</string>
 	<key>NSDocumentsFolderUsageDescription</key>
 	<string>3106 needs access to documents.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>3106 uses the local network to transfer files to and from this device over Wi-Fi.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>3106 needs access to photos for wallpaper customization.</string>
 	<key>UIApplicationSceneManifest</key>

@@ -39,6 +39,7 @@ enum FileReplaceService {
         case targetMissing
         case sourceMissing
         case backupFailed
+        case sidecarNotRegularFile(String)
 
         var errorDescription: String? {
             switch self {
@@ -46,6 +47,7 @@ enum FileReplaceService {
             case .targetMissing: return "filereplace.error.target_missing"
             case .sourceMissing: return "filereplace.error.source_missing"
             case .backupFailed: return "filereplace.error.backup_failed"
+            case .sidecarNotRegularFile: return "filereplace.error.sidecar_not_regular"
             }
         }
     }
@@ -273,6 +275,40 @@ enum FileReplaceService {
         let parent = (record.targetPath as NSString).deletingLastPathComponent
         try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
         try fm.copyItem(at: URL(fileURLWithPath: backupPath), to: targetURL)
+
+        try neutralizeSQLiteSidecars(targetPath: record.targetPath)
+    }
+
+    /// A restored SQLite file replayed its old `-wal` on the next open, which
+    /// silently rolled the database back. Snapshot then empty both sidecars so
+    /// the restored main file is what the app actually sees. Non-regular
+    /// entries abort rather than being skipped — a live WAL beside a freshly
+    /// restored database is worse than not restoring at all.
+    private static func neutralizeSQLiteSidecars(targetPath: String) throws {
+        guard SQLiteSidecarPolicy.isSQLiteFile(path: targetPath) else { return }
+        let fm = FileManager.default
+
+        for sidecarPath in SQLiteSidecarPolicy.sidecars(for: targetPath) {
+            var info = stat()
+            guard lstat(sidecarPath, &info) == 0 else { continue }
+            guard (info.st_mode & S_IFMT) != S_IFLNK else {
+                throw FileReplaceError.sidecarNotRegularFile(sidecarPath)
+            }
+            guard (info.st_mode & S_IFMT) == S_IFREG else {
+                throw FileReplaceError.sidecarNotRegularFile(sidecarPath)
+            }
+            guard info.st_size > 0 else { continue }
+
+            _ = try backupTarget(sidecarPath)
+            do {
+                let handle = try FileHandle(forWritingTo: URL(fileURLWithPath: sidecarPath))
+                defer { try? handle.close() }
+                try handle.truncate(atOffset: 0)
+                try handle.synchronize()
+            } catch {
+                throw FileReplaceError.backupFailed
+            }
+        }
     }
 
     /// The aside left behind by restore() accumulates; prune to newest 4.

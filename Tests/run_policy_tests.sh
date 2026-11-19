@@ -71,6 +71,16 @@ swiftc -O \
   "$ROOT/ThreeOneOSSix/helpers/BackupMetadataPolicy.swift" \
   "$ROOT/ThreeOneOSSix/helpers/GestaltEditPolicy.swift" \
   "$ROOT/ThreeOneOSSix/helpers/NotificationSoundPolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/LanguageResolver.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/OnboardingStore.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/SQLiteSidecarPolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/PlistDatePolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/PermissionPolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/DeviceCPU.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/JailbreakDetector.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/RegionKeyPolicy.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/RegionTargets.swift" \
+  "$ROOT/ThreeOneOSSix/helpers/WiFiSharePolicy.swift" \
   "$ROOT/Tests/main.swift" \
   -o "$TMP/policy-tests"
 

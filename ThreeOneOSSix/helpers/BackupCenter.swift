@@ -459,10 +459,55 @@ final class BackupCenter {
             guard writtenHash == record.sha256 else {
                 throw BackupError.restoreFailed("restored file hash mismatch \(record.targetPath)")
             }
+            // A stale -wal would be replayed over the restored file on the next
+            // open, so the restore has to reach past the main file.
+            try neutralizeSQLiteSidecarsLocked(
+                target: target,
+                feature: record.feature,
+                containerPath: record.containerPath,
+                bundleID: record.bundleID,
+                reason: "before restore of \(record.id.uuidString.prefix(8))"
+            )
         } catch let error as BackupError {
             throw error
         } catch {
             throw BackupError.restoreFailed(error.localizedDescription)
+        }
+    }
+
+    /// Empties the SQLite `-wal` / `-shm` beside a just-restored database.
+    /// Each sidecar that still holds bytes is snapshotted first, so the restore
+    /// stays undoable. Non-regular entries abort the restore: silently skipping
+    /// them would leave a live WAL pointing at the wrong pages.
+    private func neutralizeSQLiteSidecarsLocked(
+        target: URL,
+        feature: BackupFeature,
+        containerPath: String?,
+        bundleID: String?,
+        reason: String
+    ) throws {
+        guard SQLiteSidecarPolicy.isSQLiteFile(path: target.path) else { return }
+
+        for sidecarPath in SQLiteSidecarPolicy.sidecars(for: target.standardizedFileURL.path) {
+            var info = stat()
+            guard lstat(sidecarPath, &info) == 0 else { continue }   // absent is the common case
+            guard (info.st_mode & S_IFMT) != S_IFLNK else {
+                throw BackupError.targetIsSymbolicLink(sidecarPath)
+            }
+            guard (info.st_mode & S_IFMT) == S_IFREG else {
+                throw BackupError.targetNotRegularFile(sidecarPath)
+            }
+            guard info.st_size > 0 else { continue }
+
+            let sidecar = URL(fileURLWithPath: sidecarPath)
+            _ = try createVersionLocked(
+                target: sidecar,
+                feature: feature,
+                containerPath: containerPath,
+                bundleID: bundleID,
+                reason: reason
+            )
+            try writeDataInPlace(Data(), to: sidecar)
         }
     }
 

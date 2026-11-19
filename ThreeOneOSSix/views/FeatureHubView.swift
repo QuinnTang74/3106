@@ -204,6 +204,16 @@ struct FeatureHubView: View {
                     }
 
                     NavigationLink {
+                        WiFiShareView()
+                    } label: {
+                        card(
+                            "home.card.wifishare",
+                            detail: "home.card.wifishare_detail",
+                            icon: "wifi"
+                        )
+                    }
+
+                    NavigationLink {
                         AppSaveBackupView()
                     } label: {
                         card(

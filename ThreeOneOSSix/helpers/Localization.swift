@@ -6,6 +6,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     case english = "en"
     case vietnamese = "vi"
     case simplifiedChinese = "zh-Hans"
+    case korean = "ko"
 
     var id: String { rawValue }
     var locale: Locale { Locale(identifier: rawValue) }
@@ -15,6 +16,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         case .english: return "English"
         case .vietnamese: return "Tiếng Việt"
         case .simplifiedChinese: return "简体中文"
+        case .korean: return "한국어"
         }
     }
 
@@ -23,6 +25,14 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
 
     func text(_ key: String, _ arguments: CVarArg...) -> String {
+        String(format: text(key), locale: locale, arguments: arguments)
+    }
+
+    /// Same as `text(_:_:)` but takes a pre-built argument array. Needed where
+    /// the format arguments come from data (`RejectionReason.arguments`)
+    /// rather than from a call site with a fixed arity — Swift's variadic
+    /// parameters cannot be splatted from an array.
+    func text(_ key: String, arguments: [String]) -> String {
         String(format: text(key), locale: locale, arguments: arguments)
     }
 

@@ -25,8 +25,18 @@ enum ExploitSupportPolicy {
     /// that the boundary is a build number, not a version number.
     static let verifiedIOS27BuildGatedRange = "27.3 beta 1"
 
-    static func supportsKernelExploit(major: Int, minor: Int, patch: Int) -> Bool {
+    static func supportsKernelExploit(
+        major: Int,
+        minor: Int,
+        patch: Int,
+        isA10: Bool = false
+    ) -> Bool {
         guard minor >= 0, patch >= 0 else { return false }
+
+        // A10 Fusion hangs inside the kernel chain on iOS 17. Refusing costs a
+        // device that otherwise looks supported one capability; running it
+        // costs a device-level hang that reboots the phone.
+        if isA10 && major == 17 { return false }
 
         if major == 17 {
             return minor <= 7
@@ -99,10 +109,81 @@ enum ExploitSupportPolicy {
     /// probes above. A fourth "experimental tier" used to short-circuit here
     /// but always returned false, which made it read as a live escape hatch
     /// while being dead code. Anything not listed is unsupported, full stop.
-    static func isSupported(major: Int, minor: Int, patch: Int, build: String) -> Bool {
-        if supportsKernelExploit(major: major, minor: minor, patch: patch) { return true }
+    /// Whether this launch needs the user to press Unlock before container
+    /// access exists.
+    ///
+    /// Only the kernel backend qualifies. `bad_query` and `worse_query` obtain
+    /// access from system APIs and are effectively always on, so a banner there
+    /// would ask the user to confirm a step that does nothing. Pure so the rule
+    /// can be tested without a device.
+    static func requiresExplicitUnlock(isKernelBackend: Bool, hasAccess: Bool) -> Bool {
+        isKernelBackend && !hasAccess
+    }
+
+    static func isSupported(
+        major: Int,
+        minor: Int,
+        patch: Int,
+        build: String,
+        isA10: Bool = false
+    ) -> Bool {
+        if supportsKernelExploit(major: major, minor: minor, patch: patch, isA10: isA10) {
+            return true
+        }
         if supportsBadQuery(major: major, minor: minor, patch: patch) { return true }
         if supportsWorseQuery(major: major, minor: minor, patch: patch, build: build) { return true }
         return false
+    }
+}
+
+/// Why a device is unsupported, as a localization key plus its arguments.
+///
+/// Pure on purpose: onboarding and `AppState.detectSupport()` both need this
+/// explanation, and two hand-written copies would drift the moment one of the
+/// version boundaries changes. Returns `nil` when the device *is* supported.
+enum RejectionReason {
+    struct Reason: Equatable {
+        let key: String
+        let arguments: [String]
+    }
+
+    static func make(
+        major: Int,
+        minor: Int,
+        patch: Int,
+        build: String,
+        osVersion: String,
+        isA10: Bool = false
+    ) -> Reason? {
+        let supported = ExploitSupportPolicy.isSupported(
+            major: major, minor: minor, patch: patch, build: build, isA10: isA10
+        )
+        if supported { return nil }
+
+        // A10 + iOS 17 is refused by chip, not by OS version. Without its own
+        // branch the user would read "unsupported: iOS 17.7.9 (21H…)" — which
+        // implies the OS is too new when the OS is in fact supported on every
+        // other chip. The action is different too: stay put, don't update.
+        if isA10 && major == 17 {
+            return Reason(key: "status.unsupported_a10_ios17", arguments: [])
+        }
+
+        // iOS 18.7.2+ has a permanent, explainable cause: Apple patched the
+        // kernel bugs this project depends on, so no future build of 3106 can
+        // support them. A bare version string would leave the user with
+        // nothing to act on.
+        if ExploitSupportPolicy.isIOS18KernelPatched(major: major, minor: minor, patch: patch) {
+            return Reason(key: "status.unsupported_ios18_patched",
+                          arguments: [ExploitSupportPolicy.ios18KernelPatchedAt])
+        }
+
+        // 27.3 is build-gated: the technique was patched mid-cycle, so the
+        // user needs to know which build to stay on.
+        if major == 27 && minor == 3 {
+            return Reason(key: "status.unsupported_ios27_build",
+                          arguments: [ExploitSupportPolicy.verifiedIOS27Builds.joined(separator: ", ")])
+        }
+
+        return Reason(key: "status.unsupported_reason", arguments: [osVersion])
     }
 }

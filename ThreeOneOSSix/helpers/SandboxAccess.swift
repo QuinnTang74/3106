@@ -26,7 +26,12 @@ enum SandboxBackend: String {
 enum SandboxAccess {
     static var backend: SandboxBackend {
         let v = AppInfo.versionTuple
-        if ExploitSupportPolicy.supportsKernelExploit(major: v.major, minor: v.minor, patch: v.patch) {
+        if ExploitSupportPolicy.supportsKernelExploit(
+            major: v.major,
+            minor: v.minor,
+            patch: v.patch,
+            isA10: DeviceCPU.isA10
+        ) {
             return .kernel
         }
         if ExploitSupportPolicy.supportsWorseQuery(major: v.major, minor: v.minor, patch: v.patch, build: AppInfo.cachedOSBuild) {
