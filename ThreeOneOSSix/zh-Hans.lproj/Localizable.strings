@@ -1309,6 +1309,7 @@
 "gestalt.cards.checkup_item" = "%lld.";
 "gestalt.cards.checkup_region" = "销售地区标识 (LL / LL/A)";
 "gestalt.cards.checkup_regulatory" = "美版监管型号";
+"gestalt.cards.checkup_regulatory_keep" = "监管型号（保留原厂 %@）";
 "gestalt.cards.checkup_gate" = "国行门控与互斥锁检查";
 "gestalt.cards.checkup_admission" = "端侧 AI 准入与子能力";
 "gestalt.cards.checkup_cfg_live" = "配置：%@ · 真机实时：%@";

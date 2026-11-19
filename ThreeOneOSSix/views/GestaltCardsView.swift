@@ -222,6 +222,9 @@ struct GestaltCardsView: View {
     struct CheckupSnapshot {
         let regionLine: String      // "配置：LL / LL/A · 真机实时：LL"
         let regulatoryLine: String  // "配置：A3256 · 真机实时：A3256"
+        /// Row 2 title: full-US mode names the US model; code-only mode
+        /// states that the factory model is kept (Erosion parity).
+        let regulatoryTitle: String
         let gateLine: String        // green-tea/互斥 line
         let admissionLine: String   // hardware native-AI line
         let badgeKey: String
@@ -260,10 +263,10 @@ struct GestaltCardsView: View {
                 }
             }
             if let checkup {
-                checkRow(1, titleKey: "gestalt.cards.checkup_region", detail: checkup.regionLine, state: checkup.rowStates.indices.contains(0) ? checkup.rowStates[0] : nil)
-                checkRow(2, titleKey: "gestalt.cards.checkup_regulatory", detail: checkup.regulatoryLine, state: checkup.rowStates.indices.contains(1) ? checkup.rowStates[1] : nil)
-                checkRow(3, titleKey: "gestalt.cards.checkup_gate", detail: checkup.gateLine, state: checkup.rowStates.indices.contains(2) ? checkup.rowStates[2] : nil)
-                checkRow(4, titleKey: "gestalt.cards.checkup_admission", detail: checkup.admissionLine, state: checkup.rowStates.indices.contains(3) ? checkup.rowStates[3] : nil)
+                checkRow(1, title: language.text("gestalt.cards.checkup_region"), detail: checkup.regionLine, state: checkup.rowStates.indices.contains(0) ? checkup.rowStates[0] : nil)
+                checkRow(2, title: checkup.regulatoryTitle, detail: checkup.regulatoryLine, state: checkup.rowStates.indices.contains(1) ? checkup.rowStates[1] : nil)
+                checkRow(3, title: language.text("gestalt.cards.checkup_gate"), detail: checkup.gateLine, state: checkup.rowStates.indices.contains(2) ? checkup.rowStates[2] : nil)
+                checkRow(4, title: language.text("gestalt.cards.checkup_admission"), detail: checkup.admissionLine, state: checkup.rowStates.indices.contains(3) ? checkup.rowStates[3] : nil)
 
                 // Pills (screenshot): verification entry + test-feature note.
                 HStack(spacing: 10) {
@@ -294,7 +297,7 @@ struct GestaltCardsView: View {
         )
     }
 
-    private func checkRow(_ index: Int, titleKey: String, detail: String, state: CheckupRowState?) -> some View {
+    private func checkRow(_ index: Int, title: String, detail: String, state: CheckupRowState?) -> some View {
         // Icon per operator rule: green check ONLY when written & matching;
         // neutral minus-circle when untouched; orange warning on mismatch;
         // red X for everything on an unsupported backend.
@@ -316,7 +319,7 @@ struct GestaltCardsView: View {
                         .font(.footnote)
                         .foregroundStyle(redColor)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(language.text("gestalt.cards.checkup_item", index) + " " + language.text(titleKey))
+                        Text(language.text("gestalt.cards.checkup_item", index) + " " + title)
                             .font(.footnote.weight(.medium))
                         Text(detail)
                             .font(.caption)
@@ -331,7 +334,7 @@ struct GestaltCardsView: View {
                     .font(.footnote)
                     .foregroundStyle(color)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(language.text("gestalt.cards.checkup_item", index) + " " + language.text(titleKey))
+                    Text(language.text("gestalt.cards.checkup_item", index) + " " + title)
                         .font(.footnote.weight(.medium))
                     Text(detail)
                         .font(.caption)
@@ -373,29 +376,34 @@ struct GestaltCardsView: View {
             // while RegionCode becomes LL. The AI gate keys off the country
             // code, so that mode counts as effective too — requiring LL/A
             // made a correctly applied code-only unlock show "pending".
+            let isLLOnlyMode = snapshot.map {
+                $0.country == "LL" && $0.region != "LL/A"
+            } ?? false
             let regionMatch = snapshot.map { $0.country == "LL" } ?? false
+            // Erosion parity: in "region code only" mode the factory
+            // regulatory model is deliberately kept (e.g. A3524), so any
+            // non-empty value is ready. Full-US mode still has to match the
+            // verified US mapping for this machine.
             let regulatoryMatch = snapshot.map { snap in
-                GestaltRegionService.siriNativeModels.contains { $0.regulatory == snap.regulatory }
+                if isLLOnlyMode { return !snap.regulatory.isEmpty }
+                return GestaltRegionService.siriNativeModels.contains {
+                    $0.regulatory == snap.regulatory
+                }
             } ?? false
             let allGreen = regionMatch && regulatoryMatch && gateOK && (nativeAI || regulatoryMatch)
 
-            // Per-row state: "modified" means the ORIGINAL backup differs
-            // from the live value (a write happened); unmodified rows stay
-            // neutral instead of showing a green check they didn't earn.
-            func rowState(_ written: Bool, _ matches: Bool) -> CheckupRowState {
-                if unsupported { return .mismatch }  // red X overrides below
-                if !written { return .unmodified }
+            // Row icon reflects LIVE readiness, like the reference card:
+            // a value written by another tool still earns the green check.
+            func rowState(_ matches: Bool) -> CheckupRowState {
+                if unsupported { return .mismatch }
                 return matches ? .match : .mismatch
-            }
-            let gestaltWritten = BackupCenter.shared.records(feature: .gestalt).contains {
-                $0.kind == .original
             }
             let states: [CheckupRowState] = unsupported
                 ? [.mismatch, .mismatch, .mismatch, .mismatch]
                 : [
-                    rowState(gestaltWritten, regionMatch),
-                    rowState(gestaltWritten, regulatoryMatch),
-                    rowState(gestaltWritten, gateOK),
+                    rowState(regionMatch),
+                    rowState(regulatoryMatch),
+                    rowState(gateOK),
                     .match,  // hardware admission is read-only truth: native or not
                 ]
 
@@ -410,6 +418,12 @@ struct GestaltCardsView: View {
                     snapshot?.regulatory ?? "—",
                     snapshot?.regulatory ?? "—"
                 ),
+                regulatoryTitle: isLLOnlyMode
+                    ? language.text(
+                        "gestalt.cards.checkup_regulatory_keep",
+                        snapshot?.regulatory ?? "—"
+                    )
+                    : language.text("gestalt.cards.checkup_regulatory"),
                 gateLine: gate.greenTea == nil
                     ? language.text("gestalt.cards.checkup_gate_unknown")
                     : (gate.greenTea == false

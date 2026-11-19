@@ -1309,6 +1309,7 @@
 "gestalt.cards.checkup_item" = "%lld.";
 "gestalt.cards.checkup_region" = "Sales region identity (LL / LL/A)";
 "gestalt.cards.checkup_regulatory" = "US regulatory model";
+"gestalt.cards.checkup_regulatory_keep" = "Regulatory model (factory %@ kept)";
 "gestalt.cards.checkup_gate" = "China-model gates & mutex check";
 "gestalt.cards.checkup_admission" = "On-device AI admission & sub-capabilities";
 "gestalt.cards.checkup_cfg_live" = "Config: %@ · On-device: %@";

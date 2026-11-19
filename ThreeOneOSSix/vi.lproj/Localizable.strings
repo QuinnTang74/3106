@@ -1309,6 +1309,7 @@
 "gestalt.cards.checkup_item" = "%lld.";
 "gestalt.cards.checkup_region" = "Định danh vùng bán (LL / LL/A)";
 "gestalt.cards.checkup_regulatory" = "Kiểu máy quản lý Mỹ";
+"gestalt.cards.checkup_regulatory_keep" = "Kiểu máy quản lý (giữ nguyên %@)";
 "gestalt.cards.checkup_gate" = "Kiểm tra cổng máy TQ & khóa tương hỗ";
 "gestalt.cards.checkup_admission" = "Điều kiện AI trên máy & năng lực con";
 "gestalt.cards.checkup_cfg_live" = "Cấu hình: %@ · Trên máy: %@";
