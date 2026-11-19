@@ -35,6 +35,8 @@ DerivedData/
 /tasks/
 /CONTRIBUTING.md
 /SECURITY.md
+/.deja/
+dist/backups/
 
 # Temporary files
 *.tmp
