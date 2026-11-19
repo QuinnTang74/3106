@@ -144,8 +144,33 @@ struct GestaltRegionView: View {
                 LabeledContent(language.text("gestalt.region.sales")) {
                     Text(snapshot.region).font(.caption.monospaced())
                 }
+                LabeledContent(language.text("gestalt.region.sysconfig")) {
+                    Text(snapshot.regionFromSysconfig ?? language.text("gestalt.region.value_missing"))
+                        .font(.caption.monospaced())
+                }
+                LabeledContent(language.text("gestalt.region.noncache")) {
+                    Text(snapshot.nonCacheRegionInfo ?? language.text("gestalt.region.value_missing"))
+                        .font(.caption.monospaced())
+                }
+                LabeledContent(language.text("gestalt.region.mode")) {
+                    Text(regionModeText(snapshot.unlockMode))
+                        .font(.caption)
+                }
                 LabeledContent(language.text("gestalt.region.regulatory")) {
                     Text(snapshot.regulatory).font(.caption.monospaced())
+                }
+                if snapshot.hasStaleNonCacheValue {
+                    Label {
+                        Text(language.text(
+                            "gestalt.region.stale_warning",
+                            snapshot.nonCacheRegionInfo ?? "",
+                            snapshot.region
+                        ))
+                        .font(.footnote)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
                 }
             } else {
                 Text(language.text("gestalt.region.error.missing_fields"))
@@ -156,6 +181,14 @@ struct GestaltRegionView: View {
             Label(language.text("gestalt.region.snapshot_header"), systemImage: "globe")
         } footer: {
             Text(language.text("gestalt.region.snapshot_footer"))
+        }
+    }
+
+    private func regionModeText(_ mode: GestaltRegionService.RegionSnapshot.UnlockMode) -> String {
+        switch mode {
+        case .fullUS: return language.text("gestalt.region.mode.full_us")
+        case .codeOnly: return language.text("gestalt.region.mode.code_only")
+        case .other: return language.text("gestalt.region.mode.other")
         }
     }
 

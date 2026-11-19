@@ -15,7 +15,9 @@ enum SystemSettingsService {
         "/private/var/containers/Shared/SystemGroup/systemgroup.com.apple.configurationprofiles/Library/ConfigurationProfiles"
     static let plistName = "SharedDeviceConfiguration.plist"
     static let footnoteKey = "LockScreenFootnote"
+    static let assetTagKey = "AssetTagInformation"
     static let maxFootnoteLength = 256
+    static let maxAssetTagLength = 256
 
     enum SystemSettingsError: Error, Equatable, LocalizedError {
         case unavailable
@@ -93,6 +95,49 @@ enum SystemSettingsService {
         )
         ActivityHistory.log(.write, feature: "system-settings",
                             text == nil ? "LockScreenFootnote cleared" : "LockScreenFootnote set")
+        SoundEffects.play(.confirm)
+    }
+
+    /// Current asset tag; nil when the plist or key is absent.
+    static func currentAssetTag() -> String? {
+        (try? readRoot())?[assetTagKey] as? String
+    }
+
+    /// Writes or clears `AssetTagInformation` in the same profile plist.
+    /// Creates the plist when it does not exist yet (the directory already
+    /// exists on every device; only the file is optional).
+    static func applyAssetTag(_ text: String?) throws {
+        let exists = FileManager.default.fileExists(atPath: plistPath)
+        var root = exists ? try readRoot() : [String: Any]()
+        if let text {
+            let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard value.count <= maxAssetTagLength else {
+                throw SystemSettingsError.textTooLong
+            }
+            if value.isEmpty {
+                root.removeValue(forKey: assetTagKey)
+            } else {
+                root[assetTagKey] = value
+            }
+        } else {
+            root.removeValue(forKey: assetTagKey)
+        }
+
+        let grant = ContainerStore.grantContainerAccess(containerPath)
+        defer {
+            if grant >= 0 { SandboxAccess.release(grant) }
+        }
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: root, format: .binary, options: 0
+        )
+        try VerifiedFileWriter.write(
+            data,
+            to: URL(fileURLWithPath: plistPath),
+            feature: .gestalt,
+            reason: "asset-tag"
+        )
+        ActivityHistory.log(.write, feature: "system-settings",
+                            text == nil ? "AssetTagInformation cleared" : "AssetTagInformation set")
         SoundEffects.play(.confirm)
     }
 

@@ -1881,18 +1881,19 @@ expectFalse(JailbreakDetector.refusesKernelChain(isJailbroken: false, isKernelBa
 
 // MARK: - RegionKeyPolicy (F-10)
 //
-// iOS 27 units carry `regionInfo`; older ones carry `legacyRegionInfo`. The old
-// code hardcoded the legacy key on read and write, so every iOS 27 device threw
-// missingRegionFields and could never be read or changed.
+// `legacyRegionInfo` is RegionInfoFromSysconfig, the key the system reads;
+// `regionInfo` is a non-cache key on iOS 27 that older tools injected. Both
+// can exist with different values, and the sysconfig one must win — reading
+// the injected key first made a correctly changed region look unchanged.
 let newKey = "new-region-info"
 let legacyKey = "legacy-region-info"
 let codeKey = "region-code"
 
-var bothKeys: [String: Any] = [newKey: "LL/A", legacyKey: "CH/A", codeKey: "LL"]
-expect(RegionKeyPolicy.infoKey(in: bothKeys, regionInfo: newKey, legacyRegionInfo: legacyKey) == newKey,
-       "when both exist the newer key wins (it is what iOS 27 reads)")
+var bothKeys: [String: Any] = [newKey: "CH/A", legacyKey: "LL/A", codeKey: "LL"]
+expect(RegionKeyPolicy.infoKey(in: bothKeys, regionInfo: newKey, legacyRegionInfo: legacyKey) == legacyKey,
+       "RegionInfoFromSysconfig wins when both keys exist")
 expect(RegionKeyPolicy.regionValue(in: bothKeys, regionInfo: newKey, legacyRegionInfo: legacyKey) == "LL/A",
-       "the value comes from the same key infoKey chose")
+       "the effective value is the sysconfig one, not the stale non-cache key")
 
 var onlyNew: [String: Any] = [newKey: "JP/", codeKey: "J"]
 expect(RegionKeyPolicy.infoKey(in: onlyNew, regionInfo: newKey, legacyRegionInfo: legacyKey) == newKey,

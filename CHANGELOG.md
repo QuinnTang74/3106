@@ -2,6 +2,22 @@
 
 All notable user-facing changes are documented in this file.
 
+## [3.2.9] - 2026-11-20
+
+### Fixed
+
+- **地区读取优先级**：`RegionInfoFromSysconfig`（`yK+xavym…`）才是系统读取的键；`RegionInfo`（`zHeENZu…`）在 iOS 27 上是非缓存键，旧工具注入后可能与实际值不一致。此前优先读非缓存键，会把已经改好的 `LL/A` 显示成旧值（或看起来“没生效”）。现在 sysconfig 优先，地区页同时列出两键、当前修改模式（完整美版 / 仅区域代码 / 未切换），并在两键不一致时给出醒目提示。
+
+### Added
+
+- **伪监管残留体检**：识别只含 `IsSupervised` / `OrganizationName`、没有 MDM 证书链的 `CloudConfigurationDetails.plist`；可先备份再单独清除，真实 MDM 配置不会被改动。
+- **资产铭牌 `AssetTagInformation`**：与锁屏文字同页，支持读取、写入与清除，写入走原有校验/备份管线。
+- 四语键集增至 1539。
+
+### Changed
+
+- 地区快照新增 `RegionInfoFromSysconfig` / 非缓存 `RegionInfo` 两行与“修改模式”行；旧的“销售区域”一行仍显示系统实际生效值。
+
 ## [3.2.8] - 2026-11-20
 
 ### Fixed

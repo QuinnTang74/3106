@@ -7,8 +7,10 @@ import SwiftUI
 struct SupervisedModeView: View {
     @Environment(\.appLanguage) private var language
     @State private var isSupervised: Bool?
+    @State private var audit: SupervisedModeService.CloudConfigAudit = .clean
     @State private var isBusy = false
     @State private var showConfirmation = false
+    @State private var showClearConfirmation = false
     @State private var pendingValue = false
     @State private var activeAlert: SupervisedAlert?
     @State private var hasLoaded = false
@@ -56,6 +58,8 @@ struct SupervisedModeView: View {
                 Text(language.text("supervised.warning"))
             }
 
+            auditSection
+
             if let errorNote {
                 Section {
                     Text(errorNote)
@@ -81,7 +85,67 @@ struct SupervisedModeView: View {
                 apply(pendingValue)
             }
         }
+        .alert(language.text("supervised.audit.clear"), isPresented: $showClearConfirmation) {
+            Button(language.text("supervised.audit.clear"), role: .destructive) {
+                clearFakeSupervision()
+            }
+            Button(language.text("common.cancel"), role: .cancel) {}
+        } message: {
+            Text(language.text("supervised.audit.clear_confirm"))
+        }
         .alert(item: $activeAlert, content: alertContent)
+    }
+
+    @ViewBuilder
+    private var auditSection: some View {
+        Section {
+            Label {
+                Text(auditText)
+                    .font(.subheadline)
+            } icon: {
+                Image(systemName: auditIcon)
+                    .foregroundStyle(auditColor)
+            }
+            if case .fakeResidue = audit {
+                Button(role: .destructive) {
+                    showClearConfirmation = true
+                } label: {
+                    Label(language.text("supervised.audit.clear"), systemImage: "trash")
+                }
+                .disabled(isBusy)
+            }
+        } header: {
+            Label(language.text("supervised.audit.header"), systemImage: "stethoscope")
+        } footer: {
+            Text(language.text("supervised.audit.footer"))
+        }
+    }
+
+    private var auditText: String {
+        switch audit {
+        case .clean:
+            return language.text("supervised.audit.clean")
+        case .genuineMDM(let org):
+            return language.text("supervised.audit.genuine", org)
+        case .fakeResidue(let org):
+            return language.text("supervised.audit.fake", org)
+        }
+    }
+
+    private var auditIcon: String {
+        switch audit {
+        case .clean: return "checkmark.shield"
+        case .genuineMDM: return "building.2.crop.circle"
+        case .fakeResidue: return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var auditColor: Color {
+        switch audit {
+        case .clean: return .green
+        case .genuineMDM: return .secondary
+        case .fakeResidue: return .red
+        }
     }
 
     private var stateText: String {
@@ -100,9 +164,35 @@ struct SupervisedModeView: View {
         isBusy = true
         DispatchQueue.global(qos: .utility).async {
             let state = SupervisedModeService.currentState()
+            let audit = SupervisedModeService.audit()
             DispatchQueue.main.async {
                 isSupervised = state
+                self.audit = audit
                 isBusy = false
+            }
+        }
+    }
+
+    private func clearFakeSupervision() {
+        isBusy = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                try SupervisedModeService.clearFakeSupervision()
+                let state = SupervisedModeService.currentState()
+                let audit = SupervisedModeService.audit()
+                DispatchQueue.main.async {
+                    isSupervised = state
+                    self.audit = audit
+                    isBusy = false
+                    SoundEffects.play(.success)
+                    activeAlert = .message(language.text("supervised.audit.cleared"))
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    isBusy = false
+                    SoundEffects.play(.failure)
+                    activeAlert = .message(language.errorText(error))
+                }
             }
         }
     }

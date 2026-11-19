@@ -21,6 +21,7 @@ enum SupervisedModeService {
         case unreadable
         case invalidPlist
         case notAConfigurationProfile
+        case notFakeResidue
 
         var errorDescription: String? {
             switch self {
@@ -28,6 +29,7 @@ enum SupervisedModeService {
             case .unreadable: return "supervised.error.unreadable"
             case .invalidPlist: return "supervised.error.invalid"
             case .notAConfigurationProfile: return "supervised.error.not_profile"
+            case .notFakeResidue: return "supervised.error.not_residue"
             }
         }
     }
@@ -41,6 +43,68 @@ enum SupervisedModeService {
         guard let root = try? readRoot() else { return nil }
         let value = root[supervisedKey] as? NSNumber
         return value?.boolValue
+    }
+
+    /// Third-party "fake supervision" audit (Erosion-CN ConfigView parity).
+    ///
+    /// A file carrying only `IsSupervised` / `OrganizationName` and no MDM
+    /// key or certificate chain is residue from an older tool. It is the
+    /// combination that can drive Setup Assistant into a 403 loop after an
+    /// OTA update, so it is reported separately from a genuine enrollment.
+    enum CloudConfigAudit: Equatable {
+        case clean
+        case genuineMDM(org: String)
+        case fakeResidue(org: String)
+    }
+
+    private static let genuineMDMKeys = [
+        "ConfigurationSource",
+        "PostSetupProfileWasInstalled",
+        "AwaitDeviceConfigured",
+        "CloudConfigurationUIComplete",
+        "ConfigurationURL",
+        "AnchorCertificates",
+        "SupervisorHostCertificates",
+    ]
+
+    static func audit() -> CloudConfigAudit {
+        guard let root = try? readRoot() else { return .clean }
+        let org = root["OrganizationName"] as? String ?? ""
+        if genuineMDMKeys.contains(where: { root[$0] != nil }) {
+            return .genuineMDM(org: org)
+        }
+        let keys = Set(root.keys)
+        let fakeOnly: Set<String> = [supervisedKey, "OrganizationName"]
+        let supervised = (root[supervisedKey] as? NSNumber)?.boolValue == true
+        if supervised && keys.subtracting(fakeOnly).isEmpty {
+            return .fakeResidue(org: org)
+        }
+        return .clean
+    }
+
+    /// Removes a fake-supervision file after copying it next to the app's
+    /// Documents. Refuses to touch a genuine MDM enrollment.
+    static func clearFakeSupervision() throws {
+        guard case .fakeResidue = audit() else {
+            throw SupervisedError.notFakeResidue
+        }
+        let stamp = ISO8601DateFormatter().string(from: Date())
+            .replacingOccurrences(of: ":", with: "-")
+        if let data = FileManager.default.contents(atPath: plistPath) {
+            let docs = FileManager.default.urls(
+                for: .documentDirectory, in: .userDomainMask
+            )[0]
+            let backup = docs.appendingPathComponent(
+                "CloudConfigurationDetails.backup-\(stamp).plist"
+            )
+            try? data.write(to: backup, options: .atomic)
+        }
+        let grant = SandboxAccess.grant(path: containerPath, writable: true)
+        defer {
+            if grant >= 0 { SandboxAccess.release(grant) }
+        }
+        try FileManager.default.removeItem(atPath: plistPath)
+        ActivityHistory.log(.write, feature: "supervised", "fake supervision residue removed")
     }
 
     static func apply(_ supervised: Bool) throws {

@@ -10,6 +10,8 @@ struct SystemSettingsView: View {
 
     @State private var currentFootnote: String?
     @State private var draft = ""
+    @State private var currentAssetTag: String?
+    @State private var assetDraft = ""
     @State private var isLoading = true
     @State private var loadFailed = false
     @State private var riskAction: RiskAction?
@@ -19,6 +21,8 @@ struct SystemSettingsView: View {
     enum RiskAction: Identifiable {
         case apply
         case clear
+        case assetApply
+        case assetClear
         var id: String { "\(self)" }
     }
 
@@ -32,6 +36,8 @@ struct SystemSettingsView: View {
             } else {
                 currentSection
                 editSection
+                assetCurrentSection
+                assetEditSection
             }
             if let message = resultMessage {
                 Section {
@@ -115,36 +121,107 @@ struct SystemSettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var assetCurrentSection: some View {
+        Section {
+            if isLoading {
+                HStack { ProgressView().controlSize(.small) }
+            } else if let tag = currentAssetTag, !tag.isEmpty {
+                Text(tag)
+                    .font(.subheadline)
+                    .textSelection(.enabled)
+            } else {
+                Text(language.text("systemsettings.asset_current_empty"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text(language.text("systemsettings.asset_section.current"))
+        }
+    }
+
+    @ViewBuilder
+    private var assetEditSection: some View {
+        Section {
+            TextField(language.text("systemsettings.asset_field_placeholder"), text: $assetDraft)
+                .lineLimit(1)
+                .autocorrectionDisabled()
+            HStack {
+                Spacer()
+                Text("\(assetDraft.count) / \(SystemSettingsService.maxAssetTagLength)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(assetDraft.count > SystemSettingsService.maxAssetTagLength ? .red : .secondary)
+            }
+            Button(language.text("systemsettings.asset_apply")) {
+                riskAction = .assetApply
+            }
+            .fontWeight(.semibold)
+            .disabled(assetDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button(role: .destructive) {
+                riskAction = .assetClear
+            } label: {
+                Label(language.text("systemsettings.asset_clear"), systemImage: "tag.slash")
+            }
+            .disabled(currentAssetTag == nil || (currentAssetTag?.isEmpty ?? true))
+        } header: {
+            Text(language.text("systemsettings.asset_section.edit"))
+        } footer: {
+            Text(language.text("systemsettings.asset_edit_footer"))
+        }
+    }
+
     private func load() {
         isLoading = true
         loadFailed = false
         DispatchQueue.global(qos: .userInitiated).async {
             let loaded = try? SystemSettingsService.currentFootnote()
+            let tag = SystemSettingsService.currentAssetTag()
             DispatchQueue.main.async {
                 currentFootnote = loaded
-                if loaded == nil && currentFootnote == nil {
-                    loadFailed = false // nil is the factory state, not failure
-                }
+                currentAssetTag = tag
+                assetDraft = tag ?? ""
                 isLoading = false
             }
         }
     }
 
     private func commit(_ action: RiskAction) {
-        let payload: String? = (action == .apply) ? draft : nil
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                try SystemSettingsService.apply(payload)
-                let refreshed = try? SystemSettingsService.currentFootnote()
-                DispatchQueue.main.async {
-                    currentFootnote = refreshed
-                    resultMessage = action == .apply
-                        ? language.text("systemsettings.applied")
-                        : language.text("systemsettings.cleared")
+        switch action {
+        case .apply, .clear:
+            let payload: String? = (action == .apply) ? draft : nil
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try SystemSettingsService.apply(payload)
+                    let refreshed = try? SystemSettingsService.currentFootnote()
+                    DispatchQueue.main.async {
+                        currentFootnote = refreshed
+                        resultMessage = action == .apply
+                            ? language.text("systemsettings.applied")
+                            : language.text("systemsettings.cleared")
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        errorMessage = localized(error)
+                    }
                 }
-            } catch {
-                DispatchQueue.main.async {
-                    errorMessage = localized(error)
+            }
+        case .assetApply, .assetClear:
+            let payload: String? = (action == .assetApply) ? assetDraft : nil
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try SystemSettingsService.applyAssetTag(payload)
+                    let refreshed = SystemSettingsService.currentAssetTag()
+                    DispatchQueue.main.async {
+                        currentAssetTag = refreshed
+                        assetDraft = refreshed ?? ""
+                        resultMessage = action == .assetApply
+                            ? language.text("systemsettings.asset_applied")
+                            : language.text("systemsettings.asset_cleared")
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        errorMessage = localized(error)
+                    }
                 }
             }
         }

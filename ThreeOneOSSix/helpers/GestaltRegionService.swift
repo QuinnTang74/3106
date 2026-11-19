@@ -68,9 +68,36 @@ enum GestaltRegionService {
 
     struct RegionSnapshot: Equatable {
         var country: String
+        /// The value the system actually reads: RegionInfoFromSysconfig when
+        /// present, otherwise the non-cache `regionInfo` fallback.
         var region: String
+        /// Raw RegionInfoFromSysconfig (`yK+xavym…`), nil when absent.
+        var regionFromSysconfig: String?
+        /// Raw non-cache `regionInfo` (`zHeENZu…`). Older tools injected it;
+        /// when both exist this value can be stale and is shown separately.
+        var nonCacheRegionInfo: String?
         var regulatory: String
         var machine: String
+
+        enum UnlockMode: Equatable {
+            case fullUS
+            case codeOnly
+            case other
+        }
+
+        /// Erosion-CN's two modes: full US changes RegionCode + sysconfig +
+        /// regulatory; code-only leaves the sales suffix (e.g. CH/A) alone.
+        var unlockMode: UnlockMode {
+            guard country.uppercased() == "LL" else { return .other }
+            return region == "LL/A" ? .fullUS : .codeOnly
+        }
+
+        /// True when the non-cache key disagrees with the effective value —
+        /// the exact state that made a correct region write look unchanged.
+        var hasStaleNonCacheValue: Bool {
+            guard let nonCacheRegionInfo else { return false }
+            return nonCacheRegionInfo != region
+        }
     }
 
     // MARK: - Snapshot
@@ -94,6 +121,8 @@ enum GestaltRegionService {
         return RegionSnapshot(
             country: country,
             region: region,
+            regionFromSysconfig: cacheExtra[GestaltKeys.legacyRegionInfo] as? String,
+            nonCacheRegionInfo: cacheExtra[GestaltKeys.regionInfo] as? String,
             regulatory: regulatory,
             machine: gestaltDeviceMachine()
         )
